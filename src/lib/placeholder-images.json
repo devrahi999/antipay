@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar",
+      "description": "Professional user avatar",
+      "imageUrl": "https://picsum.photos/seed/user123/200/200",
+      "imageHint": "profile avatar"
+    },
+    {
+      "id": "store-logo-1",
+      "description": "Minimalist store logo",
+      "imageUrl": "https://picsum.photos/seed/store1/300/300",
+      "imageHint": "business logo"
+    },
+    {
+      "id": "store-logo-2",
+      "description": "Modern shop branding",
+      "imageUrl": "https://picsum.photos/seed/store2/300/300",
+      "imageHint": "shop identity"
+    }
+  ]
 }
