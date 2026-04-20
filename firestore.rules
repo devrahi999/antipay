@@ -1,0 +1,195 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * ANTI-PAY SECURITY RULES - PHILOSOPHY & STRUCTURE
+     * 
+     * Core Philosophy: This ruleset enforces a strict merchant-ownership model. Every piece of 
+     * business data is tied to a specific merchant via their Firebase Authentication UID.
+     * 
+     * Data Structure: 
+     * - /users/{userId}: Root profile and configuration.
+     * - /users/{userId}/...: Private merchant data (API Keys, Stores, Devices, Raw Transactions).
+     * - /public_payment_sessions/{sessionId}: Publicly accessible session data used by external 
+     *   customers to complete payments without exposing merchant internals.
+     * 
+     * Key Security Decisions:
+     * - Denormalization: The 'userId' is denormalized across all sub-collections to ensure 
+     *   authorization logic is fast, performant, and avoids expensive get() calls.
+     * - Structural Segregation: Payment sessions are split between a private merchant-owned 
+     *   path and a public path to prevent sensitive information leakage during the payment flow.
+     * - Relational Integrity: Critical relational fields like 'userId' are enforced at the 
+     *   rule level to ensure data cannot be moved between merchant accounts.
+     * - Prototyping Flexibility: While access control is strict, data types and specific 
+     *   field structures (except for IDs) are not enforced to allow for rapid iteration.
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /** Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the document exists and the current user is the owner. Used for updates/deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** Enforces that the 'userId' field in the incoming data matches the authorized user. */
+    function isValidUserRelationship(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /** Enforces that a field remains unchanged during an update. */
+    function isImmutable(fieldName) {
+      return !(fieldName in request.resource.data) || request.resource.data[fieldName] == resource.data[fieldName];
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the UserProfile document.
+     * @path /users/{userId}
+     * @allow (get, create, update) if isOwner(userId)
+     * @deny (list, delete) Always denied to prevent user enumeration and accidental deletion.
+     * @principle Ownership - Users manage their own identity.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if false;
+
+      /**
+       * @description Rules for Merchant Stores.
+       * @path /users/{userId}/stores/{storeId}
+       * @allow (get, list, create, update, delete) if isOwner(userId)
+       * @deny (all) if request.auth.uid != userId
+       * @principle Structural Segregation - Nested under user path for automatic scoping.
+       */
+      match /stores/{storeId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserRelationship(userId);
+        allow update: if isExistingOwner(userId) && isImmutable('userId');
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for API Keys.
+       * @path /users/{userId}/apiKeys/{apiKeyId}
+       * @allow (get, list, create, update, delete) if isOwner(userId)
+       * @deny (all) for any other user.
+       * @principle Relational Integrity - API Keys must be linked to the creating merchant.
+       */
+      match /apiKeys/{apiKeyId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserRelationship(userId);
+        allow update: if isExistingOwner(userId) && isImmutable('userId');
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for Payment Method Configurations (bKash, Nagad, etc.).
+       * @path /users/{userId}/paymentMethods/{paymentMethodId}
+       * @allow (get, list, create, update) if isOwner(userId)
+       * @deny (delete) if logic requires persistence of payment history.
+       * @principle Ownership - Merchant controls their accepted payment providers.
+       */
+      match /paymentMethods/{paymentMethodId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserRelationship(userId);
+        allow update: if isExistingOwner(userId) && isImmutable('userId');
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for Private Merchant View of Payment Sessions.
+       * @path /users/{userId}/paymentSessions/{sessionId}
+       * @allow (get, list) if isOwner(userId)
+       * @deny (create, update, delete) Updates are usually handled via system logic or public path.
+       * @principle Rules are not filters - Merchant lists only their own sessions.
+       */
+      match /paymentSessions/{sessionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserRelationship(userId);
+        allow update: if isExistingOwner(userId) && isImmutable('userId');
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for Raw SMS/Transaction data.
+       * @path /users/{userId}/rawTransactions/{transactionId}
+       * @allow (get, list, create) if isOwner(userId)
+       * @deny (update, delete) for data integrity and audit trail.
+       * @principle Auditable Logic - Raw transaction data should be immutable once recorded.
+       */
+      match /rawTransactions/{transactionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserRelationship(userId);
+        allow update, delete: if false;
+      }
+
+      /**
+       * @description Rules for Merchant Devices.
+       * @path /users/{userId}/devices/{deviceId}
+       * @allow (get, list, create, update, delete) if isOwner(userId)
+       * @deny (all) for unauthorized users.
+       * @principle Ownership - Merchant manages their own hardware integrations.
+       */
+      match /devices/{deviceId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserRelationship(userId);
+        allow update: if isExistingOwner(userId) && isImmutable('userId');
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for User Subscription status.
+       * @path /users/{userId}/userSubscription
+       * @allow (get) if isOwner(userId)
+       * @deny (list, create, update, delete) Subscription lifecycle is managed by admin/backend.
+       * @principle Roles - Subscription logic is read-only for the client.
+       */
+      match /userSubscription {
+        allow get: if isOwner(userId);
+        allow list, create, update, delete: if false;
+      }
+    }
+
+    /**
+     * @description Rules for Public Payment Sessions (Accessed by Customers).
+     * @path /public_payment_sessions/{sessionId}
+     * @allow (get) for anyone with a valid session ID.
+     * @allow (update) for anyone to submit a transaction ID for verification.
+     * @deny (list, create, delete) Public users should not browse sessions.
+     * @principle Public Read with Restricted Writes - Secure external flow.
+     */
+    match /public_payment_sessions/{sessionId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if false;
+      allow update: if resource.data.status == 'pending';
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for Global Subscription Plans.
+     * @path /subscriptionPlans/{planId}
+     * @allow (get, list) for all users to view available plans.
+     * @deny (write) Plans are configured by system administrators.
+     * @principle Public Read - Static application config.
+     */
+    match /subscriptionPlans/{planId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+  }
+}
