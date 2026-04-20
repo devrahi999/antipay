@@ -59,8 +59,13 @@ const navItems = [
 ]
 
 export function AppSidebar() {
+  const [mounted, setMounted] = React.useState(false)
   const pathname = usePathname()
   const userAvatar = PlaceHolderImages.find(img => img.id === "user-avatar")?.imageUrl
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
@@ -85,7 +90,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.url}
-                    tooltip={item.title}
+                    tooltip={mounted ? item.title : undefined}
                     className="h-10"
                   >
                     <Link href={item.url}>
@@ -113,7 +118,7 @@ export function AppSidebar() {
         </div>
         <SidebarMenu className="mt-4">
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Logout" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+            <SidebarMenuButton tooltip={mounted ? "Logout" : undefined} className="text-destructive hover:text-destructive hover:bg-destructive/10">
               <LogOut className="h-4 w-4" />
               <span className="font-medium group-data-[collapsible=icon]:hidden">Sign Out</span>
             </SidebarMenuButton>
