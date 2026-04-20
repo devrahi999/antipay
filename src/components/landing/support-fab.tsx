@@ -61,12 +61,12 @@ export function SupportFAB() {
       {/* Main Toggle Button */}
       <div className="relative">
         {!isOpen && (
-          <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-25" />
+          <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-25 pointer-events-none" />
         )}
         <Button
           size="icon"
           className={cn(
-            "h-14 w-14 rounded-full shadow-2xl transition-all duration-300",
+            "h-14 w-14 rounded-full shadow-2xl transition-all duration-300 relative z-10",
             isOpen ? "bg-destructive hover:bg-destructive/90 rotate-90" : "bg-primary hover:bg-primary/90"
           )}
           onClick={() => setIsOpen(!isOpen)}
