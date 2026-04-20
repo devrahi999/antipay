@@ -1,129 +1,141 @@
+
+'use client';
+
+import { useMemo } from 'react';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
   ArrowUpRight, 
-  ArrowDownRight, 
   Wallet, 
-  Store as StoreIcon, 
+  Layers, 
   Activity,
   CheckCircle2,
-  AlertCircle
+  Smartphone,
+  Key
 } from "lucide-react"
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 
 export default function DashboardPage() {
+  const { user, isUserLoading } = useUser();
+  const db = useFirestore();
+
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, 'users', user.uid, 'paymentSessions'),
+      orderBy('createdAt', 'desc'),
+      limit(5)
+    );
+  }, [db, user]);
+
+  const { data: recentSessions, isLoading: sessionsLoading } = useCollection(sessionsQuery);
+
+  const stats = [
+    { title: "Total Sessions", value: "24", icon: Layers, trend: "+12%" },
+    { title: "Verified", value: "18", icon: CheckCircle2, trend: "+8%" },
+    { title: "Pending", value: "6", icon: Activity, trend: "-2%" },
+    { title: "Active Devices", value: "1", icon: Smartphone, trend: "0%" },
+  ];
+
+  if (isUserLoading) return <div className="p-8 text-center">Loading your dashboard...</div>;
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-headline font-bold text-foreground">Overview</h1>
-        <p className="text-muted-foreground">Monitor your store activity and performance.</p>
+        <h1 className="text-3xl font-headline font-bold text-foreground">Welcome back, {user?.displayName || "Merchant"}</h1>
+        <p className="text-muted-foreground">Here's what's happening with your payments today.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="shadow-sm border-none bg-card hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Volume</CardTitle>
-            <Wallet className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">৳145,280.00</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <span className="text-primary flex items-center"><ArrowUpRight className="h-3 w-3" /> +12.5%</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-none bg-card hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Stores</CardTitle>
-            <StoreIcon className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              2 stores currently processing
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-none bg-card hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <Activity className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">98.2%</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <span className="text-primary flex items-center"><ArrowUpRight className="h-3 w-3" /> +0.4%</span> from yesterday
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-none bg-card hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Plan</CardTitle>
-            <Badge variant="secondary" className="bg-accent text-accent-foreground">PRO</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Professional</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Next billing date: Oct 12, 2024
-            </p>
-          </CardContent>
-        </Card>
+        {stats.map((stat, idx) => (
+          <Card key={idx} className="shadow-sm border-none bg-card hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <span className="text-primary flex items-center"><ArrowUpRight className="h-3 w-3" /> {stat.trend}</span> vs yesterday
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="shadow-sm border-none">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="lg:col-span-2 shadow-sm border-none">
           <CardHeader>
-            <CardTitle>Account Status</CardTitle>
-            <CardDescription>Current operational status of your merchant account.</CardDescription>
+            <CardTitle>Recent Sessions</CardTitle>
+            <CardDescription>The last 5 payment requests initiated via your API.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-secondary">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="text-primary" />
-                <div>
-                  <p className="font-semibold">KYC Verified</p>
-                  <p className="text-xs text-muted-foreground">Full access to all features enabled.</p>
-                </div>
+          <CardContent>
+            {sessionsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading sessions...</p>
+            ) : recentSessions && recentSessions.length > 0 ? (
+              <div className="space-y-4">
+                {recentSessions.map((session) => (
+                  <div key={session.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 p-2 rounded-full text-primary">
+                        <Wallet className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">৳{session.amount}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase">{session.method}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge 
+                        variant="secondary" 
+                        className={
+                          session.status === 'completed' ? 'bg-green-100 text-green-700' :
+                          session.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        }
+                      >
+                        {session.status}
+                      </Badge>
+                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(session.createdAt).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <Badge variant="outline" className="border-primary text-primary">Verified</Badge>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-secondary">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="text-primary" />
-                <div>
-                  <p className="font-semibold">Payout Account</p>
-                  <p className="text-xs text-muted-foreground">Linked to Bank Asia XXXX-1234</p>
-                </div>
+            ) : (
+              <div className="text-center py-8">
+                <Layers className="mx-auto h-12 w-12 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No sessions yet. Integrate your API to get started.</p>
               </div>
-              <Badge variant="outline" className="border-primary text-primary">Connected</Badge>
-            </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-none">
           <CardHeader>
-            <CardTitle>Store Performance</CardTitle>
-            <CardDescription>Transactions per store identity.</CardDescription>
+            <CardTitle>System Health</CardTitle>
+            <CardDescription>Status of your critical services.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: "MyGadget BD", volume: "৳82,000", share: "56%" },
-                { name: "FashionHub", volume: "৳45,280", share: "31%" },
-                { name: "Daily Needs", volume: "৳18,000", share: "13%" },
-              ].map((store) => (
-                <div key={store.name} className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium">{store.name}</span>
-                    <span className="text-muted-foreground font-mono">{store.volume} ({store.share})</span>
-                  </div>
-                  <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-primary h-full rounded-full transition-all duration-500" 
-                      style={{ width: store.share }}
-                    />
-                  </div>
-                </div>
-              ))}
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Key className="text-primary h-5 w-5" />
+                <span className="text-sm font-medium">API Endpoint</span>
+              </div>
+              <Badge variant="outline" className="border-green-500 text-green-500">Operational</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Smartphone className="text-primary h-5 w-5" />
+                <span className="text-sm font-medium">SMS Gateway</span>
+              </div>
+              <Badge variant="outline" className="border-green-500 text-green-500">Connected</Badge>
+            </div>
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-2">Usage Limit</p>
+              <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                <div className="bg-primary h-full rounded-full w-[15%]" />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">150 / 1000 transactions this month</p>
             </div>
           </CardContent>
         </Card>
