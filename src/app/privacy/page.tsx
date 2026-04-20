@@ -35,15 +35,15 @@ export default function PrivacyPage() {
               We collect information you provide to us directly, such as your business details, email address, and payment method configurations. We also collect transaction data (trxId, amount) for verification purposes.
             </p>
             <h2 className="text-2xl font-bold text-foreground pt-4">2. How We Use Information</h2>
-            <p>
-              We use your information to:
+            <div>
+              <p>We use your information to:</p>
               <ul className="list-disc pl-6 pt-2">
                 <li>Provide and maintain our verification services.</li>
                 <li>Process and verify payment transactions.</li>
                 <li>Improve our API and security systems.</li>
                 <li>Communicate with you regarding account updates.</li>
               </ul>
-            </p>
+            </div>
             <h2 className="text-2xl font-bold text-foreground pt-4">3. Data Security</h2>
             <p>
               We implement industry-standard security measures to protect your data. All API calls are encrypted via TLS, and sensitive keys are stored securely. We never store full customer financial details.
