@@ -71,13 +71,13 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="font-headline font-bold text-xl tracking-tight text-primary">AntiPay</span>
-            <span className="text-xs text-muted-foreground">Merchant Dashboard</span>
+            <span className="text-xs text-muted-foreground font-medium">Merchant Dashboard</span>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -86,10 +86,11 @@ export function AppSidebar() {
                     asChild
                     isActive={pathname === item.url}
                     tooltip={item.title}
+                    className="h-10"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -100,21 +101,21 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4">
         <SidebarSeparator className="mb-4" />
-        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center px-2">
+          <Avatar className="h-8 w-8 ring-1 ring-primary/20">
             <AvatarImage src={userAvatar} alt="User Avatar" />
             <AvatarFallback>AP</AvatarFallback>
           </Avatar>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden overflow-hidden">
-            <span className="text-sm font-semibold truncate">Rahat Kabir</span>
-            <span className="text-xs text-muted-foreground truncate">rahat@antipay.io</span>
+            <span className="text-xs font-semibold truncate">Rahat Kabir</span>
+            <span className="text-[10px] text-muted-foreground truncate">rahat@antipay.io</span>
           </div>
         </div>
         <SidebarMenu className="mt-4">
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Logout" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-              <LogOut />
-              <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
+              <LogOut className="h-4 w-4" />
+              <span className="font-medium group-data-[collapsible=icon]:hidden">Sign Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
