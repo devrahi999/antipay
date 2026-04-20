@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
   Accordion,
@@ -18,8 +18,6 @@ import {
   Lock, 
   ArrowRight, 
   CheckCircle2, 
-  MousePointerClick, 
-  BarChart3,
   Globe,
   Code2,
   Terminal,
@@ -27,43 +25,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
-
-function CountUp({ end, suffix = "" }: { end: number, suffix?: string }) {
-  const [count, setCount] = useState(0);
-  const countRef = useRef<HTMLSpanElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
-      },
-      { threshold: 0.1 }
-    );
-    if (countRef.current) observer.observe(countRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!isVisible) return;
-    let start = 0;
-    const duration = 2000;
-    const increment = end / (duration / 16);
-    
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, 16);
-    return () => clearInterval(timer);
-  }, [isVisible, end]);
-
-  return <span ref={countRef}>{count.toLocaleString()}{suffix}</span>;
-}
+import { SupportFAB } from "@/components/landing/support-fab"
 
 function RevealOnScroll({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -106,7 +68,6 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-body selection:bg-primary/20">
-      {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
@@ -159,27 +120,24 @@ export default function LandingPage() {
               </RevealOnScroll>
               
               <div className="flex justify-center items-center">
-                <RevealOnScroll className="relative w-full max-w-md aspect-square bg-card rounded-2xl border shadow-xl flex items-center justify-center overflow-hidden p-6 scale-90 md:scale-100">
+                <RevealOnScroll className="relative w-full max-w-[340px] aspect-square bg-card rounded-2xl border shadow-xl flex items-center justify-center overflow-hidden p-6">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(22,163,74,0.05)_0,transparent_70%)]" />
                   <div className="relative z-10 flex flex-col items-center gap-6">
-                    <div className="bg-primary text-white p-5 rounded-2xl shadow-xl shadow-primary/30 animate-bounce">
-                      <ShieldCheck size={48} />
+                    <div className="bg-primary text-white p-4 rounded-2xl shadow-xl shadow-primary/30 animate-bounce">
+                      <ShieldCheck size={40} />
                     </div>
                     <div className="flex gap-4">
-                      <div className="bg-white border p-3 rounded-xl shadow-md transform -rotate-12 translate-y-2">
-                        <Badge className="bg-[#e2136e] hover:bg-[#e2136e] text-[10px] px-2">bKash</Badge>
+                      <div className="bg-white border p-2.5 rounded-xl shadow-md transform -rotate-12 translate-y-2">
+                        <Badge className="bg-[#e2136e] hover:bg-[#e2136e] text-[9px] px-2">bKash</Badge>
                       </div>
-                      <div className="bg-white border p-3 rounded-xl shadow-md transform rotate-6">
-                        <Badge className="bg-[#f7941d] hover:bg-[#f7941d] text-[10px] px-2">Nagad</Badge>
+                      <div className="bg-white border p-2.5 rounded-xl shadow-md transform rotate-6">
+                        <Badge className="bg-[#f7941d] hover:bg-[#f7941d] text-[9px] px-2">Nagad</Badge>
                       </div>
                     </div>
-                    <div className="bg-accent/20 text-primary px-5 py-2 rounded-full text-xs font-bold shadow-sm flex items-center gap-2 border border-primary/10">
-                      <CheckCircle2 className="text-primary h-4 w-4" /> Verified API Call
+                    <div className="bg-accent/20 text-primary px-4 py-1.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-2 border border-primary/10">
+                      <CheckCircle2 className="text-primary h-3.5 w-3.5" /> Verified API Call
                     </div>
                   </div>
-                  {/* Floating particles */}
-                  <div className="absolute top-1/4 left-1/4 h-2 w-2 bg-primary rounded-full animate-ping" />
-                  <div className="absolute bottom-1/4 right-1/4 h-2 w-2 bg-primary rounded-full animate-ping delay-300" />
                 </RevealOnScroll>
               </div>
             </div>
@@ -195,35 +153,6 @@ export default function LandingPage() {
               <span className="text-xl font-bold">Nagad</span>
               <span className="text-xl font-bold">Rocket</span>
               <span className="text-xl font-bold">Upay</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats Section */}
-        <section className="py-20 bg-background">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <RevealOnScroll className="flex flex-col items-center p-8 rounded-2xl bg-secondary/20 border border-secondary text-center space-y-2">
-                <MousePointerClick className="text-primary mb-2" size={24} />
-                <div className="text-4xl font-headline font-bold text-foreground">
-                  <CountUp end={1200000} suffix="+" />
-                </div>
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Transactions Verified</div>
-              </RevealOnScroll>
-              <RevealOnScroll className="flex flex-col items-center p-8 rounded-2xl bg-secondary/20 border border-secondary text-center space-y-2" style={{ transitionDelay: '200ms' }}>
-                <Zap className="text-primary mb-2" size={24} />
-                <div className="text-4xl font-headline font-bold text-foreground">
-                  <CountUp end={99} suffix=".9%" />
-                </div>
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Uptime Accuracy</div>
-              </RevealOnScroll>
-              <RevealOnScroll className="flex flex-col items-center p-8 rounded-2xl bg-secondary/20 border border-secondary text-center space-y-2" style={{ transitionDelay: '400ms' }}>
-                <BarChart3 className="text-primary mb-2" size={24} />
-                <div className="text-4xl font-headline font-bold text-foreground">
-                  <CountUp end={2} suffix="s" />
-                </div>
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Avg. Sync Speed</div>
-              </RevealOnScroll>
             </div>
           </div>
         </section>
@@ -411,7 +340,7 @@ if (result.status === 'verified') {
                 <Card className="flex flex-col border-2 border-secondary shadow-sm h-full">
                   <CardHeader>
                     <CardTitle className="text-2xl">Starter</CardTitle>
-                    <CardDescription>Perfect for small projects.</CardDescription>
+                    <div className="text-xs text-muted-foreground">Perfect for small projects.</div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-6">
                     <div className="text-4xl font-bold">৳0 <span className="text-base font-normal text-muted-foreground">/ month</span></div>
@@ -434,7 +363,7 @@ if (result.status === 'verified') {
                   <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase">Best Value</div>
                   <CardHeader>
                     <CardTitle className="text-2xl">Professional</CardTitle>
-                    <CardDescription>For growing businesses.</CardDescription>
+                    <div className="text-xs text-muted-foreground">For growing businesses.</div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-6">
                     <div className="text-4xl font-bold text-primary">৳2,500 <span className="text-base font-normal text-muted-foreground">/ month</span></div>
@@ -457,6 +386,7 @@ if (result.status === 'verified') {
       </main>
 
       <Footer />
+      <SupportFAB />
     </div>
   )
 }

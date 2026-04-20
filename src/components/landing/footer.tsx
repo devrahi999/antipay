@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link"
-import { ShieldCheck, Facebook, MessageCircle, Globe } from "lucide-react"
+import { ShieldCheck, Facebook, MessageCircle } from "lucide-react"
 
 export function Footer() {
   return (
@@ -50,7 +50,6 @@ export function Footer() {
         </div>
         <div className="border-t mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
           <p>© 2024 AntiPay. All rights reserved.</p>
-          <p className="flex items-center gap-2">Built with ❤️ in Bangladesh <Globe className="h-3 w-3" /></p>
         </div>
       </div>
     </footer>
