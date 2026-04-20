@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Copy, Plus, MoreVertical, ExternalLink, Key, RefreshCcw, Trash2 } from "lucide-react"
+import { Copy, Plus, ExternalLink, Key, RefreshCcw, Trash2, Settings } from "lucide-react"
 
 export default function StoresPage() {
   return (
