@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,10 @@ import {
   X,
   Upload,
   Save,
-  Loader2
+  Loader2,
+  Copy,
+  CheckCircle2,
+  ExternalLink
 } from "lucide-react"
 import { 
   Dialog, 
@@ -27,8 +30,13 @@ import {
   DialogClose,
   DialogDescription
 } from "@/components/ui/dialog"
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 export default function BrandsPage() {
@@ -56,45 +64,71 @@ export default function BrandsPage() {
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !db) return;
     setIsSubmitting(true);
 
-    const brandKey = `bk_${Math.random().toString(36).substring(2, 12)}`;
-    
-    const brandData = {
-      ...formData,
-      brandKey,
-      userId: user.uid,
-      status: 'active',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
+    try {
+      // Generate custom store ID/API Key
+      const randomStr = Math.random().toString(36).substring(2, 12);
+      const storeId = `anti_pay_${randomStr}`;
+      
+      const docRef = doc(db, 'users', user.uid, 'stores', storeId);
+      
+      const brandData = {
+        ...formData,
+        id: storeId,
+        apiKey: storeId, // The ID itself is the API Key
+        userId: user.uid,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
 
-    addDocumentNonBlocking(collection(db, 'users', user.uid, 'stores'), brandData);
-    
-    setFormData({
-      name: '',
-      websiteUrl: '',
-      logoUrl: '',
-      supportEmail: '',
-      supportPhone: '',
-      whatsappNumber: '',
-      supportPageLink: ''
+      await setDoc(docRef, brandData);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        websiteUrl: '',
+        logoUrl: '',
+        supportEmail: '',
+        supportPhone: '',
+        whatsappNumber: '',
+        supportPageLink: ''
+      });
+      
+      setIsDialogOpen(false);
+      toast({ 
+        title: "Brand Created", 
+        description: `Brand ${formData.name} has been successfully added.` 
+      });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Could not save brand." 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ 
+      title: "Copied!", 
+      description: "API Key copied to your clipboard." 
     });
-    
-    setIsSubmitting(false);
-    setIsDialogOpen(false);
-    toast({ title: "Brand Added", description: "Your new brand has been created successfully." });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-headline font-bold text-foreground">Brands</h1>
-          <p className="text-sm text-muted-foreground">Manage your AntiPay store identities and configurations.</p>
+          <h1 className="text-2xl font-headline font-bold text-foreground">Brands & API Keys</h1>
+          <p className="text-sm text-muted-foreground">Manage your AntiPay store identities and integration credentials.</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -107,7 +141,7 @@ export default function BrandsPage() {
             <div className="flex items-center justify-between p-4 border-b border-border/10 bg-[#162129]">
               <div className="flex items-center gap-2 text-[#16a34a]">
                 <Tags className="h-5 w-5" />
-                <DialogTitle className="font-bold text-lg text-[#16a34a]">Add a New Brand</DialogTitle>
+                <DialogTitle className="font-bold text-lg text-[#16a34a]">Register a New Brand</DialogTitle>
               </div>
               <DialogClose className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
@@ -115,22 +149,22 @@ export default function BrandsPage() {
             </div>
             
             <DialogDescription className="sr-only">
-              Fill out the form below to register a new brand for your AntiPay merchant account.
+              Enter your store details to generate a unique AntiPay API key.
             </DialogDescription>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[85vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                    Basic Information
+                    Brand Identity
                   </h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="brandName" className="text-sm font-bold text-slate-100">Brand Name <span className="text-destructive">*</span></Label>
                       <Input 
                         id="brandName" 
-                        placeholder="e.g., AntiPay Store" 
-                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
+                        placeholder="e.g., My Gadget Shop" 
+                        className="bg-[#162129] border-border/20 h-10 text-white"
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         required
@@ -140,8 +174,8 @@ export default function BrandsPage() {
                       <Label htmlFor="websiteUrl" className="text-sm font-bold text-slate-100">Website URL <span className="text-destructive">*</span></Label>
                       <Input 
                         id="websiteUrl" 
-                        placeholder="https://example.com" 
-                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
+                        placeholder="https://myshop.com" 
+                        className="bg-[#162129] border-border/20 h-10 text-white"
                         value={formData.websiteUrl}
                         onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})}
                         required
@@ -149,25 +183,20 @@ export default function BrandsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="logoUrl" className="text-sm font-bold text-slate-100">Brand Logo URL</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          id="logoUrl" 
-                          placeholder="Paste image URL" 
-                          className="bg-[#162129] border-border/20 h-10 text-white flex-1 placeholder:text-muted-foreground/50"
-                          value={formData.logoUrl}
-                          onChange={(e) => setFormData({...formData, logoUrl: e.target.value})}
-                        />
-                        <Button type="button" variant="secondary" className="bg-[#16a34a] hover:bg-[#15803d] text-white h-10 px-4">
-                          <Upload className="h-4 w-4 mr-2" /> Upload
-                        </Button>
-                      </div>
+                      <Input 
+                        id="logoUrl" 
+                        placeholder="Paste image URL" 
+                        className="bg-[#162129] border-border/20 h-10 text-white"
+                        value={formData.logoUrl}
+                        onChange={(e) => setFormData({...formData, logoUrl: e.target.value})}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                    Contact Details
+                    Merchant Contact
                   </h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -175,8 +204,8 @@ export default function BrandsPage() {
                       <Input 
                         id="supportEmail" 
                         type="email"
-                        placeholder="support@example.com" 
-                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
+                        placeholder="help@myshop.com" 
+                        className="bg-[#162129] border-border/20 h-10 text-white"
                         value={formData.supportEmail}
                         onChange={(e) => setFormData({...formData, supportEmail: e.target.value})}
                       />
@@ -186,7 +215,7 @@ export default function BrandsPage() {
                       <Input 
                         id="supportPhone" 
                         placeholder="+8801XXXXXXXXX" 
-                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
+                        className="bg-[#162129] border-border/20 h-10 text-white"
                         value={formData.supportPhone}
                         onChange={(e) => setFormData({...formData, supportPhone: e.target.value})}
                       />
@@ -196,19 +225,9 @@ export default function BrandsPage() {
                       <Input 
                         id="whatsapp" 
                         placeholder="+8801XXXXXXXXX" 
-                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
+                        className="bg-[#162129] border-border/20 h-10 text-white"
                         value={formData.whatsappNumber}
                         onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="supportPage" className="text-sm font-bold text-slate-100">Support Page Link</Label>
-                      <Input 
-                        id="supportPage" 
-                        placeholder="https://example.com/support" 
-                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
-                        value={formData.supportPageLink}
-                        onChange={(e) => setFormData({...formData, supportPageLink: e.target.value})}
                       />
                     </div>
                   </div>
@@ -230,15 +249,15 @@ export default function BrandsPage() {
         </Dialog>
       </div>
 
-      <Card className="bg-[#0b141a] border-border/40 shadow-2xl">
+      <Card className="bg-[#0b141a] border-border/40 shadow-2xl overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border/20 hover:bg-transparent">
+                <TableRow className="border-border/20 hover:bg-transparent bg-[#162129]/50">
                   <TableHead className="w-12 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 pl-6">#</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Brand Name</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Brand Key/API Key</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Brand Info</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">AntiPay API Key</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Status</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 text-right pr-6">Actions</TableHead>
                 </TableRow>
@@ -249,34 +268,71 @@ export default function BrandsPage() {
                     <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="text-xs">Loading brands...</span>
+                        <span className="text-xs">Fetching brands...</span>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : brands && brands.length > 0 ? (
                   brands.map((brand, index) => (
-                    <TableRow key={brand.id} className="border-border/10 hover:bg-secondary/10 transition-colors">
+                    <TableRow key={brand.id} className="border-border/10 hover:bg-primary/5 transition-colors group">
                       <TableCell className="text-xs font-mono text-muted-foreground pl-6">{(index + 1).toString().padStart(2, '0')}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-[#162129] flex items-center justify-center text-[#16a34a] font-bold text-xs">
+                          <div className="h-10 w-10 rounded-lg bg-[#162129] border border-border/10 flex items-center justify-center text-[#16a34a] font-bold text-sm shadow-inner">
                             {brand.logoUrl ? (
                               <img src={brand.logoUrl} alt={brand.name} className="h-full w-full object-cover rounded-lg" />
                             ) : brand.name.charAt(0)}
                           </div>
-                          <span className="text-xs font-medium">{brand.name}</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-100">{brand.name}</span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              {brand.websiteUrl} <ExternalLink className="h-2 w-2" />
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs font-mono text-[#16a34a]">{brand.brandKey}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-[9px] uppercase border-[#16a34a]/20 text-[#16a34a] bg-[#16a34a]/5">
+                        <div className="flex items-center gap-2 max-w-[200px]">
+                          <code className="text-[10px] font-mono text-[#16a34a] bg-[#16a34a]/10 px-2 py-1 rounded border border-[#16a34a]/20 truncate">
+                            {brand.apiKey}
+                          </code>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => copyToClipboard(brand.apiKey)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[9px] uppercase border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10 font-bold px-3">
                           {brand.status || 'Active'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#16a34a]/10 hover:text-[#16a34a]">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary/20">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#0b141a] border-border/20 text-slate-200">
+                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-primary/10 focus:text-primary">
+                              Edit Brand Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-xs cursor-pointer focus:bg-primary/10 focus:text-primary"
+                              onClick={() => copyToClipboard(brand.apiKey)}
+                            >
+                              Copy API Key
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs cursor-pointer text-destructive focus:bg-destructive/10">
+                              Deactivate Brand
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -284,11 +340,13 @@ export default function BrandsPage() {
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-32">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="h-16 w-16 bg-secondary/20 rounded-full flex items-center justify-center mb-2">
-                          <Tags className="h-8 w-8 text-muted-foreground/20" />
+                        <div className="h-16 w-16 bg-secondary/10 rounded-full flex items-center justify-center mb-2">
+                          <Tags className="h-8 w-8 text-muted-foreground/30" />
                         </div>
-                        <p className="text-sm font-medium text-muted-foreground">No Brands Found</p>
-                        <p className="text-xs text-muted-foreground/60">Get started by adding a new brand for AntiPay.</p>
+                        <p className="text-sm font-bold text-muted-foreground">No Brands Found</p>
+                        <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto leading-relaxed">
+                          Click "Add New Brand" to generate your first AntiPay API key and start accepting payments.
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
