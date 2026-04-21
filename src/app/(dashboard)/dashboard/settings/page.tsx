@@ -18,13 +18,14 @@ import {
   AlertCircle,
   RefreshCcw
 } from "lucide-react"
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { updateUserProfile, initiatePasswordReset } from '@/firebase/non-blocking-login';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { user } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
@@ -34,13 +35,20 @@ export default function SettingsPage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !db) return;
     setLoading(true);
     try {
-      await updateUserProfile(user, { displayName });
-      toast({ title: "Profile Updated", description: "Your profile information has been saved." });
+      await updateUserProfile(db, user, { displayName });
+      toast({ 
+        title: "Profile Updated", 
+        description: "Your profile information has been saved successfully." 
+      });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Update Failed", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Update Failed", 
+        description: error.message || "Could not update profile." 
+      });
     } finally {
       setLoading(false);
     }
@@ -53,10 +61,14 @@ export default function SettingsPage() {
       await initiatePasswordReset(auth, user.email);
       toast({ 
         title: "Reset Link Sent", 
-        description: `We've sent a password setup/reset link to ${user.email}. Check your inbox.` 
+        description: `We've sent a password setup link to ${user.email}.` 
       });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message 
+      });
     } finally {
       setResetLoading(false);
     }
@@ -91,7 +103,7 @@ export default function SettingsPage() {
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Merchant Name"
-                      className="bg-[#162129] border-border/20 pl-10"
+                      className="bg-[#162129] border-border/20 pl-10 h-11"
                     />
                   </div>
                 </div>
@@ -102,14 +114,14 @@ export default function SettingsPage() {
                     <Input 
                       value={user?.email || ''} 
                       disabled 
-                      className="bg-[#162129]/50 border-border/20 pl-10 text-muted-foreground/50 cursor-not-allowed"
+                      className="bg-[#162129]/50 border-border/20 pl-10 text-muted-foreground/50 cursor-not-allowed h-11"
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground">Registered email address cannot be changed.</p>
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" className="bg-[#16a34a] hover:bg-[#15803d]" disabled={loading}>
+                <Button type="submit" className="bg-[#16a34a] hover:bg-[#15803d] h-11 px-8 font-bold" disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save Changes
                 </Button>
               </div>
@@ -148,14 +160,14 @@ export default function SettingsPage() {
                   <div>
                     <h4 className="text-sm font-bold text-slate-100">Enable Email Login</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      You are using Google Login. To enable login via Email & Password for this account, click below to set up a password.
+                      You are using Google Login. To enable login via Email & Password, setup a unique password.
                     </p>
                   </div>
                 </div>
                 <Button 
                   onClick={handlePasswordReset} 
                   variant="outline" 
-                  className="w-full border-primary/20 hover:bg-primary/10 text-primary font-bold"
+                  className="w-full h-11 border-primary/20 hover:bg-primary/10 text-primary font-bold"
                   disabled={resetLoading}
                 >
                   {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />} Setup Password for Email Login
@@ -171,7 +183,7 @@ export default function SettingsPage() {
                   <Button 
                     onClick={handlePasswordReset} 
                     variant="outline" 
-                    className="border-border/20 hover:bg-secondary/10"
+                    className="h-10 border-border/20 hover:bg-secondary/10 font-bold"
                     disabled={resetLoading}
                   >
                     {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Request Reset Link"}
@@ -201,8 +213,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
           <CardFooter className="bg-secondary/10 px-6 py-4 border-t border-border/10">
-            <p className="text-[10px] text-muted-foreground italic">
-              Need to delete your account? Contact support at support@antipay.io
+            <p className="text-[10px] text-muted-foreground italic text-center w-full">
+              Need help? Contact support at support@antipay.io
             </p>
           </CardFooter>
         </Card>
