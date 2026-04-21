@@ -1,4 +1,4 @@
-'use client';
+
 import {
   Auth,
   createUserWithEmailAndPassword,
@@ -42,7 +42,7 @@ async function syncUserProfile(db: Firestore, user: User) {
   await setDoc(userRef, profileData, { merge: true });
 }
 
-/** Initiate email/password sign-up. */
+/** Initiate email/password sign-up with custom verification. */
 export async function initiateEmailSignUp(
   authInstance: Auth, 
   db: Firestore,
@@ -58,8 +58,9 @@ export async function initiateEmailSignUp(
     // Sync to Firestore immediately after creation
     await syncUserProfile(db, userCredential.user);
     
+    // Custom email verification link
     const actionCodeSettings: ActionCodeSettings = {
-      url: `${window.location.origin}/login`,
+      url: `${window.location.origin}/auth/verify-email`,
       handleCodeInApp: true,
     };
     await sendEmailVerification(userCredential.user, actionCodeSettings);
@@ -93,13 +94,14 @@ export async function initiateGoogleSignIn(authInstance: Auth, db: Firestore): P
   return userCredential;
 }
 
-/** Send customized password reset email. */
-export function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
+/** Send customized password reset email pointing to our custom page. */
+export async function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
+  // Ensure this matches the page path
   const actionCodeSettings: ActionCodeSettings = {
     url: `${window.location.origin}/auth/reset-password`,
     handleCodeInApp: true,
   };
-  return sendPasswordResetEmail(authInstance, email, actionCodeSettings);
+  await sendPasswordResetEmail(authInstance, email, actionCodeSettings);
 }
 
 /** 
