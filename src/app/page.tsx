@@ -22,7 +22,10 @@ import {
   BarChart3,
   Loader2,
   Sparkles,
-  Clock
+  Clock,
+  Smartphone,
+  Server,
+  MousePointerClick
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -123,48 +126,71 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative py-16 lg:py-24 overflow-hidden">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(45%_45%_at_50%_50%,rgba(22,163,74,0.05)_0,rgba(255,255,255,0)_100%)]" />
+        <section className="relative py-16 lg:py-32 overflow-hidden">
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(45%_45%_at_50%_50%,rgba(22,163,74,0.08)_0,rgba(255,255,255,0)_100%)]" />
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <RevealOnScroll className="flex flex-col space-y-8">
                 <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary w-fit">
-                  <Badge variant="outline" className="mr-2 border-primary/20 bg-primary/10 text-primary font-bold">LIVE</Badge>
-                  v2.0 Developer API is live
+                  <Badge variant="outline" className="mr-2 border-primary/20 bg-primary/10 text-primary font-bold">NEW</Badge>
+                  v2.0 Developer Engine is live
                 </div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold tracking-tight text-foreground leading-[1.1]">
-                  Automate Your <span className="text-primary">Payment</span> Verification Instantly
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight text-foreground leading-[1.05]">
+                  Automate Your <span className="text-primary">Payment</span> Verification <span className="relative">
+                    Instantly
+                    <svg className="absolute -bottom-2 left-0 w-full h-2 text-primary/30" viewBox="0 0 100 10" preserveAspectRatio="none">
+                      <path d="M0 5 Q 25 0 50 5 T 100 5" fill="none" stroke="currentColor" strokeWidth="4" />
+                    </svg>
+                  </span>
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-[600px] leading-relaxed">
-                  Verify bKash, Nagad, and Rocket payments in real-time using our powerful API. Built for the high-speed Bangladesh economy.
+                <p className="text-xl text-muted-foreground max-w-[600px] leading-relaxed">
+                  The most reliable verification API for bKash, Nagad, and Rocket. Scale your merchant operations without manual verification delays.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button onClick={handlePlanClick} size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group cursor-pointer font-bold">
+                  <Button onClick={handlePlanClick} size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 group cursor-pointer font-bold rounded-xl">
                     Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50 cursor-pointer font-bold">
-                    <Link href="/docs">View Docs</Link>
+                  <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg hover:bg-accent/50 cursor-pointer font-bold rounded-xl border-border/60">
+                    <Link href="/docs">View API Docs</Link>
                   </Button>
+                </div>
+                <div className="flex items-center gap-6 pt-4">
+                   <div className="flex -space-x-3">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className="h-10 w-10 rounded-full border-2 border-background bg-secondary flex items-center justify-center overflow-hidden">
+                          <img src={`https://picsum.photos/seed/${i+10}/100/100`} alt="User" className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                   </div>
+                   <div className="text-sm font-medium">
+                      <p className="text-foreground">Joined by 500+ Merchants</p>
+                      <div className="flex items-center gap-1 text-primary">
+                         {[1,2,3,4,5].map(i => <Sparkles key={i} className="h-3 w-3 fill-current" />)}
+                         <span className="text-[10px] ml-1 text-muted-foreground">in Bangladesh</span>
+                      </div>
+                   </div>
                 </div>
               </RevealOnScroll>
               
               <div className="flex justify-center items-center">
-                <RevealOnScroll className="relative w-full max-w-[340px] aspect-square bg-card rounded-2xl border shadow-xl flex items-center justify-center overflow-hidden p-6">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(22,163,74,0.05)_0,transparent_70%)]" />
-                  <div className="relative z-10 flex flex-col items-center gap-6">
-                    <div className="bg-primary text-white p-4 rounded-2xl shadow-xl shadow-primary/30 animate-bounce">
-                      <ShieldCheck size={40} />
+                <RevealOnScroll className="relative w-full max-w-[450px] aspect-square bg-card rounded-[2.5rem] border shadow-[0_40px_100px_-15px_rgba(0,0,0,0.1)] flex items-center justify-center overflow-hidden p-10">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(22,163,74,0.1)_0,transparent_70%)]" />
+                  <div className="relative z-10 flex flex-col items-center gap-8 w-full">
+                    <div className="bg-primary text-white p-6 rounded-3xl shadow-2xl shadow-primary/40 animate-bounce transition-all">
+                      <ShieldCheck size={60} />
                     </div>
-                    <div className="flex gap-4">
-                      <div className="bg-white border p-2.5 rounded-xl shadow-md transform -rotate-12 translate-y-2">
-                        <Badge className="bg-[#e2136e] hover:bg-[#e2136e] text-[9px] px-2 text-white">bKash</Badge>
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                      <div className="bg-white border border-border/40 p-4 rounded-2xl shadow-lg transform -rotate-6 hover:rotate-0 transition-transform">
+                        <Badge className="bg-[#e2136e] hover:bg-[#e2136e] text-[10px] px-3 py-1 text-white rounded-lg">bKash Verified</Badge>
+                        <p className="mt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Success Rate: 100%</p>
                       </div>
-                      <div className="bg-white border p-2.5 rounded-xl shadow-md transform rotate-6">
-                        <Badge className="bg-[#f7941d] hover:bg-[#f7941d] text-[9px] px-2 text-white">Nagad</Badge>
+                      <div className="bg-white border border-border/40 p-4 rounded-2xl shadow-lg transform rotate-6 hover:rotate-0 transition-transform">
+                        <Badge className="bg-[#f7941d] hover:bg-[#f7941d] text-[10px] px-3 py-1 text-white rounded-lg">Nagad Verified</Badge>
+                        <p className="mt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Time: 0.2s</p>
                       </div>
                     </div>
-                    <div className="bg-accent/20 text-primary px-4 py-1.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-2 border border-primary/10">
-                      <CheckCircle2 className="text-primary h-3.5 w-3.5" /> Verified API Call
+                    <div className="bg-primary/10 text-primary px-6 py-2.5 rounded-full text-xs font-black shadow-inner flex items-center gap-2 border border-primary/20">
+                      <CheckCircle2 className="text-primary h-4 w-4" /> SECURE HANDSHAKE COMPLETED
                     </div>
                   </div>
                 </RevealOnScroll>
@@ -173,58 +199,129 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="py-24 bg-secondary/5">
+        {/* How It Works Section */}
+        <section id="how-it-works" className="py-24 bg-secondary/5 relative">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
               <RevealOnScroll>
-                <h2 className="text-3xl md:text-5xl font-headline font-bold">Simple, Transparent <span className="text-primary">Pricing</span></h2>
-                <p className="text-lg text-muted-foreground">Scale your payment infrastructure as your business grows.</p>
+                <Badge className="bg-primary/20 text-primary border-primary/10 mb-4 px-4 py-1">Ecosystem</Badge>
+                <h2 className="text-4xl md:text-5xl font-headline font-bold">How <span className="text-primary">AntiPay</span> Works</h2>
+                <p className="text-lg text-muted-foreground">Setup your automated gateway in 3 simple steps.</p>
+              </RevealOnScroll>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              {[
+                {
+                  step: "01",
+                  icon: Smartphone,
+                  title: "Install Sync App",
+                  description: "Install AntiPay Sync on your Android phone receiving transaction SMS."
+                },
+                {
+                  step: "02",
+                  icon: Code2,
+                  title: "Link API Brand",
+                  description: "Register your store and link the device using our secure QR mapping system."
+                },
+                {
+                  step: "03",
+                  icon: CheckCircle2,
+                  title: "Automate Sales",
+                  description: "Every payment is auto-verified. Your site clears orders without human touch."
+                }
+              ].map((item, idx) => (
+                <RevealOnScroll key={idx} className="relative group">
+                  <div className="bg-card border border-border/40 p-8 rounded-[2rem] shadow-sm hover:shadow-2xl transition-all h-full flex flex-col items-center text-center">
+                    <span className="absolute -top-4 -left-4 h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-xl shadow-lg shadow-primary/20">
+                      {item.step}
+                    </span>
+                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+                      <item.icon size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold mb-4">{item.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
+                  </div>
+                </RevealOnScroll>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-24 bg-background">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
+              <RevealOnScroll>
+                <h2 className="text-4xl md:text-6xl font-headline font-bold">Simple, <span className="text-primary">Scaleable</span> Pricing</h2>
+                <p className="text-lg text-muted-foreground">Switch plans anytime. Grow at your own pace.</p>
               </RevealOnScroll>
             </div>
 
             {plansLoading ? (
-              <div className="flex justify-center py-20">
-                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Syncing Plans...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {plans.map((plan, idx) => (
                   <RevealOnScroll key={plan.id} style={{ transitionDelay: `${idx * 150}ms` }}>
-                    <Card className="relative h-full flex flex-col border-2 border-border/50 bg-card hover:border-primary/50 transition-all duration-300 shadow-lg">
+                    <Card className={cn(
+                      "relative h-full flex flex-col border-2 transition-all duration-500 shadow-xl rounded-[2rem] overflow-hidden",
+                      plan.price > 2000 ? "border-primary bg-primary/[0.02] scale-105 z-10" : "border-border/50 bg-card"
+                    )}>
                       {plan.isFreeTrialAvailable && (
-                        <div className="absolute top-4 right-4">
-                           <Badge className="bg-amber-500 hover:bg-amber-600 text-[9px] font-bold uppercase py-0.5 px-2">
-                             <Clock className="h-2 w-2 mr-1" /> 1 Month Free Trial
+                        <div className="absolute top-0 right-0">
+                           <Badge className="bg-amber-500 hover:bg-amber-600 text-[10px] font-black uppercase py-1.5 px-4 rounded-bl-2xl shadow-xl">
+                             <Clock className="h-3 w-3 mr-1.5" /> 1 Month Free
                            </Badge>
                         </div>
                       )}
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                           <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                           {plan.price > 2000 && <Sparkles className="h-5 w-5 text-amber-500" />}
+                      <CardHeader className="pt-10 pb-8">
+                        <div className="flex justify-between items-start mb-4">
+                           <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                              <Zap size={24} />
+                           </div>
+                           {plan.price > 2000 && <Sparkles className="h-6 w-6 text-amber-500" />}
                         </div>
-                        <CardDescription className="text-xs uppercase font-bold tracking-widest text-primary/70">
+                        <CardTitle className="text-3xl font-black">{plan.name}</CardTitle>
+                        <CardDescription className="text-xs uppercase font-bold tracking-[0.2em] text-primary/70">
                           {plan.billingCycle} billing
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="flex-1 space-y-6">
+                      <CardContent className="flex-1 space-y-8">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-black">৳{plan.price}</span>
-                          <span className="text-muted-foreground text-sm">/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                          <span className="text-5xl font-black">৳{plan.price}</span>
+                          <span className="text-muted-foreground text-sm font-medium">/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                         </div>
-                        <ul className="space-y-3">
+                        <ul className="space-y-4">
                           {plan.benefits?.map((benefit: string, i: number) => (
                             <li key={i} className="flex items-start gap-3 text-sm">
-                              <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                              <span className="text-muted-foreground font-medium">{benefit}</span>
+                              <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                                <CheckCircle2 className="h-3 w-3 text-primary" />
+                              </div>
+                              <span className="text-foreground/80 font-medium">{benefit}</span>
                             </li>
                           ))}
+                          <div className="pt-6 mt-6 border-t border-border/10 space-y-3">
+                             <li className="flex justify-between text-xs font-bold uppercase tracking-tighter">
+                                <span className="text-muted-foreground">API Brands</span>
+                                <span className="text-primary">{plan.maxApiKeys} Identit{plan.maxApiKeys > 1 ? 'ies' : 'y'}</span>
+                             </li>
+                             <li className="flex justify-between text-xs font-bold uppercase tracking-tighter">
+                                <span className="text-muted-foreground">Node Devices</span>
+                                <span className="text-primary">{plan.maxDevices} Device{plan.maxDevices > 1 ? 's' : ''}</span>
+                             </li>
+                          </div>
                         </ul>
                       </CardContent>
-                      <CardFooter>
-                        <Button onClick={handlePlanClick} className="w-full bg-primary hover:bg-primary/90 font-bold h-11 shadow-lg shadow-primary/20">
-                          {user ? "View in Console" : "Start with " + plan.name}
+                      <CardFooter className="pb-10 pt-4">
+                        <Button onClick={handlePlanClick} className={cn(
+                          "w-full font-black h-14 text-lg rounded-xl shadow-lg transition-all",
+                          plan.price > 2000 ? "bg-primary hover:bg-primary/90 shadow-primary/20" : "bg-secondary text-foreground hover:bg-secondary/80 shadow-none border border-border/40"
+                        )}>
+                          {user ? "View in Dashboard" : "Start " + plan.name}
                         </Button>
                       </CardFooter>
                     </Card>
@@ -236,52 +333,71 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-24 bg-background">
+        <section id="features" className="py-24 bg-secondary/5">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
+            <div className="text-center max-w-[800px] mx-auto mb-20 space-y-4">
               <RevealOnScroll>
-                <h2 className="text-3xl md:text-5xl font-headline font-bold">Everything you need for <span className="text-primary">seamless</span> payments</h2>
-                <p className="text-lg text-muted-foreground">Our platform handles the complexity so you can focus on growing your business.</p>
+                <h2 className="text-4xl md:text-5xl font-headline font-bold">Why Merchants Trust <span className="text-primary">AntiPay</span></h2>
+                <p className="text-lg text-muted-foreground">Built for reliability, speed, and absolute accuracy.</p>
               </RevealOnScroll>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
                 {
                   icon: Zap,
-                  title: "Instant Verification",
-                  description: "Verify transactions in seconds using trxId and amount with 99.9% accuracy."
+                  title: "0.2s Verification",
+                  description: "Fastest handshake in the market. Transactions verified the moment the SMS arrives."
                 },
                 {
                   icon: BarChart3,
-                  title: "Detailed Analytics",
-                  description: "Monitor your business growth with comprehensive payment reports and data."
+                  title: "Smart Insights",
+                  description: "Monitor volume, cancellation rates, and store performance from one central hub."
                 },
                 {
                   icon: Lock,
-                  title: "Secure API",
-                  description: "Enterprise-grade API security with rolling keys and IP whitelisting capabilities."
+                  title: "Bank-Grade Security",
+                  description: "TLS 1.3 encryption for shob API calls with rolling secret keys for rotation."
                 },
                 {
                   icon: Globe,
-                  title: "Smart Redirect",
-                  description: "Auto-redirect users back to your site instantly after successful verification."
+                  title: "Webhook Redirects",
+                  description: "Auto-callback to your system on success jate user wait korte na hoy."
                 }
               ].map((feature, idx) => (
                 <RevealOnScroll key={idx} style={{ transitionDelay: `${idx * 150}ms` }}>
-                  <Card className="border-none shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group h-full">
+                  <Card className="border-none shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group h-full rounded-[2rem] bg-card p-4">
                     <CardHeader>
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-2 group-hover:bg-primary group-hover:text-white transition-colors shadow-inner">
-                        <feature.icon size={24} />
+                      <div className="h-16 w-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
+                        <feature.icon size={32} />
                       </div>
-                      <CardTitle className="text-xl">{feature.title}</CardTitle>
+                      <CardTitle className="text-2xl font-black">{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground leading-relaxed text-sm">{feature.description}</p>
+                      <p className="text-muted-foreground leading-relaxed text-sm font-medium">{feature.description}</p>
                     </CardContent>
                   </Card>
                 </RevealOnScroll>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="py-20 border-y border-border/10 bg-background">
+          <div className="container mx-auto px-4">
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+                {[
+                  { val: "10K+", label: "Daily Verifications" },
+                  { val: "99.9%", label: "System Uptime" },
+                  { val: "500+", label: "Active Merchants" },
+                  { val: "0.2s", label: "Latency" }
+                ].map((stat, i) => (
+                  <RevealOnScroll key={i}>
+                    <p className="text-4xl font-black text-primary mb-2">{stat.val}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+                  </RevealOnScroll>
+                ))}
+             </div>
           </div>
         </section>
       </main>
