@@ -4,143 +4,102 @@ service cloud.firestore {
 
     /**
      * ANTI-PAY SECURITY RULES - PHILOSOPHY & STRUCTURE
-     * 
-     * Core Philosophy: This ruleset enforces a strict merchant-ownership model. Every piece of 
-     * business data is tied to a specific merchant via their Firebase Authentication UID.
-     * 
-     * Data Structure: 
-     * - /users/{userId}: Root profile and configuration.
-     * - /users/{userId}/...: Private merchant data (API Keys, Stores, Devices, Raw Transactions).
-     * - /public_payment_sessions/{sessionId}: Publicly accessible session data used by external 
-     *   customers to complete payments without exposing merchant internals.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
-    /** Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the authenticated user's UID matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** Checks if the document exists and the current user is the owner. Used for updates/deletes. */
+    /** Checks if the current user is an admin. */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
-    /** Enforces that the 'userId' field in the incoming data matches the authorized user. */
     function isValidUserRelationship(userId) {
       return request.resource.data.userId == userId;
     }
 
-    /** Enforces that a field remains unchanged during an update. */
     function isImmutable(fieldName) {
       return !(fieldName in request.resource.data) || request.resource.data[fieldName] == resource.data[fieldName];
     }
 
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Rules for the UserProfile document.
-     * @path /users/{userId}
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if false;
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
 
-      /**
-       * @description Rules for Merchant Stores.
-       */
       match /stores/{storeId} {
-        allow get, list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if isExistingOwner(userId) && isImmutable('userId');
-        allow delete: if isExistingOwner(userId);
+        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
 
-      /**
-       * @description Rules for API Keys.
-       */
       match /apiKeys/{apiKeyId} {
-        allow get, list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if isExistingOwner(userId) && isImmutable('userId');
-        allow delete: if isExistingOwner(userId);
+        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
 
-      /**
-       * @description Rules for Payment Method Configurations.
-       */
       match /paymentMethods/{paymentMethodId} {
-        allow get, list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if isExistingOwner(userId) && isImmutable('userId');
-        allow delete: if isExistingOwner(userId);
+        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
 
-      /**
-       * @description Rules for Private Merchant View of Payment Sessions.
-       * Explicitly allowing read (get/list) for the owner.
-       */
       match /paymentSessions/{sessionId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if isExistingOwner(userId) && isImmutable('userId');
-        allow delete: if isExistingOwner(userId);
+        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
 
-      /**
-       * @description Rules for Raw SMS/Transaction data.
-       */
       match /rawTransactions/{transactionId} {
-        allow get, list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update, delete: if false;
+        allow update, delete: if isAdmin();
       }
 
-      /**
-       * @description Rules for Merchant Devices.
-       */
       match /devices/{deviceId} {
-        allow get, list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if isExistingOwner(userId) && isImmutable('userId');
-        allow delete: if isExistingOwner(userId);
+        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
 
-      /**
-       * @description Rules for User Subscription status.
-       */
       match /userSubscription {
-        allow get: if isOwner(userId);
-        allow list, create, update, delete: if false;
+        allow get: if isOwner(userId) || isAdmin();
+        allow list, create, update, delete: if isAdmin();
       }
     }
 
-    /**
-     * @description Rules for Public Payment Sessions (Accessed by Customers).
-     */
     match /public_payment_sessions/{sessionId} {
       allow get: if true;
-      allow list: if false;
+      allow list: if isAdmin();
       allow create: if false;
-      allow update: if resource.data.status == 'pending';
-      allow delete: if false;
+      allow update: if resource.data.status == 'pending' || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for Global Subscription Plans.
-     */
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isAdmin();
     }
   }
 }
