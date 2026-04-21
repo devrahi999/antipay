@@ -86,16 +86,10 @@ export default function BrowsePlansPage() {
         createdAt: serverTimestamp()
       });
 
-      // 4. Send custom SMTP notification (Critical)
+      // 4. Send custom SMTP notification (Non-blocking)
+      // We don't await this to ensure UI responds even if SMTP fails
       if (user.email) {
-        // We call this asynchronously but don't strictly await it for UI responsiveness,
-        // however we ensure it's triggered correctly.
-        notifyPlanActivation(user.email, plan.name)
-          .then(res => {
-            if (res.success) console.log("Plan activation email sent.");
-            else console.error("Email failed:", res.error);
-          })
-          .catch(e => console.error("SMTP direct failure:", e));
+        notifyPlanActivation(user.email, plan.name).catch(e => console.warn("Background email failed:", e));
       }
 
       toast({
@@ -196,20 +190,6 @@ export default function BrowsePlansPage() {
                           <span className="text-foreground/80 leading-snug">{feature}</span>
                         </li>
                       ))}
-                      <div className="pt-4 mt-4 border-t border-border/10 space-y-3">
-                        <li className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Identity Limit</span>
-                          <Badge variant="outline" className="font-bold border-primary/20 bg-primary/5 text-primary">
-                            {plan.maxApiKeys} Brand{plan.maxApiKeys > 1 ? 's' : ''}
-                          </Badge>
-                        </li>
-                        <li className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Android Nodes</span>
-                          <Badge variant="outline" className="font-bold border-primary/20 bg-primary/5 text-primary">
-                            {plan.maxDevices} Active Sync{plan.maxDevices > 1 ? 's' : ''}
-                          </Badge>
-                        </li>
-                      </div>
                     </ul>
                   </div>
                 </CardContent>
