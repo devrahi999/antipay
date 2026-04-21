@@ -1,48 +1,107 @@
 'use client';
 import {
   Auth,
-  signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
   sendPasswordResetEmail,
+  sendEmailVerification,
   User,
-  UserCredential
+  UserCredential,
+  ActionCodeSettings
 } from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 
-/** Initiate anonymous sign-in. */
-export function initiateAnonymousSignIn(authInstance: Auth): Promise<UserCredential> {
-  return signInAnonymously(authInstance);
+/**
+ * Creates or updates a user profile in Firestore.
+ */
+async function syncUserProfile(db: Firestore, user: User) {
+  const userRef = doc(db, 'users', user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
+      id: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
 }
 
 /** Initiate email/password sign-up. */
-export async function initiateEmailSignUp(authInstance: Auth, email: string, password: string, name?: string): Promise<UserCredential> {
+export async function initiateEmailSignUp(
+  authInstance: Auth, 
+  db: Firestore,
+  email: string, 
+  password: string, 
+  name?: string
+): Promise<UserCredential> {
   const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
-  if (name && userCredential.user) {
-    await updateProfile(userCredential.user, { displayName: name });
+  if (userCredential.user) {
+    if (name) {
+      await updateProfile(userCredential.user, { displayName: name });
+    }
+    // Sync to Firestore
+    await syncUserProfile(db, userCredential.user);
+    
+    // Send customized verification email
+    const actionCodeSettings: ActionCodeSettings = {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: true,
+    };
+    await sendEmailVerification(userCredential.user, actionCodeSettings);
   }
   return userCredential;
 }
 
 /** Initiate email/password sign-in. */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<UserCredential> {
-  return signInWithEmailAndPassword(authInstance, email, password);
+export async function initiateEmailSignIn(
+  authInstance: Auth, 
+  db: Firestore,
+  email: string, 
+  password: string
+): Promise<UserCredential> {
+  const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+  if (userCredential.user) {
+    await syncUserProfile(db, userCredential.user);
+  }
+  return userCredential;
 }
 
 /** Initiate Google sign-in. */
-export function initiateGoogleSignIn(authInstance: Auth): Promise<UserCredential> {
+export async function initiateGoogleSignIn(authInstance: Auth, db: Firestore): Promise<UserCredential> {
   const provider = new GoogleAuthProvider();
-  return signInWithPopup(authInstance, provider);
+  const userCredential = await signInWithPopup(authInstance, provider);
+  if (userCredential.user) {
+    await syncUserProfile(db, userCredential.user);
+  }
+  return userCredential;
 }
 
-/** Send password reset email. */
+/** Send customized password reset email. */
 export function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
-  return sendPasswordResetEmail(authInstance, email);
+  const actionCodeSettings: ActionCodeSettings = {
+    url: `${window.location.origin}/auth/reset-password`,
+    handleCodeInApp: true,
+  };
+  return sendPasswordResetEmail(authInstance, email, actionCodeSettings);
 }
 
 /** Update user profile. */
-export function updateUserProfile(user: User, data: { displayName?: string; photoURL?: string }): Promise<void> {
-  return updateProfile(user, data);
+export async function updateUserProfile(
+  db: Firestore,
+  user: User, 
+  data: { displayName?: string; photoURL?: string }
+): Promise<void> {
+  await updateProfile(user, data);
+  const userRef = doc(db, 'users', user.uid);
+  await setDoc(userRef, {
+    ...data,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
