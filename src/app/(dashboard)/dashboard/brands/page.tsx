@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit } from 'firebase/firestore';
+import { collection, query, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,8 @@ import {
   ExternalLink,
   Eye,
   Trash2,
-  Edit2
+  Edit2,
+  AlertTriangle
 } from "lucide-react"
 import { 
   Dialog, 
@@ -35,6 +36,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -47,6 +58,10 @@ export default function BrandsPage() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<any>(null);
+  
+  // Deletion State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -59,7 +74,6 @@ export default function BrandsPage() {
     supportPageLink: ''
   });
 
-  // Simplified query to match security rules exactly
   const brandsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -67,7 +81,7 @@ export default function BrandsPage() {
       where('userId', '==', user.uid),
       limit(100)
     );
-  }, [db, user?.uid]); // Using user.uid as stable dependency
+  }, [db, user?.uid]);
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
 
@@ -85,7 +99,6 @@ export default function BrandsPage() {
         });
         toast({ title: "Brand Updated", description: "The store details have been successfully updated." });
       } else {
-        // Generate very long API Key (approx 45 chars total)
         const randomPart1 = Math.random().toString(36).substring(2, 15);
         const randomPart2 = Math.random().toString(36).substring(2, 15);
         const randomPart3 = Math.random().toString(36).substring(2, 15);
@@ -154,13 +167,21 @@ export default function BrandsPage() {
     setIsViewOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!user || !db || !confirm("Are you sure you want to delete this brand?")) return;
+  const confirmDelete = (id: string) => {
+    setBrandToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!user || !db || !brandToDelete) return;
     try {
-      await deleteDoc(doc(db, 'stores', id));
+      await deleteDoc(doc(db, 'stores', brandToDelete));
       toast({ title: "Deleted", description: "Brand has been successfully removed." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setBrandToDelete(null);
     }
   };
 
@@ -365,7 +386,7 @@ export default function BrandsPage() {
                             <DropdownMenuItem className="text-xs cursor-pointer focus:bg-primary/10 focus:text-primary" onClick={() => copyToClipboard(brand.apiKey)}>
                               <Copy className="mr-2 h-3.5 w-3.5" /> Copy API Key
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-xs cursor-pointer text-destructive focus:bg-destructive/10" onClick={() => handleDelete(brand.id)}>
+                            <DropdownMenuItem className="text-xs cursor-pointer text-destructive focus:bg-destructive/10" onClick={() => confirmDelete(brand.id)}>
                               <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete Brand
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -457,6 +478,27 @@ export default function BrandsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Custom Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
+          <AlertDialogHeader>
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+               <AlertTriangle size={24} />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold">Delete Brand?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to remove this brand? This will permanently revoke the API key and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="bg-secondary/10 hover:bg-secondary/20 border-none text-white">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white font-bold" onClick={handleDelete}>
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

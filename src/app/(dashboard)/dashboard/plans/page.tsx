@@ -7,6 +7,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +16,7 @@ export default function BrowsePlansPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [isProcessing, setIsSubmitting] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState('monthly');
 
   // Fetch current user profile to see active plan ID
   const profileRef = useMemoFirebase(() => {
@@ -90,6 +92,7 @@ export default function BrowsePlansPage() {
   }
 
   const currentPlanId = profile?.subscriptionPlanId;
+  const filteredPlans = plans?.filter(p => p.billingCycle === billingCycle);
 
   return (
     <div className="space-y-10 max-w-6xl mx-auto py-6">
@@ -101,11 +104,18 @@ export default function BrowsePlansPage() {
         <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Select the infrastructure that fits your transaction volume. All plans include automated SMS verification.
         </p>
+
+        <Tabs defaultValue="monthly" className="w-[300px] mt-8" onValueChange={setBillingCycle}>
+          <TabsList className="grid w-full grid-cols-2 bg-[#162129] border border-border/10 p-1 rounded-full h-12">
+            <TabsTrigger value="monthly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Monthly</TabsTrigger>
+            <TabsTrigger value="yearly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Yearly</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {plans && plans.length > 0 ? (
-          plans.map((plan) => {
+        {filteredPlans && filteredPlans.length > 0 ? (
+          filteredPlans.map((plan) => {
             const isCurrent = currentPlanId === plan.id;
             const isTrial = plan.isFreeTrialAvailable;
             
@@ -195,9 +205,9 @@ export default function BrowsePlansPage() {
         ) : (
           <div className="col-span-full text-center py-24 bg-[#0b141a] rounded-[2.5rem] border-2 border-dashed border-border/20 shadow-inner">
             <Zap className="mx-auto h-16 w-16 text-muted-foreground/10 mb-4" />
-            <h3 className="text-xl font-bold text-slate-100">No Plans Configured</h3>
+            <h3 className="text-xl font-bold text-slate-100">No {billingCycle} plans found</h3>
             <p className="text-muted-foreground max-w-sm mx-auto mt-2">
-              The billing engine is currently offline. Please contact the administrator.
+              Please check back later or switch the billing cycle.
             </p>
           </div>
         )}

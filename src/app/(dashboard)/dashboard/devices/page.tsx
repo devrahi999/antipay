@@ -1,13 +1,13 @@
+
 "use client"
 
-import { query, collection, orderBy } from "firebase/firestore"
+import { useState } from "react"
+import { query, collection, orderBy, doc, deleteDoc } from "firebase/firestore"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Smartphone, ShieldCheck, Clock, MoreVertical, Trash2, SmartphoneNfc } from "lucide-react"
+import { Smartphone, ShieldCheck, Clock, MoreVertical, Trash2, SmartphoneNfc, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
-import { doc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { 
@@ -16,11 +16,25 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function DevicesPage() {
   const { user } = useUser()
   const db = useFirestore()
   const { toast } = useToast()
+  
+  // Deletion State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
 
   const devicesQuery = useMemoFirebase(() => {
     if (!db || !user) return null
@@ -29,10 +43,22 @@ export default function DevicesPage() {
 
   const { data: devices, isLoading } = useCollection(devicesQuery)
 
-  const handleDelete = (deviceId: string) => {
-    if (!user || !db || !confirm("Are you sure you want to disconnect this device?")) return
-    deleteDocumentNonBlocking(doc(db, "users", user.uid, "devices", deviceId))
-    toast({ title: "Disconnected", description: "The device has been removed from your account." })
+  const confirmDelete = (id: string) => {
+    setDeviceToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!user || !db || !deviceToDelete) return
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "devices", deviceToDelete));
+      toast({ title: "Disconnected", description: "The device has been removed from your account." })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setDeviceToDelete(null);
+    }
   }
 
   return (
@@ -75,7 +101,7 @@ export default function DevicesPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-[#0b141a] border-border/20">
-                    <DropdownMenuItem className="text-destructive focus:bg-destructive/10 cursor-pointer" onClick={() => handleDelete(device.id)}>
+                    <DropdownMenuItem className="text-destructive focus:bg-destructive/10 cursor-pointer" onClick={() => confirmDelete(device.id)}>
                       <Trash2 className="mr-2 h-3.5 w-3.5" /> Disconnect Device
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -116,6 +142,27 @@ export default function DevicesPage() {
           </Card>
         )}
       </div>
+
+      {/* Custom Disconnect Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
+          <AlertDialogHeader>
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+               <AlertTriangle size={24} />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold">Disconnect Device?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to disconnect this device? AntiPay will stop receiving transaction SMS from this node instantly.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="bg-secondary/10 hover:bg-secondary/20 border-none text-white">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white font-bold" onClick={handleDelete}>
+              Disconnect Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { collection, query, orderBy, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,15 +17,29 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { Plus, Package, Trash2, Edit2, Save, Loader2, CheckCircle2, Clock } from "lucide-react"
+import { Plus, Package, Trash2, Edit2, Save, Loader2, CheckCircle2, Clock, AlertTriangle } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ManagePlansPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Deletion State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     id: '',
@@ -50,7 +64,6 @@ export default function ManagePlansPage() {
     if (!db || !formData.id) return;
     setIsSubmitting(true);
     try {
-      // Clean benefits: split by comma and trim
       const benefitsArray = formData.benefits.split(',').map(b => b.trim()).filter(b => b !== '');
 
       await setDoc(doc(db, 'subscriptionPlans', formData.id), {
@@ -92,13 +105,21 @@ export default function ManagePlansPage() {
     setIsOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!db || !confirm("Delete this plan?")) return;
+  const confirmDelete = (id: string) => {
+    setPlanToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!db || !planToDelete) return;
     try {
-      await deleteDoc(doc(db, 'subscriptionPlans', id));
+      await deleteDoc(doc(db, 'subscriptionPlans', planToDelete));
       toast({ title: "Deleted", description: "Plan removed." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setPlanToDelete(null);
     }
   };
 
@@ -235,7 +256,7 @@ export default function ManagePlansPage() {
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white" onClick={() => handleEdit(plan)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(plan.id)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => confirmDelete(plan.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -292,6 +313,27 @@ export default function ManagePlansPage() {
           </Card>
         )}
       </div>
+
+      {/* Custom Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
+          <AlertDialogHeader>
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+               <AlertTriangle size={24} />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold">Delete Plan?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this subscription plan? Existing users on this plan will keep their access until their cycle ends, but new users won't be able to select it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="bg-secondary/10 hover:bg-secondary/20 border-none text-white">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white font-bold" onClick={handleDelete}>
+              Delete Plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
