@@ -5,20 +5,12 @@ import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
-  ArrowUpRight, 
   Wallet, 
-  Layers, 
   Activity,
-  CheckCircle2,
-  Smartphone,
-  Key,
-  MoreVertical,
   CircleCheck,
-  CircleAlert,
   Clock,
   History,
-  TrendingUp,
-  PieChart as PieChartIcon,
+  MoreVertical,
   XCircle
 } from "lucide-react"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -101,52 +93,12 @@ export default function DashboardPage() {
 
           <Card className="bg-rose-500 border-none text-white shadow-lg shadow-rose-900/20">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Failed / Dropped</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Canceled</p>
               <XCircle className="h-5 w-5 opacity-40" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">৳0</div>
-              <p className="text-[10px] mt-1 opacity-70">0 Invoices Failed</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* System Metrics */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">System Metrics</h2>
-          <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] gap-1 px-3 py-1 border border-primary/20">
-            <Activity className="h-3 w-3" /> Synced: {new Date().toLocaleTimeString()}
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" /> Volume Trends
-              </CardTitle>
-              <CardDescription className="text-[10px]">Monthly invoice volume vs completed amount</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[250px] flex items-center justify-center border-t border-border/30 mt-4">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">No chart data available</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <PieChartIcon className="h-4 w-4 text-primary" /> Status Distribution
-              </CardTitle>
-              <CardDescription className="text-[10px]">Percentage breakdown of invoice statuses</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[250px] flex items-center justify-center border-t border-border/30 mt-4">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">No data available</p>
-              </div>
+              <p className="text-[10px] mt-1 opacity-70">0 Invoices Canceled</p>
             </CardContent>
           </Card>
         </div>
@@ -155,10 +107,13 @@ export default function DashboardPage() {
       {/* Recent Transactions */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <History className="h-4 w-4 text-primary" /> Recent Transactions
             </CardTitle>
+            <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] gap-1 px-3 py-1 border border-primary/20">
+              <Activity className="h-3 w-3" /> Live
+            </Badge>
           </div>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> Auto refreshing

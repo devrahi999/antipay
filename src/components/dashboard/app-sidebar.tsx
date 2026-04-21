@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -95,21 +94,21 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-lg text-primary-foreground">
+          <div className="bg-primary p-2 rounded-lg text-primary-foreground shadow-lg shadow-primary/20">
             <ShieldCheck size={24} />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="font-headline font-bold text-xl tracking-tight text-primary">AntiPay</span>
-            <span className="text-xs text-muted-foreground font-medium">Merchant Console</span>
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Merchant Console</span>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-muted-foreground/50 px-4 mb-2">Main Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -118,10 +117,14 @@ export function AppSidebar() {
                     asChild
                     isActive={pathname === item.url}
                     tooltip={mounted ? item.title : undefined}
-                    className="h-10"
+                    className={`h-10 px-4 transition-all duration-200 ${
+                      pathname === item.url 
+                      ? "bg-primary/10 text-primary border-r-2 border-primary rounded-none" 
+                      : "hover:bg-primary/5 text-muted-foreground"
+                    }`}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="h-5 w-5" />
+                    <Link href={item.url} className="flex items-center gap-3">
+                      <item.icon className={`h-5 w-5 ${pathname === item.url ? "text-primary" : "text-muted-foreground"}`} />
                       <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -131,29 +134,29 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <SidebarSeparator className="mb-4" />
+      <SidebarFooter className="p-4 bg-secondary/20 border-t border-border/50">
+        <SidebarSeparator className="mb-4 hidden" />
         {user && (
-          <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center px-2">
-            <Avatar className="h-8 w-8 ring-1 ring-primary/20">
+          <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center px-2 mb-4">
+            <Avatar className="h-9 w-9 ring-2 ring-primary/20">
               <AvatarImage src={userAvatar} alt="User Avatar" />
-              <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden overflow-hidden">
-              <span className="text-xs font-semibold truncate">{user.displayName || "Merchant"}</span>
+              <span className="text-xs font-bold truncate text-foreground">{user.displayName || "Merchant"}</span>
               <span className="text-[10px] text-muted-foreground truncate">{user.email}</span>
             </div>
           </div>
         )}
-        <SidebarMenu className="mt-4">
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton 
               onClick={handleLogout}
               tooltip={mounted ? "Logout" : undefined} 
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 h-10 px-4 rounded-lg"
             >
               <LogOut className="h-4 w-4" />
-              <span className="font-medium group-data-[collapsible=icon]:hidden">Sign Out</span>
+              <span className="font-bold group-data-[collapsible=icon]:hidden">Sign Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
