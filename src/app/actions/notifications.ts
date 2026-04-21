@@ -4,51 +4,77 @@
 import { sendCustomEmail } from '@/lib/mail';
 
 /**
- * Notify user about plan activation.
+ * Common HTML Wrapper for all business emails
  */
-export async function notifyPlanActivation(email: string, planName: string) {
-  const html = `
-    <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 40px; border-radius: 16px; background-color: #ffffff;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #16a34a; margin: 0; font-size: 28px;">AntiPay</h1>
-        <p style="color: #64748b; font-size: 14px;">Your Automated Payment Infrastructure</p>
+const getHtmlLayout = (title: string, content: string, actionLabel?: string, actionUrl?: string) => `
+  <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f7f6; padding: 40px 20px; color: #1a202c;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+      <!-- Header -->
+      <div style="background-color: #16a34a; padding: 30px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">AntiPay</h1>
+        <p style="color: #dcfce7; margin: 5px 0 0; font-size: 14px; font-weight: 500;">Automated Payment Infrastructure</p>
       </div>
       
-      <div style="border-top: 4px solid #16a34a; padding-top: 30px;">
-        <h2 style="color: #0f172a; font-size: 20px;">Plan Activated Successfully!</h2>
-        <p style="color: #334155; font-size: 16px; line-height: 1.6;">
-          Hello Merchant,<br><br>
-          Great news! Your <strong>${planName}</strong> plan is now active on your AntiPay account. 
-          You can now start verifying payments and managing your brands instantly.
-        </p>
+      <!-- Body -->
+      <div style="padding: 40px;">
+        <h2 style="color: #111827; font-size: 22px; font-weight: 700; margin-bottom: 20px;">${title}</h2>
+        <div style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+          ${content}
+        </div>
         
-        <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #16a34a;">
-          <p style="margin: 0; font-size: 14px; color: #475569;">
-            <strong>Subscription Details:</strong><br>
-            Plan: ${planName}<br>
-            Status: Active
-          </p>
-        </div>
-
-        <div style="text-align: center;">
-          <a href="https://antipay.io/dashboard" 
-             style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
-             Go to Dashboard
-          </a>
-        </div>
+        ${actionLabel && actionUrl ? `
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${actionUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 35px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; transition: background-color 0.3s ease;">
+              ${actionLabel}
+            </a>
+          </div>
+        ` : ''}
       </div>
 
-      <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">
-        <p style="font-size: 11px; color: #94a3b8;">
-          This is an automated notification from AntiPay. Please do not reply directly to this email.
+      <!-- Footer -->
+      <div style="padding: 30px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
+        <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+          &copy; 2024 AntiPay Ltd. Dhaka, Bangladesh.
+        </p>
+        <p style="margin: 10px 0 0; font-size: 11px; color: #9ca3af;">
+          If you have any questions, contact us at <a href="mailto:supports.antipay@gmail.com" style="color: #16a34a; text-decoration: none;">supports.antipay@gmail.com</a>
         </p>
       </div>
     </div>
+  </div>
+`;
+
+/**
+ * Notify user on successful signup.
+ */
+export async function notifyWelcome(email: string, name: string) {
+  const content = `
+    Hello <strong>${name}</strong>,<br><br>
+    Welcome to the AntiPay ecosystem! We are excited to help you automate your business payments.<br><br>
+    You can now log in to your dashboard to create your first brand and start verifying payments for bKash, Nagad, and Rocket instantly.
   `;
+  const html = getHtmlLayout("Welcome to AntiPay! 👋", content, "Access Dashboard", "https://antipay.io/dashboard");
 
   return sendCustomEmail({
     to: email,
-    subject: `Success: ${planName} Plan Activated - AntiPay`,
+    subject: `Welcome to AntiPay, ${name}!`,
+    html
+  });
+}
+
+/**
+ * Notify user about plan activation.
+ */
+export async function notifyPlanActivation(email: string, planName: string) {
+  const content = `
+    Great news! Your <strong>${planName}</strong> plan is now active.<br><br>
+    Your account quotas have been updated. You can now connect more devices and create more brand identities according to your plan limits.
+  `;
+  const html = getHtmlLayout("Plan Activated Successfully! ✨", content, "View Subscription", "https://antipay.io/dashboard/subscription");
+
+  return sendCustomEmail({
+    to: email,
+    subject: `Success: ${planName} Plan is now Active - AntiPay`,
     html
   });
 }
@@ -57,44 +83,11 @@ export async function notifyPlanActivation(email: string, planName: string) {
  * Notify user that their plan has expired.
  */
 export async function notifyPlanExpiration(email: string, planName: string) {
-  const html = `
-    <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #fee2e2; padding: 40px; border-radius: 16px; background-color: #ffffff;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #dc2626; margin: 0; font-size: 28px;">AntiPay</h1>
-        <p style="color: #64748b; font-size: 14px;">Action Required: Plan Expired</p>
-      </div>
-      
-      <div style="border-top: 4px solid #dc2626; padding-top: 30px;">
-        <h2 style="color: #0f172a; font-size: 20px;">Your Subscription Has Expired</h2>
-        <p style="color: #334155; font-size: 16px; line-height: 1.6;">
-          Hello Merchant,<br><br>
-          We wanted to let you know that your <strong>${planName}</strong> plan has expired. 
-          To prevent any disruption in your automated payment verification services, please renew your plan as soon as possible.
-        </p>
-        
-        <div style="background-color: #fef2f2; padding: 20px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #dc2626;">
-          <p style="margin: 0; font-size: 14px; color: #991b1b;">
-            <strong>Status Update:</strong><br>
-            Previous Plan: ${planName}<br>
-            Access: Limited (Verification Paused)
-          </p>
-        </div>
-
-        <div style="text-align: center;">
-          <a href="https://antipay.io/dashboard/plans" 
-             style="display: inline-block; background-color: #dc2626; color: #ffffff; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
-             Renew Subscription Now
-          </a>
-        </div>
-      </div>
-
-      <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">
-        <p style="font-size: 11px; color: #94a3b8;">
-          If you have already renewed, please ignore this email. Need help? Contact supports.antipay@gmail.com
-        </p>
-      </div>
-    </div>
+  const content = `
+    Your <strong>${planName}</strong> subscription has expired.<br><br>
+    To avoid any disruption in your payment verification services, please renew your plan as soon as possible. Your current verification nodes might be paused until renewal.
   `;
+  const html = getHtmlLayout("Action Required: Plan Expired ⚠️", content, "Renew Now", "https://antipay.io/dashboard/plans");
 
   return sendCustomEmail({
     to: email,

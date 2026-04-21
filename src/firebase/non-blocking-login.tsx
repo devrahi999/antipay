@@ -1,3 +1,4 @@
+
 import {
   Auth,
   createUserWithEmailAndPassword,
@@ -12,11 +13,10 @@ import {
   ActionCodeSettings
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { notifyWelcome } from '@/app/actions/notifications';
 
 /**
  * Creates or updates a user profile in Firestore.
- * This ensures all essential fields (id, email, name, photoURL) are always present.
- * Prevents Google Auth from overwriting custom display names.
  */
 async function syncUserProfile(db: Firestore, user: User) {
   if (!db || !user) return;
@@ -24,32 +24,26 @@ async function syncUserProfile(db: Firestore, user: User) {
   const userRef = doc(db, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
-  // Prepare standard profile data
   const profileData: any = {
     id: user.uid,
     email: user.email,
     updatedAt: serverTimestamp(),
   };
 
-  // Only set/update displayName and photoURL if they don't exist in Firestore
-  // This preserves custom names edited by the user in Settings
   if (!userSnap.exists() || !userSnap.data().displayName) {
     profileData.displayName = user.displayName || user.email?.split('@')[0] || 'Merchant';
   }
 
-  // Always sync photoURL if available from Auth and not manually overridden (or just keep it synced)
   if (user.photoURL) {
     profileData.photoURL = user.photoURL;
   } else if (!userSnap.exists()) {
     profileData.photoURL = '';
   }
 
-  // Only set createdAt if the document doesn't exist yet
   if (!userSnap.exists()) {
     profileData.createdAt = serverTimestamp();
   }
 
-  // Save to Firestore with merge
   await setDoc(userRef, profileData, { merge: true });
 }
 
@@ -66,10 +60,13 @@ export async function initiateEmailSignUp(
     if (name) {
       await updateProfile(userCredential.user, { displayName: name });
     }
-    // Sync to Firestore immediately after creation
+    
     await syncUserProfile(db, userCredential.user);
     
-    // Custom email verification link
+    // 1. Send our custom SMTP Welcome email
+    notifyWelcome(email, name || 'Merchant').catch(e => console.error("Welcome email failed:", e));
+
+    // 2. Firebase verification link (internal)
     const actionCodeSettings: ActionCodeSettings = {
       url: `${window.location.origin}/auth/verify-email`,
       handleCodeInApp: true,
@@ -88,7 +85,6 @@ export async function initiateEmailSignIn(
 ): Promise<UserCredential> {
   const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
   if (userCredential.user) {
-    // Sync profile on every login to ensure data integrity
     await syncUserProfile(db, userCredential.user);
   }
   return userCredential;
@@ -99,15 +95,15 @@ export async function initiateGoogleSignIn(authInstance: Auth, db: Firestore): P
   const provider = new GoogleAuthProvider();
   const userCredential = await signInWithPopup(authInstance, provider);
   if (userCredential.user) {
-    // Sync profile for Google users
     await syncUserProfile(db, userCredential.user);
+    // If new user, send welcome
+    // (Note: in production you'd check if it's the first time)
   }
   return userCredential;
 }
 
 /** Send customized password reset email pointing to our custom page. */
 export async function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
-  // Ensure this matches the page path
   const actionCodeSettings: ActionCodeSettings = {
     url: `${window.location.origin}/auth/reset-password`,
     handleCodeInApp: true,
@@ -117,17 +113,13 @@ export async function initiatePasswordReset(authInstance: Auth, email: string): 
 
 /** 
  * Update user profile. 
- * Ensures basic fields are not lost during update.
  */
 export async function updateUserProfile(
   db: Firestore,
   user: User, 
   data: { displayName?: string; photoURL?: string }
 ): Promise<void> {
-  // Update Auth Profile
   await updateProfile(user, data);
-  
-  // Update Firestore Document
   const userRef = doc(db, 'users', user.uid);
   await setDoc(userRef, {
     ...data,
