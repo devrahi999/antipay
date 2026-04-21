@@ -8,7 +8,7 @@ import { sendCustomEmail } from '@/lib/mail';
  */
 const getHtmlLayout = (title: string, content: string, actionLabel?: string, actionUrl?: string) => `
   <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f7f6; padding: 40px 20px; color: #1a202c;">
-    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
       <!-- Header -->
       <div style="background-color: #16a34a; padding: 30px; text-align: center;">
         <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">AntiPay</h1>
@@ -51,7 +51,8 @@ export async function notifyWelcome(email: string, name: string) {
   const content = `
     Hello <strong>${name}</strong>,<br><br>
     Welcome to the AntiPay ecosystem! We are excited to help you automate your business payments.<br><br>
-    You can now log in to your dashboard to create your first brand and start verifying payments for bKash, Nagad, and Rocket instantly.
+    You can now log in to your dashboard to create your first brand and start verifying payments for bKash, Nagad, and Rocket instantly.<br><br>
+    <em>Please check for a separate email from Firebase to verify your account identity.</em>
   `;
   const html = getHtmlLayout("Welcome to AntiPay! 👋", content, "Access Dashboard", "https://antipay.io/dashboard");
 

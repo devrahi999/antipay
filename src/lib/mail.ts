@@ -11,7 +11,6 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, // Use SSL
   auth: {
-    // Hardcoded as requested because user couldn't set env vars
     user: 'supports.antipay@gmail.com', 
     pass: 'cnmr uxdh kcca xplg', 
   },
@@ -25,8 +24,7 @@ export async function sendCustomEmail({ to, subject, html }: { to: string, subje
       subject,
       html,
     });
-    console.log('Email sent successfully:', info.messageId);
-    return { success: true };
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('SMTP Error:', error);
     return { success: false, error };

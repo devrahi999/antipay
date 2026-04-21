@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, doc, updateDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -17,9 +17,6 @@ import {
   UserCog, 
   Zap, 
   Loader2, 
-  CheckCircle2, 
-  X,
-  CreditCard,
   MailWarning
 } from "lucide-react"
 import { 
@@ -33,8 +30,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
-  DialogTrigger 
+  DialogDescription
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { notifyPlanExpiration } from '@/app/actions/notifications';
@@ -48,7 +44,7 @@ export default function ManageUsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState<string | null>(null);
 
-  // Users list
+  // Users list - Simple query to avoid index issues during dev
   const usersQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'users'));
@@ -137,7 +133,7 @@ export default function ManageUsersPage() {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Plan Assigned", description: `${plan.name} has been manually activated for ${selectedUser.displayName || selectedUser.email}.` });
+      toast({ title: "Plan Assigned", description: `${plan.name} has been manually activated.` });
       setIsAssigningPlan(false);
       setSelectedUser(null);
     } catch (error: any) {
@@ -255,7 +251,6 @@ export default function ManageUsersPage() {
         </CardContent>
       </Card>
 
-      {/* Manual Plan Assignment Dialog */}
       <Dialog open={isAssigningPlan} onOpenChange={setIsAssigningPlan}>
         <DialogContent className="bg-[#162129] border-border/20 text-white sm:max-w-[450px]">
           <DialogHeader>
