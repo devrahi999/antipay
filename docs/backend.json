@@ -7,42 +7,16 @@
       "type": "object",
       "description": "Represents a merchant user within the AntiPay system.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string",
-          "format": "email"
-        },
-        "displayName": {
-          "type": "string"
-        },
-        "photoURL": {
-          "type": "string"
-        },
-        "subscriptionPlanId": {
-          "type": "string",
-          "description": "The ID of the currently active subscription plan."
-        },
-        "subscriptionStartedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "subscriptionExpiresAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "isAdmin": {
-          "type": "boolean"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "subscriptionPlanId": { "type": "string" },
+        "subscriptionStartedAt": { "type": "string", "format": "date-time" },
+        "subscriptionExpiresAt": { "type": "string", "format": "date-time" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       }
     },
     "UserPlan": {
@@ -69,24 +43,13 @@
       "type": "object",
       "description": "Merchant brand details.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "websiteUrl": {
-          "type": "string"
-        },
-        "apiKey": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "websiteUrl": { "type": "string" },
+        "apiKey": { "type": "string" },
+        "status": { "type": "string" },
+        "connected_devices_count": { "type": "number", "default": 0 }
       }
     },
     "SubscriptionPlan": {
@@ -103,56 +66,34 @@
         "maxDevices": { "type": "number" },
         "isFreeTrialAvailable": { "type": "boolean" }
       }
+    },
+    "PlanTransaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PlanTransaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "planId": { "type": "string" },
+        "planName": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "google.com"
-    ]
+    "providers": [ "password", "google.com" ]
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "User profile data."
-        }
-      },
-      {
-        "path": "/user_plans/{userId}",
-        "definition": {
-          "entityName": "UserPlan",
-          "schema": {
-            "$ref": "#/backend/entities/UserPlan"
-          },
-          "description": "User's active subscription details."
-        }
-      },
-      {
-        "path": "/stores/{storeId}",
-        "definition": {
-          "entityName": "Store",
-          "schema": {
-            "$ref": "#/backend/entities/Store"
-          },
-          "description": "Global stores collection."
-        }
-      },
-      {
-        "path": "/subscriptionPlans/{planId}",
-        "definition": {
-          "entityName": "SubscriptionPlan",
-          "schema": {
-            "$ref": "#/backend/entities/SubscriptionPlan"
-          },
-          "description": "Global plans defined by Admin."
-        }
-      }
+      { "path": "/users/{userId}", "definition": { "entityName": "UserProfile", "description": "User profile data." } },
+      { "path": "/user_plans/{userId}", "definition": { "entityName": "UserPlan", "description": "User's active subscription details." } },
+      { "path": "/stores/{storeId}", "definition": { "entityName": "Store", "description": "Global stores collection." } },
+      { "path": "/subscriptionPlans/{planId}", "definition": { "entityName": "SubscriptionPlan", "description": "Global plans defined by Admin." } },
+      { "path": "/plan_transactions/{txId}", "definition": { "entityName": "PlanTransaction", "description": "History of plan purchases." } },
+      { "path": "/devices/{brandId}", "definition": { "entityName": "object", "description": "Root devices mapped by brandId." } }
     ]
   }
 }

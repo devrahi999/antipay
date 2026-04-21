@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -11,7 +12,8 @@ import {
   Package,
   ArrowLeft,
   Database,
-  Tags
+  Tags,
+  History
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -45,6 +47,11 @@ const adminNavItems = [
     title: "All Brands",
     icon: Tags,
     url: "/antiadmin/brands",
+  },
+  {
+    title: "Plan Purchases",
+    icon: History,
+    url: "/antiadmin/transactions",
   },
   {
     title: "Subscription Plans",

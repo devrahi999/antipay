@@ -3,80 +3,50 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBAL HELPER FUNCTIONS ---
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Secure isAdmin check
-    // We check the 'isAdmin' boolean on the user document
     function isAdmin() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Is the user the owner of the document (based on userId field)
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // --- COLLECTION RULES ---
-
-    // User profiles and nested data
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      
-      match /{allPaths=**} {
-        allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      }
     }
     
-    // Global user collection listing (for admin)
     match /users {
       allow list: if isAdmin();
     }
 
-    // Root-level User Plans
     match /user_plans/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
 
-    // Root-level stores (Brands)
     match /stores/{storeId} {
-      // Allow get/update/delete if owner or admin
       allow get, update, delete: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
-      
-      // Allow create if setting self as owner
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      
-      // Allow list if admin or filter by userId
+      allow create: if isSignedIn();
       allow list: if isSignedIn() && (isAdmin() || request.query.limit <= 100);
     }
     
-    // Global stores collection listing (for admin)
-    match /stores {
-       allow list: if isAdmin();
-    }
-
-    // Public payment links for customers
-    match /public_payment_sessions/{sessionId} {
-      allow get: if true;
-      allow update: if resource.data.status == 'pending' || isAdmin();
-    }
-    
-    // Global subscription plans
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
     }
 
-    // --- COLLECTION GROUP RULES ---
-    
-    // Allow admin to see all payment sessions across the system for logging
-    match /{path=**}/paymentSessions/{sessionId} {
+    match /plan_transactions/{txId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+    }
+
+    match /devices/{brandId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /{allPaths=**}/paymentSessions/{sessionId} {
       allow read: if isAdmin();
     }
   }
