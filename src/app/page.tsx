@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from "react"
@@ -25,7 +24,10 @@ import {
   Clock,
   Smartphone,
   Server,
-  MousePointerClick
+  MousePointerClick,
+  Layers,
+  WalletCards,
+  Rocket
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -96,6 +98,15 @@ export default function LandingPage() {
   };
 
   if (!mounted) return null;
+
+  const supportedMethods = [
+    { name: "bKash", color: "bg-[#e2136e]", icon: "BK" },
+    { name: "Nagad", color: "bg-[#f7941d]", icon: "NG" },
+    { name: "Rocket", color: "bg-[#8c3494]", icon: "RK" },
+    { name: "Upay", color: "bg-[#111111]", icon: "UP" },
+    { name: "CellFin", color: "bg-[#16a34a]", icon: "CF" },
+    { name: "Tap", color: "bg-[#0ea5e9]", icon: "TP" },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-body selection:bg-primary/20">
@@ -204,7 +215,7 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
               <RevealOnScroll>
-                <Badge className="bg-primary/20 text-primary border-primary/10 mb-4 px-4 py-1">Ecosystem</Badge>
+                <Badge className="bg-primary/20 text-primary border-primary/10 mb-4 px-4 py-1">Integration</Badge>
                 <h2 className="text-4xl md:text-5xl font-headline font-bold">How <span className="text-primary">AntiPay</span> Works</h2>
                 <p className="text-lg text-muted-foreground">Setup your automated gateway in 3 simple steps.</p>
               </RevealOnScroll>
@@ -214,21 +225,21 @@ export default function LandingPage() {
               {[
                 {
                   step: "01",
-                  icon: Smartphone,
-                  title: "Install Sync App",
-                  description: "Install AntiPay Sync on your Android phone receiving transaction SMS."
+                  icon: Layers,
+                  title: "Register Brand Identity",
+                  description: "Register your store in the dashboard to generate your unique AntiPay API Key."
                 },
                 {
                   step: "02",
                   icon: Code2,
-                  title: "Link API Brand",
-                  description: "Register your store and link the device using our secure QR mapping system."
+                  title: "Connect Payment Gateway",
+                  description: "Link your receiver numbers to our system via our secure cloud handshake."
                 },
                 {
                   step: "03",
                   icon: CheckCircle2,
-                  title: "Automate Sales",
-                  description: "Every payment is auto-verified. Your site clears orders without human touch."
+                  title: "Automate Business Sales",
+                  description: "Every payment is verified instantly. Your system clears orders without human touch."
                 }
               ].map((item, idx) => (
                 <RevealOnScroll key={idx} className="relative group">
@@ -244,6 +255,29 @@ export default function LandingPage() {
                   </div>
                 </RevealOnScroll>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Supported Methods Marquee Section */}
+        <section className="py-20 bg-background overflow-hidden border-b border-border/10">
+          <div className="container mx-auto px-4 mb-10 text-center">
+            <h3 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground/60">Supported Payment Gateways</h3>
+          </div>
+          <div className="relative flex overflow-x-hidden">
+            <div className="animate-marquee whitespace-nowrap flex items-center py-4">
+              {[...supportedMethods, ...supportedMethods, ...supportedMethods].map((method, idx) => (
+                <div key={idx} className="mx-8 flex items-center gap-4 bg-secondary/30 px-8 py-4 rounded-2xl border border-border/20 grayscale hover:grayscale-0 hover:border-primary/40 transition-all cursor-default">
+                  <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg", method.color)}>
+                    {method.icon}
+                  </div>
+                  <span className="text-xl font-black text-foreground/80">{method.name}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="absolute top-0 animate-marquee2 whitespace-nowrap flex items-center py-4 invisible">
+              {/* This is a secondary track for seamless scrolling if needed, but Tailwind-marquee usually uses translateX -50% for dual track */}
             </div>
           </div>
         </section>
@@ -346,7 +380,7 @@ export default function LandingPage() {
                 {
                   icon: Zap,
                   title: "0.2s Verification",
-                  description: "Fastest handshake in the market. Transactions verified the moment the SMS arrives."
+                  description: "Fastest handshake in the market. Transactions verified the moment the payment hits your account."
                 },
                 {
                   icon: BarChart3,
@@ -356,12 +390,12 @@ export default function LandingPage() {
                 {
                   icon: Lock,
                   title: "Bank-Grade Security",
-                  description: "TLS 1.3 encryption for shob API calls with rolling secret keys for rotation."
+                  description: "TLS 1.3 encryption for all API calls with rolling secret keys for maximum security."
                 },
                 {
                   icon: Globe,
                   title: "Webhook Redirects",
-                  description: "Auto-callback to your system on success jate user wait korte na hoy."
+                  description: "Auto-callback to your system on success so users never have to wait for manual approval."
                 }
               ].map((feature, idx) => (
                 <RevealOnScroll key={idx} style={{ transitionDelay: `${idx * 150}ms` }}>
