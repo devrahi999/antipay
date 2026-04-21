@@ -2,16 +2,17 @@
 import nodemailer from 'nodemailer';
 
 /**
- * SMTP Configuration for custom emails.
- * Make sure to set these environment variables in your deployment.
+ * SMTP Configuration optimized for Gmail.
+ * Ensure SMTP_USER and SMTP_PASS (App Password) are set in your environment.
  */
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 465,
-  secure: true, 
+  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // Use SSL
   auth: {
-    user: process.env.SMTP_USER, // Your email
-    pass: process.env.SMTP_PASS, // Your app password
+    user: process.env.SMTP_USER, 
+    pass: process.env.SMTP_PASS, // Use the 16-character App Password
   },
 });
 
@@ -23,10 +24,10 @@ export async function sendCustomEmail({ to, subject, html }: { to: string, subje
       subject,
       html,
     });
-    console.log('Email sent: %s', info.messageId);
+    console.log('Email sent successfully:', info.messageId);
     return { success: true };
   } catch (error) {
-    console.error('Email Error:', error);
+    console.error('SMTP Error:', error);
     return { success: false, error };
   }
 }
