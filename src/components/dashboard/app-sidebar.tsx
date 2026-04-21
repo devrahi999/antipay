@@ -3,15 +3,16 @@
 import * as React from "react"
 import {
   LayoutDashboard,
-  Key,
-  WalletCards,
+  Tags,
   History,
+  FileText,
+  BookOpen,
+  Smartphone,
   CreditCard,
   Settings,
   LogOut,
   ShieldCheck,
-  Smartphone,
-  Layers,
+  WalletCards,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -40,9 +41,19 @@ const navItems = [
     url: "/dashboard",
   },
   {
-    title: "API Keys",
-    icon: Key,
-    url: "/dashboard/api-keys",
+    title: "Brands",
+    icon: Tags,
+    url: "/dashboard/brands",
+  },
+  {
+    title: "Transactions",
+    icon: History,
+    url: "/dashboard/transactions",
+  },
+  {
+    title: "Invoices",
+    icon: FileText,
+    url: "/dashboard/invoices",
   },
   {
     title: "Payment Methods",
@@ -50,19 +61,14 @@ const navItems = [
     url: "/dashboard/payment-methods",
   },
   {
-    title: "Sessions",
-    icon: Layers,
-    url: "/dashboard/sessions",
+    title: "Developer Docs",
+    icon: BookOpen,
+    url: "/dashboard/docs",
   },
   {
-    title: "Raw Transactions",
-    icon: History,
-    url: "/dashboard/transactions",
-  },
-  {
-    title: "Devices",
+    title: "Android App",
     icon: Smartphone,
-    url: "/dashboard/devices",
+    url: "/dashboard/android",
   },
   {
     title: "Subscription",
