@@ -14,7 +14,6 @@ import {
 import { 
   ShieldCheck, 
   Zap, 
-  Smartphone, 
   Lock, 
   ArrowRight, 
   CheckCircle2, 
@@ -22,6 +21,7 @@ import {
   Code2,
   Terminal,
   Cpu,
+  BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -82,11 +82,11 @@ export default function LandingPage() {
             <Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="hidden sm:block text-sm font-medium hover:text-primary transition-colors">
+            <Link href="/login" className="hidden sm:block text-sm font-medium hover:text-primary transition-colors">
               Login
             </Link>
             <Button asChild className="bg-primary hover:bg-primary/90">
-              <Link href="/dashboard">Get Started Free</Link>
+              <Link href="/signup">Get Started Free</Link>
             </Button>
           </div>
         </div>
@@ -110,11 +110,13 @@ export default function LandingPage() {
                   Verify bKash, Nagad, and Rocket payments in real-time using our powerful API. Built for the high-speed Bangladesh economy.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group">
-                    Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  <Button asChild size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group cursor-pointer">
+                    <Link href="/signup">
+                      Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50">
-                    View Docs
+                  <Button asChild size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50 cursor-pointer">
+                    <Link href="/dashboard/docs">View Docs</Link>
                   </Button>
                 </div>
               </RevealOnScroll>
@@ -174,9 +176,9 @@ export default function LandingPage() {
                   description: "Verify transactions in seconds using trxId and amount with 99.9% accuracy."
                 },
                 {
-                  icon: Smartphone,
-                  title: "SMS Automation",
-                  description: "Automatically capture payment SMS and sync to your system with our enterprise app."
+                  icon: BarChart3,
+                  title: "Detailed Analytics",
+                  description: "Monitor your business growth with comprehensive payment reports and data."
                 },
                 {
                   icon: Lock,

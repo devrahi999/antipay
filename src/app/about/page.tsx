@@ -30,7 +30,7 @@ export default function AboutPage() {
               AntiPay is a leading payment verification infrastructure built specifically for the Bangladeshi market. Our mission is to empower merchants by automating the often tedious process of verifying mobile banking payments.
             </p>
             <p>
-              In an economy where mobile banking is king, manual verification slows down business growth. AntiPay solves this by providing real-time SMS detection and API-driven verification for bKash, Nagad, Rocket, and other major providers.
+              In an economy where mobile banking is king, manual verification slows down business growth. AntiPay solves this by providing real-time API-driven verification for bKash, Nagad, Rocket, and other major providers.
             </p>
             <h2 className="text-2xl font-bold text-foreground pt-8">Our Vision</h2>
             <p>
@@ -39,7 +39,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold text-foreground pt-8">Why AntiPay?</h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>99.9% Verification Accuracy</li>
-              <li>Real-time synchronization via our Enterprise App</li>
+              <li>Real-time data synchronization</li>
               <li>Developer-first API design</li>
               <li>Secure and compliant infrastructure</li>
             </ul>
