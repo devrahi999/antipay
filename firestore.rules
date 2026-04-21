@@ -15,6 +15,11 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      
+      // Allow users and admins to access all sub-collections under a user document recursively
+      match /{allSubCollections=**} {
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      }
     }
     
     match /users {
@@ -46,6 +51,7 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
+    // Global access for Admin to see all payment sessions via collectionGroup
     match /{allPaths=**}/paymentSessions/{sessionId} {
       allow read: if isAdmin();
     }
