@@ -3,20 +3,19 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   ShieldCheck, 
   ArrowLeft, 
   BookOpen, 
   Terminal, 
-  Code2, 
-  Cpu, 
-  CheckCircle2, 
   Globe, 
   Link as LinkIcon, 
   Key, 
   AlertCircle,
   Hash,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
 
@@ -104,19 +103,6 @@ export default function DocsPage() {
                 <div className="bg-[#0b141a] p-4 rounded-xl border border-border/10 group relative">
                   <code className="text-primary font-mono text-sm break-all">https://pay.antipay.site/v1/</code>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                  <div className="p-4 bg-secondary/30 rounded-xl border border-border/20">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Endpoint 1</p>
-                    <p className="text-sm font-bold">/create</p>
-                    <p className="text-xs text-muted-foreground mt-1">Create a payment session.</p>
-                  </div>
-                  <div className="p-4 bg-secondary/30 rounded-xl border border-border/20">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Endpoint 2</p>
-                    <p className="text-sm font-bold">/verify</p>
-                    <p className="text-xs text-muted-foreground mt-1">Verify payment via transaction ID.</p>
-                  </div>
-                </div>
               </section>
 
               {/* Create Session */}
@@ -128,52 +114,109 @@ export default function DocsPage() {
                   The <span className="font-bold text-foreground">Create Payment Session</span> endpoint allows you to initiate a payment session, providing a secure way for your users to make a payment.
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Badge className="bg-emerald-600 hover:bg-emerald-600 font-bold uppercase text-[10px]">POST</Badge>
                     <code className="text-xs font-mono text-muted-foreground">/v1/create</code>
                   </div>
 
-                  <div className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-                    <div className="bg-slate-800 px-4 py-2 text-[10px] font-mono text-slate-400 flex justify-between">
-                      <span>HEADERS</span>
-                    </div>
-                    <pre className="p-4 text-xs font-mono text-emerald-400">
-                      <code>{`Content-Type: application/json\nx-api-key: YOUR_API_KEY`}</code>
-                    </pre>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-foreground">Request Examples</h3>
+                    <Tabs defaultValue="curl" className="w-full">
+                      <TabsList className="bg-[#162129] border border-border/10 p-1 mb-0 rounded-t-xl rounded-b-none h-auto flex flex-wrap justify-start gap-1">
+                        <TabsTrigger value="curl" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">cURL</TabsTrigger>
+                        <TabsTrigger value="js" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">JavaScript</TabsTrigger>
+                        <TabsTrigger value="php" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">PHP</TabsTrigger>
+                        <TabsTrigger value="python" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">Python</TabsTrigger>
+                      </TabsList>
+                      <div className="bg-[#0b141a] rounded-b-xl border border-t-0 border-border/10 overflow-hidden">
+                        <div className="flex justify-between items-center px-4 py-2 bg-[#162129]/50 border-b border-border/10">
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Request Headers</span>
+                          <button className="text-muted-foreground hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+                        </div>
+                        <TabsContent value="curl" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`curl -X POST "https://pay.antipay.site/v1/create" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_API_KEY" \\
+  -d '{
+    "amount": 145,
+    "val_id": "ORDER-1001"
+  }'`}</code>
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="js" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`const response = await fetch('https://pay.antipay.site/v1/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    amount: 145,
+    val_id: 'ORDER-1001'
+  })
+});
+const data = await response.json();
+console.log(data);`}</code>
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="php" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`$ch = curl_init('https://pay.antipay.site/v1/create');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'x-api-key: YOUR_API_KEY'
+]);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'amount' => 145,
+    'val_id' => 'ORDER-1001'
+]));
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;`}</code>
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="python" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`import requests
+
+url = "https://pay.antipay.site/v1/create"
+headers = {
+    "Content-Type": "application/json",
+    "x-api-key": "YOUR_API_KEY"
+}
+payload = {
+    "amount": 145,
+    "val_id": "ORDER-1001"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())`}</code>
+                          </pre>
+                        </TabsContent>
+                      </div>
+                    </Tabs>
                   </div>
 
-                  <div className="overflow-hidden rounded-xl border border-border/40 shadow-sm bg-card">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-secondary/50 border-b">
-                        <tr>
-                          <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Field</th>
-                          <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Type</th>
-                          <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/40">
-                        <tr>
-                          <td className="px-4 py-3 font-mono text-primary text-xs">amount</td>
-                          <td className="px-4 py-3 text-xs">number</td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">The amount to be paid (must be greater than 0).</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-3 font-mono text-primary text-xs">val_id</td>
-                          <td className="px-4 py-3 text-xs">string</td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">A unique reference ID for the payment (optional).</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-                    <div className="bg-slate-800 px-4 py-2 text-[10px] font-mono text-slate-400">SUCCESS RESPONSE</div>
-                    <pre className="p-4 text-xs font-mono text-slate-300">
-                      <code>{`{
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-foreground">Response Body</h3>
+                    <div className="bg-[#0b141a] rounded-xl border border-border/10 overflow-hidden">
+                      <div className="flex justify-between items-center px-4 py-2 bg-[#162129]/50 border-b border-border/10">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">SUCCESS RESPONSE</span>
+                        <button className="text-muted-foreground hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+                      </div>
+                      <div className="p-6">
+                        <pre className="text-xs font-mono text-slate-300 overflow-x-auto">
+                          <code>{`{
   "payment_url": "https://pay.antipay.site/v1/verify?sessionId=abc123"
 }`}</code>
-                    </pre>
+                        </pre>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -187,47 +230,113 @@ export default function DocsPage() {
                   After a user makes a payment, you can verify the transaction using the <span className="font-bold text-foreground">Verify Payment</span> endpoint. This will confirm the payment status.
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Badge className="bg-emerald-600 hover:bg-emerald-600 font-bold uppercase text-[10px]">POST</Badge>
                     <code className="text-xs font-mono text-muted-foreground">/v1/verify</code>
                   </div>
 
-                  <div className="overflow-hidden rounded-xl border border-border/40 shadow-sm bg-card">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-secondary/50 border-b">
-                        <tr>
-                          <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Field</th>
-                          <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Type</th>
-                          <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/40">
-                        <tr>
-                          <td className="px-4 py-3 font-mono text-primary text-xs">trxId</td>
-                          <td className="px-4 py-3 text-xs">string</td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">The transaction ID returned after payment.</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-3 font-mono text-primary text-xs">sessionId</td>
-                          <td className="px-4 py-3 text-xs">string</td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">The session ID returned when creating the session.</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-foreground">Request Examples</h3>
+                    <Tabs defaultValue="curl" className="w-full">
+                      <TabsList className="bg-[#162129] border border-border/10 p-1 mb-0 rounded-t-xl rounded-b-none h-auto flex flex-wrap justify-start gap-1">
+                        <TabsTrigger value="curl" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">cURL</TabsTrigger>
+                        <TabsTrigger value="js" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">JavaScript</TabsTrigger>
+                        <TabsTrigger value="php" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">PHP</TabsTrigger>
+                        <TabsTrigger value="python" className="px-4 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">Python</TabsTrigger>
+                      </TabsList>
+                      <div className="bg-[#0b141a] rounded-b-xl border border-t-0 border-border/10 overflow-hidden">
+                        <div className="flex justify-between items-center px-4 py-2 bg-[#162129]/50 border-b border-border/10">
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Request Headers</span>
+                          <button className="text-muted-foreground hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+                        </div>
+                        <TabsContent value="curl" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`curl -X POST "https://pay.antipay.site/v1/verify" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_API_KEY" \\
+  -d '{
+    "trxId": "DDI8ANJG4Q",
+    "sessionId": "abc123"
+  }'`}</code>
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="js" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`const response = await fetch('https://pay.antipay.site/v1/verify', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    trxId: 'DDI8ANJG4Q',
+    sessionId: 'abc123'
+  })
+});
+const data = await response.json();
+console.log(data);`}</code>
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="php" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`$ch = curl_init('https://pay.antipay.site/v1/verify');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'x-api-key: YOUR_API_KEY'
+]);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'trxId' => 'DDI8ANJG4Q',
+    'sessionId' => 'abc123'
+]));
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;`}</code>
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="python" className="m-0 p-6">
+                          <pre className="text-xs font-mono text-emerald-400 overflow-x-auto">
+                            <code>{`import requests
+
+url = "https://pay.antipay.site/v1/verify"
+headers = {
+    "Content-Type": "application/json",
+    "x-api-key": "YOUR_API_KEY"
+}
+payload = {
+    "trxId": "DDI8ANJG4Q",
+    "sessionId": "abc123"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())`}</code>
+                          </pre>
+                        </TabsContent>
+                      </div>
+                    </Tabs>
                   </div>
 
-                  <div className="bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-                    <div className="bg-slate-800 px-4 py-2 text-[10px] font-mono text-slate-400">SUCCESS RESPONSE</div>
-                    <pre className="p-4 text-xs font-mono text-slate-300">
-                      <code>{`{
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-foreground">Response Body</h3>
+                    <div className="bg-[#0b141a] rounded-xl border border-border/10 overflow-hidden">
+                      <div className="flex justify-between items-center px-4 py-2 bg-[#162129]/50 border-b border-border/10">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">SUCCESS RESPONSE</span>
+                        <button className="text-muted-foreground hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+                      </div>
+                      <div className="p-6">
+                        <pre className="text-xs font-mono text-slate-300 overflow-x-auto">
+                          <code>{`{
   "status": "verified",
   "message": "Payment successfully verified",
   "trx_id": "DDI8ANJG4Q",
   "amount": 145,
   "method": "bkash"
 }`}</code>
-                    </pre>
+                        </pre>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
