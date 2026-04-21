@@ -86,10 +86,15 @@ export default function BrowsePlansPage() {
         createdAt: serverTimestamp()
       });
 
-      // 4. Send custom SMTP notification (Non-blocking)
-      // We don't await this to ensure UI responds even if SMTP fails
+      // 4. Trigger Email (Await it but catch errors internally so UI isn't blocked)
+      // We pass user email directly to the server action
       if (user.email) {
-        notifyPlanActivation(user.email, plan.name).catch(e => console.warn("Background email failed:", e));
+        console.log("Triggering plan activation email for:", user.email);
+        notifyPlanActivation(user.email, plan.name)
+          .then(res => {
+            if (!res.success) console.error("SMTP error during activation:", res.error);
+          })
+          .catch(e => console.error("Background email failed fatal:", e));
       }
 
       toast({
@@ -120,12 +125,12 @@ export default function BrowsePlansPage() {
   const filteredPlans = plans?.filter(p => p.billingCycle === billingCycle);
 
   return (
-    <div className="space-y-10 max-w-6xl mx-auto py-6">
+    <div className="space-y-10 max-w-6xl mx-auto py-6 font-body">
       <div className="flex flex-col items-center text-center space-y-4">
         <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-4 py-1 font-bold">
           INFRASTRUCTURE UPGRADE
         </Badge>
-        <h1 className="text-4xl md:text-5xl font-headline font-bold text-foreground">Scale Your Operations</h1>
+        <h1 className="text-4xl md:text-5xl font-headline font-bold text-foreground tracking-tight">Scale Your Operations</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Choose the plan that fits your business volume. All plans include 99.9% uptime and automated verification.
         </p>
@@ -216,9 +221,9 @@ export default function BrowsePlansPage() {
         ) : (
           <div className="col-span-full text-center py-24 bg-[#0b141a] rounded-[2.5rem] border-2 border-dashed border-border/20 shadow-inner">
             <Zap className="mx-auto h-16 w-16 text-muted-foreground/10 mb-4" />
-            <h3 className="text-xl font-bold text-slate-100">No {billingCycle} plans available</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto mt-2">
-              Our automated billing system is syncing. Please check back in a moment.
+            <h3 className="text-xl font-bold text-slate-100 uppercase tracking-tighter">Financial Signal Missing</h3>
+            <p className="text-muted-foreground max-w-sm mx-auto mt-2 text-xs">
+              Our automated billing system is syncing with the core node. Please check back in a moment.
             </p>
           </div>
         )}
