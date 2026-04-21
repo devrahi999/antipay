@@ -63,7 +63,7 @@ const navItems = [
   {
     title: "Developer Docs",
     icon: BookOpen,
-    url: "/dashboard/docs",
+    url: "/docs",
   },
   {
     title: "Android App",

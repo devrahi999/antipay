@@ -79,6 +79,7 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
             <Link href="#how-it-works" className="hover:text-primary transition-colors">How it Works</Link>
+            <Link href="/docs" className="hover:text-primary transition-colors">Docs</Link>
             <Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link>
           </nav>
           <div className="flex items-center gap-4">
@@ -116,7 +117,7 @@ export default function LandingPage() {
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50 cursor-pointer">
-                    <Link href="/dashboard/docs">View Docs</Link>
+                    <Link href="/docs">View Docs</Link>
                   </Button>
                 </div>
               </RevealOnScroll>
@@ -142,19 +143,6 @@ export default function LandingPage() {
                   </div>
                 </RevealOnScroll>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Trust Section */}
-        <section className="py-12 border-y bg-secondary/10">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-8">Supported mobile banking providers</p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-              <span className="text-xl font-bold">bKash</span>
-              <span className="text-xl font-bold">Nagad</span>
-              <span className="text-xl font-bold">Rocket</span>
-              <span className="text-xl font-bold">Upay</span>
             </div>
           </div>
         </section>
@@ -269,118 +257,6 @@ if (result.status === 'verified') {
 }`}</code>
                   </pre>
                 </div>
-              </RevealOnScroll>
-            </div>
-          </div>
-        </section>
-
-        {/* How it Works */}
-        <section id="how-it-works" className="py-24 bg-secondary/10">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
-              <RevealOnScroll>
-                <h2 className="text-3xl md:text-5xl font-headline font-bold">Go Live in <span className="text-primary">4 Steps</span></h2>
-                <p className="text-lg text-muted-foreground">Our process is streamlined for maximum efficiency.</p>
-              </RevealOnScroll>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { step: "01", title: "API Key Setup", desc: "Register your business and generate your unique API secret keys." },
-                { step: "02", title: "Store Identity", desc: "Create a store identity for each of your platforms (Web, App, etc)." },
-                { step: "03", title: "Integration", desc: "Use our documentation to integrate the verification logic." },
-                { step: "04", title: "Automation", desc: "Watch your payments get verified automatically 24/7." }
-              ].map((item, idx) => (
-                <RevealOnScroll key={idx} style={{ transitionDelay: `${idx * 200}ms` }} className="text-center space-y-4">
-                  <div className="h-14 w-14 rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold mx-auto shadow-lg shadow-primary/20 ring-4 ring-primary/10">
-                    {item.step}
-                  </div>
-                  <h3 className="text-lg font-bold">{item.title}</h3>
-                  <p className="text-muted-foreground text-xs px-4">{item.desc}</p>
-                </RevealOnScroll>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="py-24 bg-background">
-          <div className="container mx-auto px-4 md:px-6 max-w-4xl">
-            <RevealOnScroll className="text-center mb-16 space-y-4">
-              <h2 className="text-3xl md:text-5xl font-headline font-bold">Got <span className="text-primary">Questions?</span></h2>
-              <p className="text-lg text-muted-foreground">Find answers to common questions.</p>
-            </RevealOnScroll>
-            <RevealOnScroll style={{ transitionDelay: '300ms' }}>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1" className="border-secondary hover:border-primary transition-colors px-4">
-                  <AccordionTrigger className="text-left font-bold text-lg hover:no-underline">Is my data secure?</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    Yes, AntiPay uses military-grade encryption for all API calls and data storage.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2" className="border-secondary hover:border-primary transition-colors px-4">
-                  <AccordionTrigger className="text-left font-bold text-lg hover:no-underline">What mobile banks are supported?</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    We currently support bKash, Nagad, Rocket, and Upay.
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </RevealOnScroll>
-          </div>
-        </section>
-
-        {/* Pricing Section */}
-        <section id="pricing" className="py-24 bg-secondary/5">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
-              <RevealOnScroll>
-                <h2 className="text-3xl md:text-5xl font-headline font-bold">Simple, transparent <span className="text-primary">pricing</span></h2>
-                <p className="text-lg text-muted-foreground">Choose the plan that fits your business needs.</p>
-              </RevealOnScroll>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-8">
-              <RevealOnScroll>
-                <Card className="flex flex-col border-2 border-secondary shadow-sm h-full">
-                  <CardHeader>
-                    <CardTitle className="text-2xl">Starter</CardTitle>
-                    <div className="text-xs text-muted-foreground">Perfect for small projects.</div>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-6">
-                    <div className="text-4xl font-bold">৳0 <span className="text-base font-normal text-muted-foreground">/ month</span></div>
-                    <ul className="space-y-3 text-sm">
-                      {["1 Active Store", "Basic Analytics", "Standard Support", "3% Transaction Fee"].map((f) => (
-                        <li key={f} className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-primary" /> {f}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <div className="p-6 pt-0">
-                    <Button variant="outline" className="w-full h-12">Get Started</Button>
-                  </div>
-                </Card>
-              </RevealOnScroll>
-
-              <RevealOnScroll style={{ transitionDelay: '300ms' }}>
-                <Card className="flex flex-col border-2 border-primary shadow-xl relative scale-105 h-full bg-card">
-                  <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase">Best Value</div>
-                  <CardHeader>
-                    <CardTitle className="text-2xl">Professional</CardTitle>
-                    <div className="text-xs text-muted-foreground">For growing businesses.</div>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-6">
-                    <div className="text-4xl font-bold text-primary">৳2,500 <span className="text-base font-normal text-muted-foreground">/ month</span></div>
-                    <ul className="space-y-3 text-sm">
-                      {["Unlimited Stores", "Priority Support", "Advanced Monitoring", "1% Transaction Fee"].map((f) => (
-                        <li key={f} className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-primary" /> {f}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <div className="p-6 pt-0">
-                    <Button className="w-full h-12 bg-primary hover:bg-primary/90">Upgrade to Pro</Button>
-                  </div>
-                </Card>
               </RevealOnScroll>
             </div>
           </div>
