@@ -68,7 +68,7 @@ function ResetPasswordForm() {
       <Card className="w-full max-w-md border-none shadow-2xl bg-[#162129] overflow-hidden">
         <div className="h-2 bg-primary w-full" />
         <CardHeader className="text-center pb-8 pt-10">
-          <div className="h-16 w-16 mb-4 mx-auto">
+          <div className="h-20 w-20 mb-4 mx-auto">
             <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay" className="h-full w-full object-contain" />
           </div>
           <CardTitle className="text-2xl text-white font-headline font-bold">Set New Password</CardTitle>

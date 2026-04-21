@@ -51,7 +51,7 @@ export function DashboardHeader() {
           <img 
             src="https://i.imgur.com/Chozuv5.png" 
             alt="AntiPay" 
-            className="h-7 md:h-9 w-auto object-contain"
+            className="h-10 md:h-12 w-auto object-contain"
           />
         </Link>
       </div>

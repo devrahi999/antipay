@@ -82,7 +82,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-secondary/10 p-4 font-body">
       <Card className="w-full max-w-md border-none shadow-xl">
         <CardHeader className="space-y-4 flex flex-col items-center">
-          <div className="h-16 w-16 mb-2">
+          <div className="h-20 w-20 mb-2">
             <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay Logo" className="h-full w-full object-contain" />
           </div>
           <div className="text-center">

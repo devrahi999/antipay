@@ -79,7 +79,7 @@ export function AppSidebar() {
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 flex items-center justify-center overflow-hidden">
+          <div className="h-12 w-12 flex items-center justify-center overflow-hidden">
             <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay" className="h-full w-auto object-contain" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">

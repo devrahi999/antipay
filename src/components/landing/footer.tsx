@@ -10,7 +10,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
           <div className="col-span-2 space-y-6">
             <Link href="/" className="inline-block">
-              <img src="https://i.imgur.com/Chozuv5.png" alt="AntiPay" className="h-10 w-auto object-contain" />
+              <img src="https://i.imgur.com/Chozuv5.png" alt="AntiPay" className="h-14 w-auto object-contain" />
             </Link>
             <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">
               Empowering businesses across Bangladesh with automated payment verification systems. Reliable, secure, and fast.
