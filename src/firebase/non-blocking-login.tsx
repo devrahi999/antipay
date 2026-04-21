@@ -16,7 +16,7 @@ import { doc, setDoc, getDoc, serverTimestamp, Firestore } from 'firebase/firest
 
 /**
  * Creates or updates a user profile in Firestore.
- * This ensures data is always synced to the 'users' collection.
+ * This ensures all essential fields (id, email, name) are always present.
  */
 async function syncUserProfile(db: Firestore, user: User) {
   if (!db || !user) return;
@@ -24,16 +24,22 @@ async function syncUserProfile(db: Firestore, user: User) {
   const userRef = doc(db, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
-  // Update or create document
-  await setDoc(userRef, {
+  // Prepare full profile data
+  const profileData: any = {
     id: user.uid,
     email: user.email,
-    displayName: user.displayName || user.email?.split('@')[0],
+    displayName: user.displayName || user.email?.split('@')[0] || 'Merchant',
     photoURL: user.photoURL || '',
     updatedAt: serverTimestamp(),
-    // Only set createdAt if it doesn't exist
-    ...(!userSnap.exists() ? { createdAt: serverTimestamp() } : {})
-  }, { merge: true });
+  };
+
+  // Only set createdAt if the document doesn't exist yet
+  if (!userSnap.exists()) {
+    profileData.createdAt = serverTimestamp();
+  }
+
+  // Save to Firestore with merge to preserve any other custom fields
+  await setDoc(userRef, profileData, { merge: true });
 }
 
 /** Initiate email/password sign-up. */
@@ -49,10 +55,9 @@ export async function initiateEmailSignUp(
     if (name) {
       await updateProfile(userCredential.user, { displayName: name });
     }
-    // Critical: Sync to Firestore
+    // Sync to Firestore immediately after creation
     await syncUserProfile(db, userCredential.user);
     
-    // Send customized verification email
     const actionCodeSettings: ActionCodeSettings = {
       url: `${window.location.origin}/login`,
       handleCodeInApp: true,
@@ -71,6 +76,7 @@ export async function initiateEmailSignIn(
 ): Promise<UserCredential> {
   const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
   if (userCredential.user) {
+    // Sync profile on every login to ensure data integrity
     await syncUserProfile(db, userCredential.user);
   }
   return userCredential;
@@ -81,6 +87,7 @@ export async function initiateGoogleSignIn(authInstance: Auth, db: Firestore): P
   const provider = new GoogleAuthProvider();
   const userCredential = await signInWithPopup(authInstance, provider);
   if (userCredential.user) {
+    // Sync profile for Google users
     await syncUserProfile(db, userCredential.user);
   }
   return userCredential;
@@ -95,16 +102,24 @@ export function initiatePasswordReset(authInstance: Auth, email: string): Promis
   return sendPasswordResetEmail(authInstance, email, actionCodeSettings);
 }
 
-/** Update user profile. */
+/** 
+ * Update user profile. 
+ * Ensures basic fields are not lost during update.
+ */
 export async function updateUserProfile(
   db: Firestore,
   user: User, 
   data: { displayName?: string; photoURL?: string }
 ): Promise<void> {
+  // Update Auth Profile
   await updateProfile(user, data);
+  
+  // Update Firestore Document
   const userRef = doc(db, 'users', user.uid);
   await setDoc(userRef, {
     ...data,
+    id: user.uid,
+    email: user.email,
     updatedAt: serverTimestamp(),
   }, { merge: true });
 }
