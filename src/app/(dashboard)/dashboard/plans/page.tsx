@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
+import { notifyPlanActivation } from '@/app/actions/notifications';
 
 export default function BrowsePlansPage() {
   const { user } = useUser();
@@ -66,6 +67,11 @@ export default function BrowsePlansPage() {
         subscriptionExpiresAt: Timestamp.fromDate(expiry),
         updatedAt: serverTimestamp()
       }, { merge: true });
+
+      // 3. Send custom SMTP notification (Optional, might fail if env vars not set)
+      if (user.email) {
+        notifyPlanActivation(user.email, plan.name).catch(e => console.error("SMTP failed:", e));
+      }
 
       toast({
         title: "Plan Activated!",
