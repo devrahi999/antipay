@@ -59,16 +59,15 @@ export default function BrandsPage() {
     supportPageLink: ''
   });
 
-  // Query root 'stores' collection filtered by userId with a limit for security rules compliance
+  // Simplified query to match security rules exactly
   const brandsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, 'stores'), 
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
       limit(100)
     );
-  }, [db, user]);
+  }, [db, user?.uid]); // Using user.uid as stable dependency
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
 
@@ -86,7 +85,7 @@ export default function BrandsPage() {
         });
         toast({ title: "Brand Updated", description: "The store details have been successfully updated." });
       } else {
-        // Generate very long API Key (approx 40 chars total)
+        // Generate very long API Key (approx 45 chars total)
         const randomPart1 = Math.random().toString(36).substring(2, 15);
         const randomPart2 = Math.random().toString(36).substring(2, 15);
         const randomPart3 = Math.random().toString(36).substring(2, 15);
@@ -110,7 +109,6 @@ export default function BrandsPage() {
       
       resetForm();
       setIsDialogOpen(false);
-      setIsViewOpen(false);
     } catch (error: any) {
       toast({ 
         variant: "destructive", 

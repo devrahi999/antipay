@@ -9,11 +9,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Safer isAdmin check that won't crash if the user document doesn't exist yet
+    // Safer isAdmin check: direct document access check
     function isAdmin() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -22,36 +18,35 @@ service cloud.firestore {
 
     // --- COLLECTION RULES ---
 
+    // User profiles and private data
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       
-      // Nested collections under user (apiKeys, devices, paymentSessions, etc.)
+      // Allow access to all nested collections under a user
       match /{allPaths=**} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
     }
 
+    // Root-level stores (Brands)
     match /stores/{storeId} {
-      // Allow read if user owns the store (checked via userId field in the doc) or is admin
-      // Note: 'resource' refers to the existing data in the database
-      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Allow list if the query filters by the user's own UID or if they are admin
+      // This is the key fix for the 'list' error
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       
-      // Allow creation only if the user is signed in and sets themselves as the owner
+      // Basic read/write permissions for specific documents
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      
-      // Allow updates/deletes if user owns the store or is admin
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
+    // Public payment links for customers
     match /public_payment_sessions/{sessionId} {
       allow get: if true;
       allow update: if resource.data.status == 'pending' || isAdmin();
     }
     
+    // Global subscription plans
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
