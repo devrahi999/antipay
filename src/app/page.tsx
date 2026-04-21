@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { collection, query, orderBy, getDocs } from "firebase/firestore"
 import { useFirestore, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,11 +12,12 @@ import {
   Zap, 
   Lock, 
   ArrowRight, 
-  Globe,
   Code2,
-  Smartphone,
+  Globe,
+  Activity,
   MessageCircle,
   BarChart3,
+  Cpu
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -157,14 +157,16 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 gap-4 w-full">
                       <div className="bg-white dark:bg-slate-900 border border-border/40 p-5 rounded-2xl shadow-lg">
                         <div className="flex justify-between items-center mb-4">
-                           <Badge className="bg-[#e2136e] text-white border-none px-3 py-1">bKash Verified</Badge>
-                           <span className="text-[10px] font-bold text-emerald-500">REAL-TIME</span>
+                           <Badge className="bg-primary text-white border-none px-3 py-1">API Confirmed</Badge>
+                           <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
+                           </span>
                         </div>
                         <div className="space-y-2">
                            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                               <div className="h-full bg-primary" style={{ width: '100%' }} />
                            </div>
-                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Transaction 8J9A1X7K Verified in 0.2s</p>
+                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Payment Verified Successfully</p>
                         </div>
                       </div>
                     </div>
@@ -220,22 +222,22 @@ export default function LandingPage() {
                 {
                   icon: Zap,
                   title: "Instant Verification",
-                  desc: "Our engine processes transaction SMS in milliseconds, providing instant verification results to your application."
+                  desc: "Our engine processes transaction data in milliseconds, providing instant verification results to your application."
                 },
                 {
-                  icon: Smartphone,
-                  title: "Mobile Node Sync",
-                  desc: "Securely sync incoming payment SMS directly to our cloud infrastructure for instant data processing."
+                  icon: Cpu,
+                  title: "API-First Infrastructure",
+                  desc: "A robust and scalable infrastructure designed to handle high-volume transaction verification with zero latency."
                 },
                 {
                   icon: Code2,
                   title: "Developer First API",
-                  desc: "Clean JSON APIs and SDKs designed to be integrated in less than 30 minutes for any tech stack."
+                  desc: "Clean JSON APIs and SDKs designed to be integrated in less than 30 minutes for any modern tech stack."
                 },
                 {
                   icon: BarChart3,
                   title: "Real-time Analytics",
-                  desc: "Monitor your transaction volume, success rates, and customer behavior with our intuitive dashboard."
+                  desc: "Monitor your transaction volume, success rates, and customer behavior with our intuitive analytics dashboard."
                 },
                 {
                   icon: Lock,
@@ -245,7 +247,7 @@ export default function LandingPage() {
                 {
                   icon: MessageCircle,
                   title: "Dedicated Support",
-                  desc: "Access our expert support team via WhatsApp or Email whenever you need assistance with integration."
+                  desc: "Access our expert support team via WhatsApp or Email whenever you need assistance with your integration."
                 }
               ].map((feature, idx) => (
                 <RevealOnScroll key={idx} className="group">
@@ -274,16 +276,16 @@ export default function LandingPage() {
             <Accordion type="single" collapsible className="w-full space-y-4">
               {[
                 {
-                  q: "How secure is the transaction syncing?",
-                  a: "Extremely secure. We only monitor signals from verified banking shortcodes. All data is encrypted with TLS 1.3 before being sent to our servers."
+                  q: "How secure is the verification process?",
+                  a: "Extremely secure. We use bank-grade encryption and only monitor verified banking signals. All data is encrypted with TLS 1.3 before being processed."
                 },
                 {
                   q: "Which payment methods are supported?",
                   a: "We currently support bKash, Nagad, Rocket, Upay, CellFin, and Tap. We are constantly adding new local providers based on merchant requests."
                 },
                 {
-                  q: "Do I need a merchant account?",
-                  a: "No! AntiPay works with both Personal and Merchant accounts. Our system is designed to handle verification regardless of the account tier."
+                  q: "Do I need a formal merchant account?",
+                  a: "No! AntiPay works with both Personal and Merchant accounts. Our system is designed to handle verification regardless of your account tier."
                 },
                 {
                   q: "Can I use AntiPay for high-volume transactions?",
