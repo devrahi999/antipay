@@ -16,21 +16,24 @@ import { doc, setDoc, getDoc, serverTimestamp, Firestore } from 'firebase/firest
 
 /**
  * Creates or updates a user profile in Firestore.
+ * This ensures data is always synced to the 'users' collection.
  */
 async function syncUserProfile(db: Firestore, user: User) {
+  if (!db || !user) return;
+  
   const userRef = doc(db, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
-  if (!userSnap.exists()) {
-    await setDoc(userRef, {
-      id: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  }
+  // Update or create document
+  await setDoc(userRef, {
+    id: user.uid,
+    email: user.email,
+    displayName: user.displayName || user.email?.split('@')[0],
+    photoURL: user.photoURL || '',
+    updatedAt: serverTimestamp(),
+    // Only set createdAt if it doesn't exist
+    ...(!userSnap.exists() ? { createdAt: serverTimestamp() } : {})
+  }, { merge: true });
 }
 
 /** Initiate email/password sign-up. */
@@ -46,7 +49,7 @@ export async function initiateEmailSignUp(
     if (name) {
       await updateProfile(userCredential.user, { displayName: name });
     }
-    // Sync to Firestore
+    // Critical: Sync to Firestore
     await syncUserProfile(db, userCredential.user);
     
     // Send customized verification email
