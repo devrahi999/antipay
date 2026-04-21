@@ -13,6 +13,7 @@ import {
   LogOut,
   ShieldCheck,
   WalletCards,
+  SmartphoneNfc
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -59,6 +60,11 @@ const navItems = [
     title: "Payment Methods",
     icon: WalletCards,
     url: "/dashboard/payment-methods",
+  },
+  {
+    title: "Devices",
+    icon: SmartphoneNfc,
+    url: "/dashboard/devices",
   },
   {
     title: "Developer Docs",

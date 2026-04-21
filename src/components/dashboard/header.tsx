@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { User, LogOut, Settings, Bell, Search } from "lucide-react"
+import { User, LogOut, Settings, Search, Menu } from "lucide-react"
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 import { doc } from "firebase/firestore"
 import Link from "next/link"
@@ -41,15 +41,26 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
-      <div className="flex items-center gap-4">
-        <SidebarTrigger className="h-9 w-9 text-muted-foreground hover:text-primary transition-colors" />
+      {/* Left Section: Sidebar Trigger */}
+      <div className="flex items-center gap-4 min-w-[40px]">
+        <SidebarTrigger className="h-9 w-9 text-muted-foreground hover:text-primary transition-colors">
+          <Menu className="h-6 w-6" />
+        </SidebarTrigger>
         <div className="h-6 w-[1px] bg-border/50 hidden md:block" />
+        <h2 className="text-xl font-headline font-bold text-primary tracking-tight hidden md:block">
+          AntiPay
+        </h2>
+      </div>
+
+      {/* Center Section: Title for Mobile Only */}
+      <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <h2 className="text-xl font-headline font-bold text-primary tracking-tight">
           AntiPay
         </h2>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4">
+      {/* Right Section: Search & Profile */}
+      <div className="flex items-center gap-2 md:gap-4 min-w-[40px] justify-end">
         <div className="hidden md:flex items-center bg-secondary/30 rounded-lg px-3 py-1.5 border border-border/50">
           <Search className="h-4 w-4 text-muted-foreground mr-2" />
           <input 
@@ -58,15 +69,10 @@ export function DashboardHeader() {
             className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-40 lg:w-60"
           />
         </div>
-
-        <Button variant="ghost" size="icon" className="text-muted-foreground relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 bg-primary rounded-full" />
-        </Button>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-primary/10">
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-primary/10 p-0 overflow-hidden">
               <Avatar className="h-9 w-9">
                 <AvatarImage src={photoURL} alt="User" />
                 <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
