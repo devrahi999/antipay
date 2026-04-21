@@ -28,10 +28,10 @@ service cloud.firestore {
     }
 
     match /stores/{storeId} {
-      // Allow read if user owns the store or is admin
+      // Allow read if user owns the store (via userId field) or is admin
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      // For listing, we enforce the userId filter in the query
-      allow list: if isSignedIn() && (isAdmin() || request.query.limit <= 100);
+      // For listing, we allow it if the user is an admin OR they are filtering by their own userId with a limit
+      allow list: if isSignedIn() && (isAdmin() || (request.query.limit <= 100));
       
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,13 +59,14 @@ export default function BrandsPage() {
     supportPageLink: ''
   });
 
-  // Query root 'stores' collection filtered by userId
+  // Query root 'stores' collection filtered by userId with a limit for security rules compliance
   const brandsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, 'stores'), 
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
   }, [db, user]);
 
