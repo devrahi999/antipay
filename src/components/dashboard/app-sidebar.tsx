@@ -31,8 +31,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { useAuth, useUser } from "@/firebase"
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { doc } from "firebase/firestore"
 
 const navItems = [
   {
@@ -87,8 +87,15 @@ export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const auth = useAuth()
+  const db = useFirestore()
   const { user } = useUser()
-  const userAvatar = PlaceHolderImages.find(img => img.id === "user-avatar")?.imageUrl
+
+  // Fetch real profile data from Firestore to get the most updated photoURL and displayName
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user]);
+  const { data: profile } = useDoc(profileRef);
 
   React.useEffect(() => {
     setMounted(true)
@@ -98,6 +105,9 @@ export function AppSidebar() {
     await auth.signOut();
     router.push('/login');
   }
+
+  const displayName = profile?.displayName || user?.displayName || "Merchant";
+  const photoURL = profile?.photoURL || user?.photoURL || "";
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border/50">
@@ -145,11 +155,11 @@ export function AppSidebar() {
         {user && (
           <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center px-2 mb-4">
             <Avatar className="h-9 w-9 ring-2 ring-primary/20">
-              <AvatarImage src={userAvatar} alt="User Avatar" />
+              <AvatarImage src={photoURL} alt="User Avatar" />
               <AvatarFallback className="bg-primary/10 text-primary">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden overflow-hidden">
-              <span className="text-xs font-bold truncate text-foreground">{user.displayName || "Merchant"}</span>
+              <span className="text-xs font-bold truncate text-foreground">{displayName}</span>
               <span className="text-[10px] text-muted-foreground truncate">{user.email}</span>
             </div>
           </div>

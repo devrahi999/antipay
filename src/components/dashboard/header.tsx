@@ -13,20 +13,31 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { User, LogOut, Settings, Bell, Search } from "lucide-react"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { useUser, useAuth } from "@/firebase"
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
+import { doc } from "firebase/firestore"
+import Link from "next/link"
 
 export function DashboardHeader() {
   const [mounted, setMounted] = useState(false)
-  const userAvatar = PlaceHolderImages.find(img => img.id === "user-avatar")?.imageUrl
   const { user } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
+
+  // Fetch real profile data from Firestore to get the most updated photoURL and displayName
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user]);
+  const { data: profile } = useDoc(profileRef);
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   if (!mounted) return <header className="h-16 border-b bg-background" />;
+
+  const displayName = profile?.displayName || user?.displayName || "Merchant";
+  const photoURL = profile?.photoURL || user?.photoURL || "";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
@@ -57,7 +68,7 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-primary/10">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={userAvatar} alt="User" />
+                <AvatarImage src={photoURL} alt="User" />
                 <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </Button>
@@ -65,23 +76,27 @@ export function DashboardHeader() {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.displayName || "Merchant"}</p>
+                <p className="text-sm font-medium leading-none">{displayName}</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="flex items-center w-full cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="flex items-center w-full cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={() => auth.signOut()}>
+            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => auth.signOut()}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sign out</span>
             </DropdownMenuItem>
