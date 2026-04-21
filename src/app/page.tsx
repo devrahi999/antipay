@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from "react"
@@ -20,7 +21,8 @@ import {
   Cpu,
   BarChart3,
   Loader2,
-  Sparkles
+  Sparkles,
+  Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -127,7 +129,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <RevealOnScroll className="flex flex-col space-y-8">
                 <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary w-fit">
-                  <Badge variant="outline" className="mr-2 border-primary/20 bg-primary/10 text-primary">New</Badge>
+                  <Badge variant="outline" className="mr-2 border-primary/20 bg-primary/10 text-primary font-bold">LIVE</Badge>
                   v2.0 Developer API is live
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold tracking-tight text-foreground leading-[1.1]">
@@ -137,10 +139,10 @@ export default function LandingPage() {
                   Verify bKash, Nagad, and Rocket payments in real-time using our powerful API. Built for the high-speed Bangladesh economy.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button onClick={handlePlanClick} size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group cursor-pointer">
+                  <Button onClick={handlePlanClick} size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group cursor-pointer font-bold">
                     Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50 cursor-pointer font-bold">
                     <Link href="/docs">View Docs</Link>
                   </Button>
                 </div>
@@ -189,7 +191,14 @@ export default function LandingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {plans.map((plan, idx) => (
                   <RevealOnScroll key={plan.id} style={{ transitionDelay: `${idx * 150}ms` }}>
-                    <Card className="relative h-full flex flex-col border-2 border-border/50 bg-card hover:border-primary/50 transition-all duration-300">
+                    <Card className="relative h-full flex flex-col border-2 border-border/50 bg-card hover:border-primary/50 transition-all duration-300 shadow-lg">
+                      {plan.isFreeTrialAvailable && (
+                        <div className="absolute top-4 right-4">
+                           <Badge className="bg-amber-500 hover:bg-amber-600 text-[9px] font-bold uppercase py-0.5 px-2">
+                             <Clock className="h-2 w-2 mr-1" /> 1 Month Free Trial
+                           </Badge>
+                        </div>
+                      )}
                       <CardHeader>
                         <div className="flex justify-between items-start">
                            <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
@@ -201,20 +210,20 @@ export default function LandingPage() {
                       </CardHeader>
                       <CardContent className="flex-1 space-y-6">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold">৳{plan.price}</span>
+                          <span className="text-4xl font-black">৳{plan.price}</span>
                           <span className="text-muted-foreground text-sm">/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                         </div>
                         <ul className="space-y-3">
                           {plan.benefits?.map((benefit: string, i: number) => (
                             <li key={i} className="flex items-start gap-3 text-sm">
                               <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                              <span className="text-muted-foreground">{benefit}</span>
+                              <span className="text-muted-foreground font-medium">{benefit}</span>
                             </li>
                           ))}
                         </ul>
                       </CardContent>
                       <CardFooter>
-                        <Button onClick={handlePlanClick} className="w-full bg-primary hover:bg-primary/90 font-bold h-11">
+                        <Button onClick={handlePlanClick} className="w-full bg-primary hover:bg-primary/90 font-bold h-11 shadow-lg shadow-primary/20">
                           {user ? "View in Console" : "Start with " + plan.name}
                         </Button>
                       </CardFooter>
@@ -261,7 +270,7 @@ export default function LandingPage() {
                 <RevealOnScroll key={idx} style={{ transitionDelay: `${idx * 150}ms` }}>
                   <Card className="border-none shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group h-full">
                     <CardHeader>
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-2 group-hover:bg-primary group-hover:text-white transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-2 group-hover:bg-primary group-hover:text-white transition-colors shadow-inner">
                         <feature.icon size={24} />
                       </div>
                       <CardTitle className="text-xl">{feature.title}</CardTitle>

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -42,6 +43,24 @@
           "type": "string",
           "format": "date-time"
         }
+      }
+    },
+    "UserPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPlan",
+      "type": "object",
+      "description": "Active plan details for a specific user.",
+      "properties": {
+        "id": { "type": "string", "description": "The userId" },
+        "planId": { "type": "string" },
+        "planName": { "type": "string" },
+        "price": { "type": "number" },
+        "billingCycle": { "type": "string" },
+        "maxApiKeys": { "type": "number" },
+        "maxDevices": { "type": "number" },
+        "benefits": { "type": "array", "items": { "type": "string" } },
+        "activatedAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
       }
     },
     "Store": {
@@ -102,6 +121,16 @@
             "$ref": "#/backend/entities/UserProfile"
           },
           "description": "User profile data."
+        }
+      },
+      {
+        "path": "/user_plans/{userId}",
+        "definition": {
+          "entityName": "UserPlan",
+          "schema": {
+            "$ref": "#/backend/entities/UserPlan"
+          },
+          "description": "User's active subscription details."
         }
       },
       {

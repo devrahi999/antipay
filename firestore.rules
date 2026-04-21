@@ -9,7 +9,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Safer isAdmin check: direct document access check
+    // Secure isAdmin check
     function isAdmin() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -18,23 +18,26 @@ service cloud.firestore {
 
     // --- COLLECTION RULES ---
 
-    // User profiles and private data
+    // User profiles
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       
-      // Allow access to all nested collections under a user
       match /{allPaths=**} {
         allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
     }
 
+    // Root-level User Plans
+    match /user_plans/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
     // Root-level stores (Brands)
     match /stores/{storeId} {
-      // Allow list if the query filters by the user's own UID or if they are admin
-      // This is the key fix for the 'list' error
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Explicit allow list for the query limit used in BrandsPage
+      allow list: if isSignedIn() && (isAdmin() || (resource.data.userId == request.auth.uid));
       
-      // Basic read/write permissions for specific documents
       allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
