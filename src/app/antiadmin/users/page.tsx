@@ -19,7 +19,8 @@ import {
   Loader2, 
   CheckCircle2, 
   X,
-  CreditCard
+  CreditCard,
+  MailWarning
 } from "lucide-react"
 import { 
   DropdownMenu, 
@@ -36,6 +37,7 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { notifyPlanExpiration } from '@/app/actions/notifications';
 
 export default function ManageUsersPage() {
   const db = useFirestore();
@@ -44,6 +46,7 @@ export default function ManageUsersPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isAssigningPlan, setIsAssigningPlan] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState<string | null>(null);
 
   // Users list
   const usersQuery = useMemoFirebase(() => {
@@ -75,6 +78,19 @@ export default function ManageUsersPage() {
       toast({ title: "Updated", description: `User role changed successfully.` });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
+    }
+  };
+
+  const handleSendExpiryEmail = async (user: any) => {
+    if (!user.email) return;
+    setIsEmailLoading(user.id);
+    try {
+      await notifyPlanExpiration(user.email, user.subscriptionPlanId || "Active Plan");
+      toast({ title: "Alert Sent", description: `Expiration email sent to ${user.email}.` });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Failed", description: "Could not send email." });
+    } finally {
+      setIsEmailLoading(null);
     }
   };
 
@@ -194,24 +210,36 @@ export default function ManageUsersPage() {
                        {u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString() : "Unknown"}
                     </TableCell>
                     <TableCell className="text-right pr-6">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-[#162129] border-border/20 text-white w-48">
-                          <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10" onClick={() => { setSelectedUser(u); setIsAssigningPlan(true); }}>
-                            <Zap className="mr-2 h-3.5 w-3.5 text-amber-500" /> Override Subscription
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10" onClick={() => toggleAdmin(u.id, u.isAdmin)}>
-                            <ShieldCheck className="mr-2 h-3.5 w-3.5" /> {u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10">
-                            <UserCog className="mr-2 h-3.5 w-3.5" /> View Full Profile
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-rose-400 hover:bg-rose-500/10"
+                          onClick={() => handleSendExpiryEmail(u)}
+                          disabled={isEmailLoading === u.id}
+                        >
+                          {isEmailLoading === u.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailWarning className="h-4 w-4" />}
+                        </Button>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#162129] border-border/20 text-white w-48">
+                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10" onClick={() => { setSelectedUser(u); setIsAssigningPlan(true); }}>
+                              <Zap className="mr-2 h-3.5 w-3.5 text-amber-500" /> Override Subscription
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10" onClick={() => toggleAdmin(u.id, u.isAdmin)}>
+                              <ShieldCheck className="mr-2 h-3.5 w-3.5" /> {u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10">
+                              <UserCog className="mr-2 h-3.5 w-3.5" /> View Full Profile
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 
 /**
  * SMTP Configuration optimized for Gmail.
- * Ensure SMTP_USER and SMTP_PASS (App Password) are set in your environment.
+ * Using credentials provided by the user.
  */
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -11,15 +11,16 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, // Use SSL
   auth: {
-    user: process.env.SMTP_USER, 
-    pass: process.env.SMTP_PASS, // Use the 16-character App Password
+    // Hardcoded as requested because user couldn't set env vars
+    user: 'supports.antipay@gmail.com', 
+    pass: 'cnmr uxdh kcca xplg', 
   },
 });
 
 export async function sendCustomEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
   try {
     const info = await transporter.sendMail({
-      from: `"AntiPay Support" <${process.env.SMTP_USER}>`,
+      from: `"AntiPay Support" <supports.antipay@gmail.com>`,
       to,
       subject,
       html,
