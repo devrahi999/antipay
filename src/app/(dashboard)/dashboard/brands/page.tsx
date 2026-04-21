@@ -29,14 +29,15 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 export default function BrandsPage() {
-  const { user } = useUser();
+  const { user } = user = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,12 +113,16 @@ export default function BrandsPage() {
             <div className="flex items-center justify-between p-4 border-b border-border/10 bg-[#162129]">
               <div className="flex items-center gap-2 text-[#0095ff]">
                 <Tags className="h-5 w-5" />
-                <span className="font-bold text-lg">Add a New Brand</span>
+                <DialogTitle className="font-bold text-lg text-[#0095ff]">Add a New Brand</DialogTitle>
               </div>
               <DialogClose className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </DialogClose>
             </div>
+            
+            <DialogDescription className="sr-only">
+              Fill out the form below to register a new brand for your merchant account.
+            </DialogDescription>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[85vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -128,34 +133,34 @@ export default function BrandsPage() {
                   </h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="brandName" className="text-xs font-bold">Brand Name <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="brandName" className="text-sm font-semibold text-slate-200">Brand Name <span className="text-destructive">*</span></Label>
                       <Input 
                         id="brandName" 
                         placeholder="e.g., ZiniPay" 
-                        className="bg-[#162129] border-border/10 h-10"
+                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="websiteUrl" className="text-xs font-bold">Website URL <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="websiteUrl" className="text-sm font-semibold text-slate-200">Website URL <span className="text-destructive">*</span></Label>
                       <Input 
                         id="websiteUrl" 
                         placeholder="https://example.com" 
-                        className="bg-[#162129] border-border/10 h-10"
+                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
                         value={formData.websiteUrl}
                         onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="logoUrl" className="text-xs font-bold">Brand Logo URL or Upload</Label>
+                      <Label htmlFor="logoUrl" className="text-sm font-semibold text-slate-200">Brand Logo URL or Upload</Label>
                       <div className="flex gap-2">
                         <Input 
                           id="logoUrl" 
                           placeholder="Paste image URL" 
-                          className="bg-[#162129] border-border/10 h-10 flex-1"
+                          className="bg-[#162129] border-border/20 h-10 text-white flex-1 placeholder:text-muted-foreground/50"
                           value={formData.logoUrl}
                           onChange={(e) => setFormData({...formData, logoUrl: e.target.value})}
                         />
@@ -174,42 +179,42 @@ export default function BrandsPage() {
                   </h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="supportEmail" className="text-xs font-bold">Support Email</Label>
+                      <Label htmlFor="supportEmail" className="text-sm font-semibold text-slate-200">Support Email</Label>
                       <Input 
                         id="supportEmail" 
                         type="email"
                         placeholder="support@example.com" 
-                        className="bg-[#162129] border-border/10 h-10"
+                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
                         value={formData.supportEmail}
                         onChange={(e) => setFormData({...formData, supportEmail: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="supportPhone" className="text-xs font-bold">Support Phone</Label>
+                      <Label htmlFor="supportPhone" className="text-sm font-semibold text-slate-200">Support Phone</Label>
                       <Input 
                         id="supportPhone" 
                         placeholder="+8801XXXXXXXXX" 
-                        className="bg-[#162129] border-border/10 h-10"
+                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
                         value={formData.supportPhone}
                         onChange={(e) => setFormData({...formData, supportPhone: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="whatsapp" className="text-xs font-bold">WhatsApp Number</Label>
+                      <Label htmlFor="whatsapp" className="text-sm font-semibold text-slate-200">WhatsApp Number</Label>
                       <Input 
                         id="whatsapp" 
                         placeholder="+8801XXXXXXXXX" 
-                        className="bg-[#162129] border-border/10 h-10"
+                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
                         value={formData.whatsappNumber}
                         onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="supportPage" className="text-xs font-bold">Support Page Link</Label>
+                      <Label htmlFor="supportPage" className="text-sm font-semibold text-slate-200">Support Page Link</Label>
                       <Input 
                         id="supportPage" 
                         placeholder="https://example.com/support" 
-                        className="bg-[#162129] border-border/10 h-10"
+                        className="bg-[#162129] border-border/20 h-10 text-white placeholder:text-muted-foreground/50"
                         value={formData.supportPageLink}
                         onChange={(e) => setFormData({...formData, supportPageLink: e.target.value})}
                       />
@@ -220,7 +225,7 @@ export default function BrandsPage() {
 
               <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8">
+                  <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8 border border-border/10">
                     Cancel
                   </Button>
                 </DialogClose>
