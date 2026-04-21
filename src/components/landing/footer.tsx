@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link"
-import { ShieldCheck, Facebook, MessageCircle } from "lucide-react"
+import { Facebook, MessageCircle } from "lucide-react"
 
 export function Footer() {
   return (
@@ -9,11 +9,8 @@ export function Footer() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
           <div className="col-span-2 space-y-6">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="bg-primary p-1.5 rounded-lg text-primary-foreground">
-                <ShieldCheck size={24} />
-              </div>
-              <span className="text-2xl font-headline font-bold tracking-tight text-primary">AntiPay</span>
+            <Link href="/" className="inline-block">
+              <img src="https://i.imgur.com/Chozuv5.png" alt="AntiPay" className="h-10 w-auto object-contain" />
             </Link>
             <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">
               Empowering businesses across Bangladesh with automated payment verification systems. Reliable, secure, and fast.

@@ -1,14 +1,11 @@
-
 "use client"
 
 import * as React from "react"
 import {
   LayoutDashboard,
   Users,
-  CreditCard,
   Settings,
   LogOut,
-  ShieldCheck,
   Package,
   ArrowLeft,
   Database,
@@ -33,41 +30,13 @@ import {
 import { useAuth } from "@/firebase"
 
 const adminNavItems = [
-  {
-    title: "Overview",
-    icon: LayoutDashboard,
-    url: "/antiadmin",
-  },
-  {
-    title: "Manage Users",
-    icon: Users,
-    url: "/antiadmin/users",
-  },
-  {
-    title: "All Brands",
-    icon: Tags,
-    url: "/antiadmin/brands",
-  },
-  {
-    title: "Plan Purchases",
-    icon: History,
-    url: "/antiadmin/transactions",
-  },
-  {
-    title: "Subscription Plans",
-    icon: Package,
-    url: "/antiadmin/plans",
-  },
-  {
-    title: "System Logs",
-    icon: Database,
-    url: "/antiadmin/logs",
-  },
-  {
-    title: "Global Settings",
-    icon: Settings,
-    url: "/antiadmin/settings",
-  },
+  { title: "Overview", icon: LayoutDashboard, url: "/antiadmin" },
+  { title: "Manage Users", icon: Users, url: "/antiadmin/users" },
+  { title: "All Brands", icon: Tags, url: "/antiadmin/brands" },
+  { title: "Plan Purchases", icon: History, url: "/antiadmin/transactions" },
+  { title: "Subscription Plans", icon: Package, url: "/antiadmin/plans" },
+  { title: "System Logs", icon: Database, url: "/antiadmin/logs" },
+  { title: "Global Settings", icon: Settings, url: "/antiadmin/settings" },
 ]
 
 export function AdminSidebar() {
@@ -84,8 +53,8 @@ export function AdminSidebar() {
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border/10 bg-[#0b141a]">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="bg-[#16a34a] p-2 rounded-lg text-white shadow-lg shadow-[#16a34a]/20">
-            <ShieldCheck size={24} />
+          <div className="h-10 w-10 flex items-center justify-center overflow-hidden">
+            <img src="https://i.imgur.com/18owxBD.png" alt="AntiAdmin" className="h-full w-auto object-contain" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="font-headline font-bold text-xl tracking-tight text-[#16a34a]">AntiAdmin</span>

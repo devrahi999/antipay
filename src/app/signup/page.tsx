@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, Lock, User, Loader2, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,27 +35,16 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Password Mismatch", description: "Passwords do not match." });
       return;
     }
     setLoading(true);
     try {
       await initiateEmailSignUp(auth, db, email, password, name);
       setIsSuccess(true);
-      toast({
-        title: "Account Created",
-        description: "Please check your email to verify your account.",
-      });
+      toast({ title: "Account Created", description: "Verify your email to continue." });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: error.message || "Could not create your account.",
-      });
+      toast({ variant: "destructive", title: "Registration Failed", description: error.message });
       setLoading(false);
     }
   };
@@ -66,11 +55,7 @@ export default function SignupPage() {
       await initiateGoogleSignIn(auth, db);
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
-        toast({
-          variant: "destructive",
-          title: "Google Error",
-          description: error.message || "Could not sign up with Google.",
-        });
+        toast({ variant: "destructive", title: "Google Error", description: error.message });
       }
       setLoading(false);
     }
@@ -78,18 +63,16 @@ export default function SignupPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary/10 p-4 font-body">
+      <div className="min-h-screen flex items-center justify-center bg-secondary/10 p-4">
         <Card className="w-full max-w-md border-none shadow-xl text-center p-8 space-y-6">
           <div className="bg-green-100 h-20 w-20 rounded-full flex items-center justify-center mx-auto text-green-600">
             <CheckCircle2 size={40} />
           </div>
           <div className="space-y-2">
             <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
-            <p className="text-muted-foreground">We've sent a verification link to <span className="text-primary font-bold">{email}</span>. Please verify your email to continue.</p>
+            <p className="text-muted-foreground">We've sent a verification link to <span className="text-primary font-bold">{email}</span>.</p>
           </div>
-          <Button asChild className="w-full bg-primary hover:bg-primary/90">
-            <Link href="/login">Back to Login</Link>
-          </Button>
+          <Button asChild className="w-full bg-primary hover:bg-primary/90"><Link href="/login">Back to Login</Link></Button>
         </Card>
       </div>
     );
@@ -99,8 +82,8 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-secondary/10 p-4 font-body">
       <Card className="w-full max-w-md border-none shadow-xl">
         <CardHeader className="space-y-4 flex flex-col items-center">
-          <div className="bg-primary p-3 rounded-2xl text-primary-foreground shadow-lg shadow-primary/20">
-            <ShieldCheck size={32} />
+          <div className="h-16 w-16 mb-2">
+            <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay Logo" className="h-full w-full object-contain" />
           </div>
           <div className="text-center">
             <CardTitle className="text-2xl font-headline font-bold">Create Account</CardTitle>
@@ -113,81 +96,39 @@ export default function SignupPage() {
               <Label htmlFor="name">Full Name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="name" 
-                  placeholder="AntiPay Merchant" 
-                  className="pl-10" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required 
-                />
+                <Input id="name" placeholder="AntiPay Merchant" className="pl-10" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="merchant@antipay.io" 
-                  className="pl-10" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                />
+                <Input id="email" type="email" placeholder="merchant@antipay.io" className="pl-10" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-10" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                />
+                <Input id="password" type="password" placeholder="••••••••" className="pl-10" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="confirm-password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-10" 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required 
-                />
+                <Input id="confirm-password" type="password" placeholder="••••••••" className="pl-10" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
               </div>
             </div>
             <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90" disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create Account"}
             </Button>
           </form>
-
           <div className="relative py-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground font-bold">Or continue with</span>
-            </div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-bold">Or continue with</span></div>
           </div>
-
-          <Button 
-            variant="outline" 
-            className="w-full h-11 hover:bg-secondary/50 border-primary/20"
-            onClick={handleGoogleSignup}
-            disabled={loading}
-          >
+          <Button variant="outline" className="w-full h-11 border-primary/20" onClick={handleGoogleSignup} disabled={loading}>
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />

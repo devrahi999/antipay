@@ -23,7 +23,6 @@ export function DashboardHeader() {
   const auth = useAuth();
   const db = useFirestore();
 
-  // Fetch real profile data from Firestore to get the most updated photoURL and displayName
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -41,32 +40,29 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
-      {/* Left Section: Sidebar Trigger */}
-      <div className="flex items-center gap-4 min-w-[40px]">
+      <div className="flex items-center gap-4">
         <SidebarTrigger className="h-9 w-9 text-muted-foreground hover:text-primary transition-colors">
           <Menu className="h-6 w-6" />
         </SidebarTrigger>
-        <div className="h-6 w-[1px] bg-border/50 hidden md:block" />
-        <h2 className="text-xl font-headline font-bold text-primary tracking-tight hidden md:block">
-          AntiPay
-        </h2>
       </div>
 
-      {/* Center Section: Title for Mobile Only */}
-      <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <h2 className="text-xl font-headline font-bold text-primary tracking-tight">
-          AntiPay
-        </h2>
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <Link href="/dashboard">
+          <img 
+            src="https://i.imgur.com/Chozuv5.png" 
+            alt="AntiPay" 
+            className="h-7 md:h-9 w-auto object-contain"
+          />
+        </Link>
       </div>
 
-      {/* Right Section: Search & Profile */}
-      <div className="flex items-center gap-2 md:gap-4 min-w-[40px] justify-end">
+      <div className="flex items-center gap-2 md:gap-4 justify-end">
         <div className="hidden md:flex items-center bg-secondary/30 rounded-lg px-3 py-1.5 border border-border/50">
           <Search className="h-4 w-4 text-muted-foreground mr-2" />
           <input 
             type="text" 
-            placeholder="Search dashboard..." 
-            className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-40 lg:w-60"
+            placeholder="Search..." 
+            className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-20 lg:w-40"
           />
         </div>
         

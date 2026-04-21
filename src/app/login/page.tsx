@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -88,8 +88,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-secondary/10 p-4 font-body">
       <Card className="w-full max-w-md border-none shadow-xl">
         <CardHeader className="space-y-4 flex flex-col items-center">
-          <div className="bg-primary p-3 rounded-2xl text-primary-foreground shadow-lg shadow-primary/20">
-            <ShieldCheck size={32} />
+          <div className="h-16 w-16 mb-2">
+            <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay Logo" className="h-full w-full object-contain" />
           </div>
           <div className="text-center">
             <CardTitle className="text-2xl font-headline font-bold">Welcome Back</CardTitle>
@@ -102,15 +102,7 @@ export default function LoginPage() {
               <Label htmlFor="email">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@company.com" 
-                  className="pl-10" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                />
+                <Input id="email" type="email" placeholder="name@company.com" className="pl-10" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
@@ -118,26 +110,19 @@ export default function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <button type="button" className="text-xs text-[#16a34a] font-bold hover:underline">Forgot password?</button>
+                    <button type="button" className="text-xs text-primary font-bold hover:underline">Forgot password?</button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[400px]">
                     <DialogHeader>
                       <DialogTitle>Reset Password</DialogTitle>
-                      <DialogDescription>Enter your email and we'll send you a link to our custom reset page.</DialogDescription>
+                      <DialogDescription>Enter your email and we'll send you a link to reset your account.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
                       <div className="space-y-2">
                         <Label htmlFor="reset-email">Email Address</Label>
-                        <Input 
-                          id="reset-email" 
-                          type="email" 
-                          placeholder="name@company.com" 
-                          value={resetEmail}
-                          onChange={(e) => setResetEmail(e.target.value)}
-                          required 
-                        />
+                        <Input id="reset-email" type="email" placeholder="name@company.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
                       </div>
-                      <Button type="submit" className="w-full bg-[#16a34a] hover:bg-[#15803d]" disabled={resetLoading}>
+                      <Button type="submit" className="w-full" disabled={resetLoading}>
                         {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Send Reset Link"}
                       </Button>
                     </form>
@@ -146,15 +131,7 @@ export default function LoginPage() {
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-10" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                />
+                <Input id="password" type="password" placeholder="••••••••" className="pl-10" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
             </div>
             <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90" disabled={loading}>
@@ -163,20 +140,11 @@ export default function LoginPage() {
           </form>
 
           <div className="relative py-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground font-bold">Or continue with</span>
-            </div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-bold">Or continue with</span></div>
           </div>
 
-          <Button 
-            variant="outline" 
-            className="w-full h-11 hover:bg-secondary/50 border-primary/20"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-          >
+          <Button variant="outline" className="w-full h-11 border-primary/20" onClick={handleGoogleLogin} disabled={loading}>
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
