@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,7 +29,7 @@ export default function SignupPage() {
     }
   }, [user, router]);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({
@@ -41,12 +40,32 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    initiateEmailSignUp(auth, email, password, name);
+    try {
+      await initiateEmailSignUp(auth, email, password, name);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "Could not create your account.",
+      });
+      setLoading(false);
+    }
   };
 
-  const handleGoogleSignup = () => {
+  const handleGoogleSignup = async () => {
     setLoading(true);
-    initiateGoogleSignIn(auth);
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast({
+          variant: "destructive",
+          title: "Google Error",
+          description: error.message || "Could not sign up with Google.",
+        });
+      }
+      setLoading(false);
+    }
   };
 
   return (

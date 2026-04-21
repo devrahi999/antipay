@@ -30,15 +30,35 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    initiateEmailSignIn(auth, email, password);
+    try {
+      await initiateEmailSignIn(auth, email, password);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Invalid email or password.",
+      });
+      setLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
-    initiateGoogleSignIn(auth);
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast({
+          variant: "destructive",
+          title: "Google Sign-In Error",
+          description: error.message || "Could not sign in with Google.",
+        });
+      }
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -97,7 +117,7 @@ export default function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <button type="button" className="text-xs text-primary hover:underline">Forgot password?</button>
+                    <button type="button" className="text-xs text-[#16a34a] font-bold hover:underline">Forgot password?</button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[400px]">
                     <DialogHeader>
@@ -116,7 +136,7 @@ export default function LoginPage() {
                           required 
                         />
                       </div>
-                      <Button type="submit" className="w-full" disabled={resetLoading}>
+                      <Button type="submit" className="w-full bg-[#16a34a] hover:bg-[#15803d]" disabled={resetLoading}>
                         {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Send Reset Link"}
                       </Button>
                     </form>
