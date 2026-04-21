@@ -38,15 +38,20 @@ export default function BrowsePlansPage() {
     setIsSubmitting(plan.id);
 
     try {
-      // Calculate expiry (30 days from now)
+      // Calculate expiry (30 days from now for monthly, 365 for yearly)
       const now = new Date();
       const expiry = new Date();
-      expiry.setDate(now.getDate() + 30);
+      if (plan.billingCycle === 'yearly') {
+        expiry.setDate(now.getDate() + 365);
+      } else {
+        expiry.setDate(now.getDate() + 30);
+      }
 
-      // 1. Update/Create user_plans/{userId} document
+      // 1. Update/Create user_plans/{userId} document (Root Collection)
       const userPlanRef = doc(db, 'user_plans', user.uid);
       await setDoc(userPlanRef, {
         userId: user.uid,
+        userEmail: user.email,
         planId: plan.id,
         planName: plan.name,
         price: plan.price,
@@ -68,14 +73,34 @@ export default function BrowsePlansPage() {
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // 3. Send custom SMTP notification (Optional, might fail if env vars not set)
+      // 3. Log a success transaction
+      const txRef = doc(collection(db, 'plan_transactions'));
+      await setDoc(txRef, {
+        id: txRef.id,
+        userId: user.uid,
+        userEmail: user.email,
+        planId: plan.id,
+        planName: plan.name,
+        amount: plan.price,
+        status: 'success',
+        createdAt: serverTimestamp()
+      });
+
+      // 4. Send custom SMTP notification (Critical)
       if (user.email) {
-        notifyPlanActivation(user.email, plan.name).catch(e => console.error("SMTP failed:", e));
+        // We call this asynchronously but don't strictly await it for UI responsiveness,
+        // however we ensure it's triggered correctly.
+        notifyPlanActivation(user.email, plan.name)
+          .then(res => {
+            if (res.success) console.log("Plan activation email sent.");
+            else console.error("Email failed:", res.error);
+          })
+          .catch(e => console.error("SMTP direct failure:", e));
       }
 
       toast({
         title: "Plan Activated!",
-        description: `You are now subscribed to the ${plan.name}.`,
+        description: `Your ${plan.name} is now active. Quotas updated.`,
       });
     } catch (error: any) {
       toast({
@@ -92,7 +117,7 @@ export default function BrowsePlansPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-muted-foreground animate-pulse">Loading secure payment gateway...</p>
+        <p className="text-muted-foreground animate-pulse font-bold tracking-widest uppercase">Initializing Payment Vault...</p>
       </div>
     );
   }
@@ -104,11 +129,11 @@ export default function BrowsePlansPage() {
     <div className="space-y-10 max-w-6xl mx-auto py-6">
       <div className="flex flex-col items-center text-center space-y-4">
         <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-4 py-1 font-bold">
-          Upgrade Center
+          INFRASTRUCTURE UPGRADE
         </Badge>
-        <h1 className="text-4xl md:text-5xl font-headline font-bold text-foreground">Scale Your Business</h1>
+        <h1 className="text-4xl md:text-5xl font-headline font-bold text-foreground">Scale Your Operations</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Select the infrastructure that fits your transaction volume. All plans include automated SMS verification.
+          Choose the plan that fits your business volume. All plans include 99.9% uptime and automated verification.
         </p>
 
         <Tabs defaultValue="monthly" className="w-[300px] mt-8" onValueChange={setBillingCycle}>
@@ -129,7 +154,7 @@ export default function BrowsePlansPage() {
               <Card key={plan.id} className={`relative shadow-2xl border-2 transition-all duration-300 hover:-translate-y-2 flex flex-col overflow-hidden ${isCurrent ? "border-primary bg-primary/5 ring-8 ring-primary/5" : "border-border/40 bg-card/40"}`}>
                 {isCurrent && (
                   <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-5 py-1.5 rounded-bl-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-                    <Check className="h-3 w-3" /> Active Plan
+                    <Check className="h-3 w-3" /> Active Instance
                   </div>
                 )}
                 
@@ -173,15 +198,15 @@ export default function BrowsePlansPage() {
                       ))}
                       <div className="pt-4 mt-4 border-t border-border/10 space-y-3">
                         <li className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Brand Limit</span>
+                          <span className="text-muted-foreground">Identity Limit</span>
                           <Badge variant="outline" className="font-bold border-primary/20 bg-primary/5 text-primary">
-                            {plan.maxApiKeys} Identit{plan.maxApiKeys > 1 ? 'ies' : 'y'}
+                            {plan.maxApiKeys} Brand{plan.maxApiKeys > 1 ? 's' : ''}
                           </Badge>
                         </li>
                         <li className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Device Limit</span>
+                          <span className="text-muted-foreground">Android Nodes</span>
                           <Badge variant="outline" className="font-bold border-primary/20 bg-primary/5 text-primary">
-                            {plan.maxDevices} Active Device{plan.maxDevices > 1 ? 's' : ''}
+                            {plan.maxDevices} Active Sync{plan.maxDevices > 1 ? 's' : ''}
                           </Badge>
                         </li>
                       </div>
@@ -199,9 +224,9 @@ export default function BrowsePlansPage() {
                     {isProcessing === plan.id ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : isCurrent ? (
-                      "Stay on this Plan"
+                      "Stay on this Tier"
                     ) : (
-                      `Activate ${plan.name}`
+                      `Upgrade to ${plan.name}`
                     )}
                   </Button>
                 </CardFooter>
@@ -211,9 +236,9 @@ export default function BrowsePlansPage() {
         ) : (
           <div className="col-span-full text-center py-24 bg-[#0b141a] rounded-[2.5rem] border-2 border-dashed border-border/20 shadow-inner">
             <Zap className="mx-auto h-16 w-16 text-muted-foreground/10 mb-4" />
-            <h3 className="text-xl font-bold text-slate-100">No {billingCycle} plans found</h3>
+            <h3 className="text-xl font-bold text-slate-100">No {billingCycle} plans available</h3>
             <p className="text-muted-foreground max-w-sm mx-auto mt-2">
-              Please check back later or switch the billing cycle.
+              Our automated billing system is syncing. Please check back in a moment.
             </p>
           </div>
         )}
@@ -225,11 +250,11 @@ export default function BrowsePlansPage() {
              <AlertCircle size={28} />
           </div>
           <div>
-            <h4 className="font-bold text-slate-100">Safe Billing Promise</h4>
-            <p className="text-xs text-muted-foreground">All transactions are encrypted. Cancel your subscription at any time.</p>
+            <h4 className="font-bold text-slate-100">Merchant Safety Promise</h4>
+            <p className="text-xs text-muted-foreground">All data is encrypted. Cancel your subscription anytime from the portal.</p>
           </div>
         </div>
-        <Button variant="link" className="text-primary font-bold">Contact Support for Enterprise Billing →</Button>
+        <Button variant="link" className="text-primary font-bold">Need custom limits? Contact Enterprise Billing →</Button>
       </div>
     </div>
   )
