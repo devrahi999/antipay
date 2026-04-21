@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Package,
   ArrowLeft,
-  Database
+  Database,
+  Tags
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -39,6 +40,11 @@ const adminNavItems = [
     title: "Manage Users",
     icon: Users,
     url: "/antiadmin/users",
+  },
+  {
+    title: "All Brands",
+    icon: Tags,
+    url: "/antiadmin/brands",
   },
   {
     title: "Subscription Plans",
