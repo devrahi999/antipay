@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +11,8 @@ import {
   Clock,
   History,
   MoreVertical,
-  XCircle
+  XCircle,
+  X
 } from "lucide-react"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -36,18 +37,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/40 p-6 rounded-xl border border-border/50">
-        <div>
-          <h1 className="text-2xl font-headline font-bold text-foreground">Welcome back, {user?.displayName?.split(' ')[0] || "Merchant"}! 👋</h1>
-          <p className="text-sm text-muted-foreground mt-1">Great things in business are never done by one person. 🤝</p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Available Balance</p>
-          <div className="text-3xl font-bold text-primary flex items-center justify-end gap-1">
-            <span className="text-xl">৳</span>0
+      {showWelcome && (
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/40 p-6 rounded-xl border border-border/50">
+          <div>
+            <h1 className="text-2xl font-headline font-bold text-foreground">Welcome back, {user?.displayName?.split(' ')[0] || "Merchant"}! 👋</h1>
+            <p className="text-sm text-muted-foreground mt-1">Great things in business are never done by one person. 🤝</p>
           </div>
+          <button 
+            onClick={() => setShowWelcome(false)}
+            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </div>
+      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">

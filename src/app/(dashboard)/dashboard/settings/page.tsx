@@ -11,12 +11,10 @@ import {
   Mail, 
   Lock, 
   ShieldCheck, 
-  Key, 
   Save, 
   Loader2,
   AlertCircle,
-  RefreshCcw,
-  CheckCircle2
+  RefreshCcw
 } from "lucide-react"
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { updateUserProfile, initiatePasswordReset } from '@/firebase/non-blocking-login';
@@ -216,26 +214,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Developer Info */}
-        <Card className="bg-[#0b141a] border-border/40 shadow-xl overflow-hidden">
-          <CardHeader className="bg-[#162129] border-b border-border/10">
-            <CardTitle className="flex items-center gap-2 text-[#16a34a]">
-              <Key className="h-5 w-5" /> Account Identity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-slate-100 text-xs font-bold uppercase tracking-wider">Merchant UID</Label>
-                <div className="bg-[#162129] p-3 rounded-lg border border-border/10 font-mono text-xs text-primary flex justify-between items-center">
-                  <span>{user?.uid}</span>
-                  <Badge variant="outline" className="text-[8px] border-primary/20 text-primary">System ID</Badge>
-                </div>
-              </div>
-            </div>
           </CardContent>
           <CardFooter className="bg-secondary/10 px-6 py-4 border-t border-border/10">
             <p className="text-[10px] text-muted-foreground italic text-center w-full">
