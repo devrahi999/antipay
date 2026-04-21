@@ -428,9 +428,9 @@ if res.get('status') == 'verified':
                   </div>
                   <div className="p-8 bg-gradient-to-br from-[#0b141a] to-[#162129] border border-border/10 rounded-3xl shadow-xl space-y-4">
                     <p className="text-[10px] font-black uppercase text-primary tracking-widest">Real-time Status</p>
-                    <p className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <div className="text-xl font-bold text-foreground flex items-center gap-2">
                        <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse" /> 99.9% Operational
-                    </p>
+                    </div>
                     <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/5 font-bold" asChild>
                       <Link href="/">Check Status</Link>
                     </Button>
