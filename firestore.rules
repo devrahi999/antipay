@@ -1,10 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * ANTI-PAY SECURITY RULES - PHILOSOPHY & STRUCTURE
-     */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
@@ -16,21 +13,8 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** Checks if the current user is an admin. */
     function isAdmin() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    function isValidUserRelationship(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    function isImmutable(fieldName) {
-      return !(fieldName in request.resource.data) || request.resource.data[fieldName] == resource.data[fieldName];
     }
 
     // --- COLLECTION RULES ---
@@ -39,67 +23,34 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
+    }
 
-      match /stores/{storeId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
-      }
+    match /stores/{storeId} {
+      // Allow read if user owns the store or is admin
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // For listing, we enforce the userId filter in the query
+      allow list: if isSignedIn() && (isAdmin() || request.query.limit <= 100);
+      
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
 
-      match /apiKeys/{apiKeyId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
-      }
-
-      match /paymentMethods/{paymentMethodId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
-      }
-
-      match /paymentSessions/{sessionId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
-      }
-
-      match /rawTransactions/{transactionId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update, delete: if isAdmin();
-      }
-
-      match /devices/{deviceId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidUserRelationship(userId);
-        allow update: if (isExistingOwner(userId) && isImmutable('userId')) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
-      }
-
-      match /userSubscription {
-        allow get: if isOwner(userId) || isAdmin();
-        allow list, create, update, delete: if isAdmin();
-      }
+    // Generic match for other potential collections nested under users
+    match /users/{userId}/{allPaths=**} {
+       allow read, write: if isOwner(userId) || isAdmin();
     }
 
     match /public_payment_sessions/{sessionId} {
       allow get: if true;
-      allow list: if isAdmin();
-      allow create: if false;
       allow update: if resource.data.status == 'pending' || isAdmin();
-      allow delete: if isAdmin();
     }
-
+    
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
   }
 }

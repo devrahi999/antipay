@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, serverTimestamp, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,6 @@ import {
   Plus, 
   Tags, 
   MoreHorizontal, 
-  X,
   Save,
   Loader2,
   Copy,
@@ -28,7 +27,6 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogClose,
   DialogDescription
 } from "@/components/ui/dialog"
 import { 
@@ -61,9 +59,14 @@ export default function BrandsPage() {
     supportPageLink: ''
   });
 
+  // Query root 'stores' collection filtered by userId
   const brandsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(collection(db, 'users', user.uid, 'stores'), orderBy('createdAt', 'desc'));
+    return query(
+      collection(db, 'stores'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
   }, [db, user]);
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
@@ -75,19 +78,20 @@ export default function BrandsPage() {
 
     try {
       if (isEditMode && selectedBrand) {
-        const docRef = doc(db, 'users', user.uid, 'stores', selectedBrand.id);
+        const docRef = doc(db, 'stores', selectedBrand.id);
         await updateDoc(docRef, {
           ...formData,
           updatedAt: serverTimestamp(),
         });
         toast({ title: "Brand Updated", description: "The store details have been successfully updated." });
       } else {
-        // Generate long API Key (approx 30+ chars total)
+        // Generate very long API Key (approx 40 chars total)
         const randomPart1 = Math.random().toString(36).substring(2, 15);
         const randomPart2 = Math.random().toString(36).substring(2, 15);
-        const storeId = `anti_pay_${randomPart1}${randomPart2}`.substring(0, 40);
+        const randomPart3 = Math.random().toString(36).substring(2, 15);
+        const storeId = `anti_pay_${randomPart1}${randomPart2}${randomPart3}`.substring(0, 50);
         
-        const docRef = doc(db, 'users', user.uid, 'stores', storeId);
+        const docRef = doc(db, 'stores', storeId);
         
         const brandData = {
           ...formData,
@@ -154,7 +158,7 @@ export default function BrandsPage() {
   const handleDelete = async (id: string) => {
     if (!user || !db || !confirm("Are you sure you want to delete this brand?")) return;
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'stores', id));
+      await deleteDoc(doc(db, 'stores', id));
       toast({ title: "Deleted", description: "Brand has been successfully removed." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });

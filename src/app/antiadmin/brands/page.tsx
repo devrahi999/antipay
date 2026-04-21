@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -13,9 +14,10 @@ export default function AdminBrandsPage() {
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Query root 'stores' collection directly
   const brandsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collectionGroup(db, 'stores'), orderBy('createdAt', 'desc'), limit(100));
+    return query(collection(db, 'stores'), orderBy('createdAt', 'desc'), limit(100));
   }, [db]);
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
