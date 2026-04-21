@@ -1,4 +1,3 @@
-
 import {
   Auth,
   createUserWithEmailAndPassword,
@@ -17,6 +16,7 @@ import { doc, setDoc, getDoc, serverTimestamp, Firestore } from 'firebase/firest
 /**
  * Creates or updates a user profile in Firestore.
  * This ensures all essential fields (id, email, name) are always present.
+ * Prevents Google Auth from overwriting custom display names.
  */
 async function syncUserProfile(db: Firestore, user: User) {
   if (!db || !user) return;
@@ -24,21 +24,26 @@ async function syncUserProfile(db: Firestore, user: User) {
   const userRef = doc(db, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
-  // Prepare full profile data
+  // Prepare standard profile data
   const profileData: any = {
     id: user.uid,
     email: user.email,
-    displayName: user.displayName || user.email?.split('@')[0] || 'Merchant',
-    photoURL: user.photoURL || '',
     updatedAt: serverTimestamp(),
   };
+
+  // Only set/update displayName if it doesn't exist in Firestore
+  // This preserves custom names edited by the user in Settings
+  if (!userSnap.exists() || !userSnap.data().displayName) {
+    profileData.displayName = user.displayName || user.email?.split('@')[0] || 'Merchant';
+    profileData.photoURL = user.photoURL || '';
+  }
 
   // Only set createdAt if the document doesn't exist yet
   if (!userSnap.exists()) {
     profileData.createdAt = serverTimestamp();
   }
 
-  // Save to Firestore with merge to preserve any other custom fields
+  // Save to Firestore with merge
   await setDoc(userRef, profileData, { merge: true });
 }
 

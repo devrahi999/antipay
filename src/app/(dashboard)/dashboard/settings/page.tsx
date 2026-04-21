@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { 
   User, 
@@ -16,11 +15,13 @@ import {
   Save, 
   Loader2,
   AlertCircle,
-  RefreshCcw
+  RefreshCcw,
+  CheckCircle2
 } from "lucide-react"
-import { useUser, useAuth, useFirestore } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { updateUserProfile, initiatePasswordReset } from '@/firebase/non-blocking-login';
 import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -30,8 +31,23 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   
-  // Profile Form State
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  // Fetch real profile data from Firestore to ensure we have the custom display name
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user]);
+  const { data: profile } = useDoc(profileRef);
+
+  const [displayName, setDisplayName] = useState('');
+
+  // Update local state when profile data is fetched
+  useEffect(() => {
+    if (profile?.displayName) {
+      setDisplayName(profile.displayName);
+    } else if (user?.displayName) {
+      setDisplayName(user.displayName);
+    }
+  }, [profile, user]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +90,9 @@ export default function SettingsPage() {
     }
   };
 
-  const isGoogleUser = user?.providerData.some(p => p.providerId === 'google.com');
+  const providers = user?.providerData.map(p => p.providerId) || [];
+  const isGoogleUser = providers.includes('google.com');
+  const isPasswordUser = providers.includes('password');
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -138,29 +156,36 @@ export default function SettingsPage() {
             <CardDescription>Manage how you access your account.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="flex items-center justify-between p-4 bg-[#162129] rounded-xl border border-border/10">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <ShieldCheck className="h-6 w-6" />
+            <div className="flex flex-col gap-4 p-4 bg-[#162129] rounded-xl border border-border/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-slate-100">Auth Providers</p>
+                    <p className="text-xs text-muted-foreground">Linked login methods</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-slate-100">Auth Provider</p>
-                  <p className="text-xs text-muted-foreground">You are currently signed in via</p>
+                <div className="flex gap-2">
+                  {isGoogleUser && (
+                    <Badge className="bg-[#16a34a] hover:bg-[#16a34a] px-3 py-1 font-bold">Google</Badge>
+                  )}
+                  {isPasswordUser && (
+                    <Badge className="bg-[#16a34a] hover:bg-[#16a34a] px-3 py-1 font-bold">Email/Pass</Badge>
+                  )}
                 </div>
               </div>
-              <Badge className="bg-[#16a34a] hover:bg-[#16a34a] px-3 py-1 font-bold">
-                {isGoogleUser ? 'Google OAuth' : 'Email & Password'}
-              </Badge>
             </div>
 
-            {isGoogleUser ? (
+            {!isPasswordUser ? (
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-4">
                 <div className="flex gap-3">
                   <AlertCircle className="h-5 w-5 text-primary shrink-0" />
                   <div>
-                    <h4 className="text-sm font-bold text-slate-100">Enable Email Login</h4>
+                    <h4 className="text-sm font-bold text-slate-100">Setup Email Login</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      You are using Google Login. To enable login via Email & Password, setup a unique password.
+                      You are using Google Login. You can also setup a password to login via Email.
                     </p>
                   </div>
                 </div>
@@ -177,8 +202,8 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-slate-100">Change Password</h4>
-                    <p className="text-xs text-muted-foreground">We will send a reset link to your email.</p>
+                    <h4 className="text-sm font-bold text-slate-100">Update Password</h4>
+                    <p className="text-xs text-muted-foreground">Request a link to change your security password.</p>
                   </div>
                   <Button 
                     onClick={handlePasswordReset} 
