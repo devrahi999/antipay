@@ -13,8 +13,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Safer isAdmin check that won't crash if the user document doesn't exist yet
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
     // --- COLLECTION RULES ---
@@ -25,22 +28,23 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
+      
+      // Nested collections under user (apiKeys, devices, paymentSessions, etc.)
+      match /{allPaths=**} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     match /stores/{storeId} {
-      // Allow read if user owns the store (via userId field) or is admin
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      // For listing, we allow it if the user is an admin OR they are filtering by their own userId with a limit
-      allow list: if isSignedIn() && (isAdmin() || (request.query.limit <= 100));
+      // Allow read if user owns the store (checked via userId field in the doc) or is admin
+      // Note: 'resource' refers to the existing data in the database
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       
+      // Allow creation only if the user is signed in and sets themselves as the owner
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
-    // Generic match for other potential collections nested under users
-    match /users/{userId}/{allPaths=**} {
-       allow read, write: if isOwner(userId) || isAdmin();
+      
+      // Allow updates/deletes if user owns the store or is admin
+      allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
     match /public_payment_sessions/{sessionId} {
