@@ -18,7 +18,9 @@ import {
   Server,
   Zap,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Mail,
+  Activity
 } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
 import { useToast } from "@/hooks/use-toast"
@@ -175,7 +177,7 @@ export default function DocsPage() {
                       <TabsTrigger value="python" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">Python</TabsTrigger>
                     </TabsList>
                     <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
-                      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard('Create Snippet')}><Copy size={16} /></Button>
+                      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard('curl -X POST "https://pay.antipay.site/v1/create"')}><Copy size={16} /></Button>
                       <TabsContent value="curl" className="m-0">
                         <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/create" \\
   -H "Content-Type: application/json" \\
@@ -283,7 +285,9 @@ print(f"Redirect to: {res['payment_url']}")`}</code></pre>
                       <TabsTrigger value="python" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">Python</TabsTrigger>
                     </TabsList>
                     <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
-                      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard('Verify Snippet')}><Copy size={16} /></Button>
+                      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard('curl -X POST "https://pay.antipay.site/v1/verify"')}>
+                        <Copy size={16} />
+                      </Button>
                       <TabsContent value="curl" className="m-0">
                         <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/verify" \\
   -H "Content-Type: application/json" \\
@@ -415,25 +419,48 @@ if res.get('status') == 'verified':
                 </div>
               </section>
 
-              {/* Contact Us */}
-              <section id="contact" className="scroll-mt-32 space-y-6">
+              {/* Contact Us - Premium Redesigned with Hydration Fix */}
+              <section id="contact" className="scroll-mt-32 space-y-8">
                 <h2 className="text-2xl font-bold text-foreground">Support & Assistance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-8 bg-gradient-to-br from-[#0b141a] to-[#162129] border border-border/10 rounded-3xl shadow-xl space-y-4">
-                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Email Support</p>
-                    <p className="text-xl font-bold text-foreground">support@antipay.site</p>
-                    <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/5 font-bold" asChild>
-                      <Link href="mailto:support@antipay.site">Send Email</Link>
-                    </Button>
-                  </div>
-                  <div className="p-8 bg-gradient-to-br from-[#0b141a] to-[#162129] border border-border/10 rounded-3xl shadow-xl space-y-4">
-                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Real-time Status</p>
-                    <div className="text-xl font-bold text-foreground flex items-center gap-2">
-                       <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse" /> 99.9% Operational
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Email Support Card */}
+                  <div className="relative group overflow-hidden p-8 bg-card border border-border/40 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all duration-500">
+                    <div className="absolute -top-12 -right-12 h-32 w-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+                    <div className="relative z-10 space-y-6">
+                      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Mail className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em] mb-1">Direct Communication</p>
+                        <h4 className="text-2xl font-bold text-foreground">support@antipay.site</h4>
+                        <p className="text-xs text-muted-foreground mt-2 font-medium">Expected response time: Under 2 hours during business hours.</p>
+                      </div>
+                      <Button className="w-full bg-[#16a34a] hover:bg-[#15803d] font-bold h-12 rounded-xl shadow-lg shadow-[#16a34a]/20" asChild>
+                        <Link href="mailto:support@antipay.site">Send Email Notification</Link>
+                      </Button>
                     </div>
-                    <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/5 font-bold" asChild>
-                      <Link href="/">Check Status</Link>
-                    </Button>
+                  </div>
+
+                  {/* Infrastructure Status Card */}
+                  <div className="relative group overflow-hidden p-8 bg-card border border-border/40 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all duration-500">
+                    <div className="absolute -top-12 -right-12 h-32 w-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors" />
+                    <div className="relative z-10 space-y-6">
+                      <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                        <Activity className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-1">Infrastructure Health</p>
+                        {/* FIX: Using div instead of p to avoid descendant div inside p error */}
+                        <div className="text-2xl font-bold text-foreground flex items-center gap-3">
+                           <div className="h-4 w-4 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" /> 
+                           99.9% Operational
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 font-medium">Real-time status tracking across all nodes & gateways.</p>
+                      </div>
+                      <Button variant="outline" className="w-full border-emerald-500/20 hover:bg-emerald-500/5 font-bold h-12 rounded-xl" asChild>
+                        <Link href="/">View Status Dashboard</Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </section>
