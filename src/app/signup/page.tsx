@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Mail, Lock, User, Loader2 } from 'lucide-react';
@@ -9,9 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
-import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SignupPage() {
@@ -25,9 +24,11 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  if (user) {
-    router.push('/dashboard');
-  }
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
