@@ -68,6 +68,11 @@ const navItems = [
     url: "/dashboard/devices",
   },
   {
+    title: "API Docs",
+    icon: BookOpen,
+    url: "/docs",
+  },
+  {
     title: "All Plans",
     icon: Layers,
     url: "/dashboard/plans",
