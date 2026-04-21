@@ -1,4 +1,3 @@
-
 import nodemailer from 'nodemailer';
 
 /**
@@ -6,8 +5,8 @@ import nodemailer from 'nodemailer';
  * Using manual host/port configuration which is more reliable than 'service' alias.
  */
 
-const SMTP_USER = process.env.SMTP_USER || 'supports.antipay@gmail.com';
-const SMTP_PASS = (process.env.SMTP_PASS || 'nynl muik mktr yyyk').replace(/\s+/g, '');
+const SMTP_USER = process.env.SMTP_USER || 'oneesports09@gmail.com';
+const SMTP_PASS = (process.env.SMTP_PASS || 'soyx suku azuv yqva').replace(/\s+/g, '');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
