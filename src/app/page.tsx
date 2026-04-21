@@ -7,25 +7,17 @@ import { useRouter } from "next/navigation"
 import { collection, query, orderBy, getDocs } from "firebase/firestore"
 import { useFirestore, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
   ShieldCheck, 
   Zap, 
   Lock, 
   ArrowRight, 
-  CheckCircle2, 
   Globe,
   Code2,
-  Loader2,
-  Sparkles,
-  Clock,
-  Layers,
   Smartphone,
-  Cpu,
   MessageCircle,
   BarChart3,
-  HelpCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -67,25 +59,9 @@ export default function LandingPage() {
   const { user } = useUser();
   const db = useFirestore();
   const router = useRouter();
-  const [plans, setPlans] = useState<any[]>([]);
-  const [plansLoading, setPlansLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    async function fetchPlans() {
-      if (!db) return;
-      try {
-        const q = query(collection(db, 'subscriptionPlans'), orderBy('price', 'asc'));
-        const snap = await getDocs(q);
-        const plansData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPlans(plansData);
-      } catch (error) {
-        console.error("Failed to fetch plans:", error);
-      } finally {
-        setPlansLoading(false);
-      }
-    }
-    fetchPlans();
   }, [db]);
 
   const handlePlanClick = () => {
@@ -117,13 +93,12 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
-            <Link href="#how-it-works" className="hover:text-primary transition-colors">How it Works</Link>
             <Link href="/docs" className="hover:text-primary transition-colors">Docs</Link>
-            <Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link>
+            <Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link>
           </nav>
           <div className="flex items-center gap-4">
             {user ? (
-              <Button asChild className="bg-primary hover:bg-primary/90">
+              <Button asChild className="bg-primary hover:bg-primary/90 font-bold">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
             ) : (
@@ -131,8 +106,8 @@ export default function LandingPage() {
                 <Link href="/login" className="hidden sm:block text-sm font-medium hover:text-primary transition-colors">
                   Login
                 </Link>
-                <Button asChild className="bg-primary hover:bg-primary/90">
-                  <Link href="/signup">Get Started Free</Link>
+                <Button asChild className="bg-primary hover:bg-primary/90 font-bold">
+                  <Link href="/signup">Get Started</Link>
                 </Button>
               </>
             )}
@@ -164,23 +139,11 @@ export default function LandingPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button onClick={handlePlanClick} size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 group cursor-pointer font-bold rounded-xl">
-                    Start Your Trial <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg hover:bg-accent/50 cursor-pointer font-bold rounded-xl border-border/60">
                     <Link href="/docs">API Reference</Link>
                   </Button>
-                </div>
-                <div className="flex items-center gap-6 pt-4">
-                  <div className="flex -space-x-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="h-10 w-10 rounded-full border-2 border-background bg-secondary flex items-center justify-center overflow-hidden">
-                        <img src={`https://picsum.photos/seed/user${i}/100/100`} alt="Merchant" />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    <span className="text-foreground font-bold">500+</span> Merchants Automated
-                  </p>
                 </div>
               </RevealOnScroll>
               
@@ -194,12 +157,12 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 gap-4 w-full">
                       <div className="bg-white dark:bg-slate-900 border border-border/40 p-5 rounded-2xl shadow-lg">
                         <div className="flex justify-between items-center mb-4">
-                           <Badge className="bg-[#e2136e] text-white">bKash Verified</Badge>
+                           <Badge className="bg-[#e2136e] text-white border-none px-3 py-1">bKash Verified</Badge>
                            <span className="text-[10px] font-bold text-emerald-500">REAL-TIME</span>
                         </div>
                         <div className="space-y-2">
                            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                              <div className="h-full bg-primary animate-progress" style={{ width: '100%' }} />
+                              <div className="h-full bg-primary" style={{ width: '100%' }} />
                            </div>
                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Transaction 8J9A1X7K Verified in 0.2s</p>
                         </div>
@@ -207,6 +170,35 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </RevealOnScroll>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Marquee Section */}
+        <section className="py-12 border-y bg-secondary/5 overflow-hidden">
+          <div className="flex flex-col gap-8">
+            <p className="text-center text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground/60">Supported Payment Networks</p>
+            <div className="flex overflow-hidden group select-none">
+              <div className="flex animate-marquee whitespace-nowrap gap-12 items-center">
+                {[...supportedMethods, ...supportedMethods].map((method, i) => (
+                  <div key={i} className="flex items-center gap-4 bg-card px-8 py-4 rounded-2xl border shadow-sm">
+                    <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-inner", method.color)}>
+                      {method.icon}
+                    </div>
+                    <span className="text-lg font-bold text-foreground">{method.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex animate-marquee whitespace-nowrap gap-12 items-center ml-12" aria-hidden="true">
+                {[...supportedMethods, ...supportedMethods].map((method, i) => (
+                  <div key={i} className="flex items-center gap-4 bg-card px-8 py-4 rounded-2xl border shadow-sm">
+                    <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-inner", method.color)}>
+                      {method.icon}
+                    </div>
+                    <span className="text-lg font-bold text-foreground">{method.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -232,8 +224,8 @@ export default function LandingPage() {
                 },
                 {
                   icon: Smartphone,
-                  title: "Android Node Sync",
-                  desc: "Use our dedicated Android APK to securely sync incoming payment SMS directly to our cloud infrastructure."
+                  title: "Mobile Node Sync",
+                  desc: "Securely sync incoming payment SMS directly to our cloud infrastructure for instant data processing."
                 },
                 {
                   icon: Code2,
@@ -270,58 +262,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How It Works Section */}
-        <section id="how-it-works" className="py-24 bg-secondary/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-20 opacity-5 -z-10"><Cpu size={400} /></div>
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
-              <RevealOnScroll>
-                <Badge className="bg-primary/20 text-primary border-primary/10 mb-4 px-4 py-1">INTEGRATION FLOW</Badge>
-                <h2 className="text-4xl md:text-5xl font-headline font-bold">Setup in 3 Simple Steps</h2>
-                <p className="text-lg text-muted-foreground">Go live and start accepting automated payments today.</p>
-              </RevealOnScroll>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              {[
-                {
-                  step: "01",
-                  icon: Layers,
-                  title: "Create Brand Profile",
-                  description: "Sign up and create your brand identity. You'll get a unique API key instantly to authenticate your requests."
-                },
-                {
-                  step: "02",
-                  icon: Smartphone,
-                  title: "Link Mobile Node",
-                  description: "Install the AntiPay Sync app on your Android phone and scan your merchant QR to link your accounts."
-                },
-                {
-                  step: "03",
-                  icon: CheckCircle2,
-                  title: "Auto-Verify Sales",
-                  description: "Integrate our 2-step API. Every payment is now verified automatically without you lifting a finger."
-                }
-              ].map((item, idx) => (
-                <RevealOnScroll key={idx} className="relative group">
-                  <div className="bg-card border border-border/40 p-8 rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all h-full flex flex-col items-center text-center">
-                    <span className="absolute -top-4 -left-4 h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-xl shadow-lg shadow-primary/20">
-                      {item.step}
-                    </span>
-                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
-                      <item.icon size={32} />
-                    </div>
-                    <h3 className="text-xl font-bold mb-4">{item.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
-                  </div>
-                </RevealOnScroll>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* FAQ Section */}
-        <section className="py-24 bg-background">
+        <section id="faq" className="py-24 bg-background">
           <div className="container mx-auto px-4 md:px-6 max-w-3xl">
             <RevealOnScroll className="text-center mb-16 space-y-4">
               <Badge className="bg-primary/20 text-primary border-primary/10 mb-4 px-4 py-1 font-bold">QUESTIONS</Badge>
@@ -332,20 +274,20 @@ export default function LandingPage() {
             <Accordion type="single" collapsible className="w-full space-y-4">
               {[
                 {
-                  q: "How secure is the Android SMS syncing?",
-                  a: "Extremely secure. Our app only monitors SMS from verified banking shortcodes (like bKash, Nagad). All data is encrypted with TLS 1.3 before being sent to our servers and is never shared with third parties."
+                  q: "How secure is the transaction syncing?",
+                  a: "Extremely secure. We only monitor signals from verified banking shortcodes. All data is encrypted with TLS 1.3 before being sent to our servers."
                 },
                 {
                   q: "Which payment methods are supported?",
                   a: "We currently support bKash, Nagad, Rocket, Upay, CellFin, and Tap. We are constantly adding new local providers based on merchant requests."
                 },
                 {
-                  q: "Do I need a merchant account with bKash/Nagad?",
-                  a: "No! AntiPay works with both Personal and Merchant accounts. You just need an Android phone to receive the SMS, and we handle the rest."
+                  q: "Do I need a merchant account?",
+                  a: "No! AntiPay works with both Personal and Merchant accounts. Our system is designed to handle verification regardless of the account tier."
                 },
                 {
                   q: "Can I use AntiPay for high-volume transactions?",
-                  a: "Yes. Our infrastructure is built on Google Cloud and auto-scales to handle thousands of concurrent verification requests. Enterprise plans include custom node architecture for extreme volumes."
+                  a: "Yes. Our infrastructure is built on Google Cloud and auto-scales to handle thousands of concurrent verification requests effortlessly."
                 }
               ].map((faq, i) => (
                 <AccordionItem key={i} value={`item-${i}`} className="bg-card border border-border/40 rounded-2xl px-6">
@@ -358,27 +300,6 @@ export default function LandingPage() {
                 </AccordionItem>
               ))}
             </Accordion>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-24">
-          <div className="container mx-auto px-4 md:px-6">
-            <RevealOnScroll className="relative overflow-hidden rounded-[3rem] bg-emerald-950 p-8 md:p-20 text-center">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(22,163,74,0.15)_0,transparent_70%)]" />
-              <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-                <h2 className="text-4xl md:text-6xl font-headline font-bold text-white tracking-tight">Ready to Automate Your Business?</h2>
-                <p className="text-emerald-100/70 text-lg">Join hundreds of merchants who save hours every day with AntiPay automated verification.</p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button onClick={handlePlanClick} size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-2xl shadow-primary/20">
-                    Get Started Now
-                  </Button>
-                  <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg border-white/20 text-white hover:bg-white/10 font-bold rounded-2xl">
-                    <Link href="/contact">Talk to an Expert</Link>
-                  </Button>
-                </div>
-              </div>
-            </RevealOnScroll>
           </div>
         </section>
       </main>
