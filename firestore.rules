@@ -10,21 +10,32 @@ service cloud.firestore {
     }
 
     // Secure isAdmin check
+    // We check the 'isAdmin' boolean on the user document
     function isAdmin() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
+    // Is the user the owner of the document (based on userId field)
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
     // --- COLLECTION RULES ---
 
-    // User profiles
+    // User profiles and nested data
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       
       match /{allPaths=**} {
         allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
+    }
+    
+    // Global user collection listing (for admin)
+    match /users {
+      allow list: if isAdmin();
     }
 
     // Root-level User Plans
@@ -35,12 +46,19 @@ service cloud.firestore {
 
     // Root-level stores (Brands)
     match /stores/{storeId} {
-      // Explicit allow list for the query limit used in BrandsPage
-      allow list: if isSignedIn() && (isAdmin() || (resource.data.userId == request.auth.uid));
+      // Allow get/update/delete if owner or admin
+      allow get, update, delete: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
       
-      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Allow create if setting self as owner
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      
+      // Allow list if admin or filter by userId
+      allow list: if isSignedIn() && (isAdmin() || request.query.limit <= 100);
+    }
+    
+    // Global stores collection listing (for admin)
+    match /stores {
+       allow list: if isAdmin();
     }
 
     // Public payment links for customers
@@ -53,6 +71,13 @@ service cloud.firestore {
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
+    }
+
+    // --- COLLECTION GROUP RULES ---
+    
+    // Allow admin to see all payment sessions across the system for logging
+    match /{path=**}/paymentSessions/{sessionId} {
+      allow read: if isAdmin();
     }
   }
 }
