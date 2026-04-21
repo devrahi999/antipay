@@ -13,16 +13,6 @@ service cloud.firestore {
      * - /users/{userId}/...: Private merchant data (API Keys, Stores, Devices, Raw Transactions).
      * - /public_payment_sessions/{sessionId}: Publicly accessible session data used by external 
      *   customers to complete payments without exposing merchant internals.
-     * 
-     * Key Security Decisions:
-     * - Denormalization: The 'userId' is denormalized across all sub-collections to ensure 
-     *   authorization logic is fast, performant, and avoids expensive get() calls.
-     * - Structural Segregation: Payment sessions are split between a private merchant-owned 
-     *   path and a public path to prevent sensitive information leakage during the payment flow.
-     * - Relational Integrity: Critical relational fields like 'userId' are enforced at the 
-     *   rule level to ensure data cannot be moved between merchant accounts.
-     * - Prototyping Flexibility: While access control is strict, data types and specific 
-     *   field structures (except for IDs) are not enforced to allow for rapid iteration.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -57,9 +47,6 @@ service cloud.firestore {
     /**
      * @description Rules for the UserProfile document.
      * @path /users/{userId}
-     * @allow (get, create, update) if isOwner(userId)
-     * @deny (list, delete) Always denied to prevent user enumeration and accidental deletion.
-     * @principle Ownership - Users manage their own identity.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -70,10 +57,6 @@ service cloud.firestore {
 
       /**
        * @description Rules for Merchant Stores.
-       * @path /users/{userId}/stores/{storeId}
-       * @allow (get, list, create, update, delete) if isOwner(userId)
-       * @deny (all) if request.auth.uid != userId
-       * @principle Structural Segregation - Nested under user path for automatic scoping.
        */
       match /stores/{storeId} {
         allow get, list: if isOwner(userId);
@@ -84,10 +67,6 @@ service cloud.firestore {
 
       /**
        * @description Rules for API Keys.
-       * @path /users/{userId}/apiKeys/{apiKeyId}
-       * @allow (get, list, create, update, delete) if isOwner(userId)
-       * @deny (all) for any other user.
-       * @principle Relational Integrity - API Keys must be linked to the creating merchant.
        */
       match /apiKeys/{apiKeyId} {
         allow get, list: if isOwner(userId);
@@ -97,11 +76,7 @@ service cloud.firestore {
       }
 
       /**
-       * @description Rules for Payment Method Configurations (bKash, Nagad, etc.).
-       * @path /users/{userId}/paymentMethods/{paymentMethodId}
-       * @allow (get, list, create, update) if isOwner(userId)
-       * @deny (delete) if logic requires persistence of payment history.
-       * @principle Ownership - Merchant controls their accepted payment providers.
+       * @description Rules for Payment Method Configurations.
        */
       match /paymentMethods/{paymentMethodId} {
         allow get, list: if isOwner(userId);
@@ -112,13 +87,10 @@ service cloud.firestore {
 
       /**
        * @description Rules for Private Merchant View of Payment Sessions.
-       * @path /users/{userId}/paymentSessions/{sessionId}
-       * @allow (get, list) if isOwner(userId)
-       * @deny (create, update, delete) Updates are usually handled via system logic or public path.
-       * @principle Rules are not filters - Merchant lists only their own sessions.
+       * Explicitly allowing read (get/list) for the owner.
        */
       match /paymentSessions/{sessionId} {
-        allow get, list: if isOwner(userId);
+        allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidUserRelationship(userId);
         allow update: if isExistingOwner(userId) && isImmutable('userId');
         allow delete: if isExistingOwner(userId);
@@ -126,10 +98,6 @@ service cloud.firestore {
 
       /**
        * @description Rules for Raw SMS/Transaction data.
-       * @path /users/{userId}/rawTransactions/{transactionId}
-       * @allow (get, list, create) if isOwner(userId)
-       * @deny (update, delete) for data integrity and audit trail.
-       * @principle Auditable Logic - Raw transaction data should be immutable once recorded.
        */
       match /rawTransactions/{transactionId} {
         allow get, list: if isOwner(userId);
@@ -139,10 +107,6 @@ service cloud.firestore {
 
       /**
        * @description Rules for Merchant Devices.
-       * @path /users/{userId}/devices/{deviceId}
-       * @allow (get, list, create, update, delete) if isOwner(userId)
-       * @deny (all) for unauthorized users.
-       * @principle Ownership - Merchant manages their own hardware integrations.
        */
       match /devices/{deviceId} {
         allow get, list: if isOwner(userId);
@@ -153,10 +117,6 @@ service cloud.firestore {
 
       /**
        * @description Rules for User Subscription status.
-       * @path /users/{userId}/userSubscription
-       * @allow (get) if isOwner(userId)
-       * @deny (list, create, update, delete) Subscription lifecycle is managed by admin/backend.
-       * @principle Roles - Subscription logic is read-only for the client.
        */
       match /userSubscription {
         allow get: if isOwner(userId);
@@ -166,11 +126,6 @@ service cloud.firestore {
 
     /**
      * @description Rules for Public Payment Sessions (Accessed by Customers).
-     * @path /public_payment_sessions/{sessionId}
-     * @allow (get) for anyone with a valid session ID.
-     * @allow (update) for anyone to submit a transaction ID for verification.
-     * @deny (list, create, delete) Public users should not browse sessions.
-     * @principle Public Read with Restricted Writes - Secure external flow.
      */
     match /public_payment_sessions/{sessionId} {
       allow get: if true;
@@ -182,10 +137,6 @@ service cloud.firestore {
 
     /**
      * @description Rules for Global Subscription Plans.
-     * @path /subscriptionPlans/{planId}
-     * @allow (get, list) for all users to view available plans.
-     * @deny (write) Plans are configured by system administrators.
-     * @principle Public Read - Static application config.
      */
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
