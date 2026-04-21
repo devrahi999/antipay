@@ -9,6 +9,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebas
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 import { doc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
