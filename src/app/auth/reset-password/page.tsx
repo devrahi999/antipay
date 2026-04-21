@@ -27,9 +27,15 @@ function ResetPasswordForm() {
   const { toast } = useToast();
   
   const oobCode = searchParams.get('oobCode');
+  const mode = searchParams.get('mode');
 
   useEffect(() => {
-    if (!oobCode) {
+    // Security check: Mode must be resetPassword
+    if (!oobCode || mode !== 'resetPassword') {
+      if (mode === 'verifyEmail') {
+        window.location.href = `/auth/verify-email?${searchParams.toString()}`;
+        return;
+      }
       setVerifying(false);
       return;
     }
@@ -43,7 +49,7 @@ function ResetPasswordForm() {
         console.error(error);
         setVerifying(false);
       });
-  }, [auth, oobCode]);
+  }, [auth, oobCode, mode, searchParams]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +72,7 @@ function ResetPasswordForm() {
 
   if (verifying) return <div className="min-h-screen flex items-center justify-center bg-[#0b141a]"><Loader2 className="animate-spin text-[#16a34a] h-10 w-10" /></div>;
 
-  if (!oobCode || (!email && !isSuccess)) {
+  if (!oobCode || mode !== 'resetPassword' || (!email && !isSuccess)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-[#0b141a]">
         <Card className="w-full max-w-md text-center p-10 space-y-6 bg-[#162129] border-none shadow-2xl">
@@ -75,7 +81,7 @@ function ResetPasswordForm() {
           </div>
           <div className="space-y-2">
             <CardTitle className="text-white font-headline font-bold text-2xl">Session Expired</CardTitle>
-            <p className="text-muted-foreground text-sm leading-relaxed">This password reset link is invalid or has already been used. Please request a new link from the login page.</p>
+            <p className="text-muted-foreground text-sm leading-relaxed">This reset link is invalid or of the wrong type. Please request a new link.</p>
           </div>
           <Button asChild className="w-full bg-[#162129] border border-border/10 hover:bg-[#1c2a35] h-12 font-bold">
             <Link href="/login">Back to Login</Link>

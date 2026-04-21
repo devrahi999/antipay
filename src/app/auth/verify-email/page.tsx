@@ -15,9 +15,16 @@ function VerifyEmailForm() {
   const auth = useAuth();
   const searchParams = useSearchParams();
   const oobCode = searchParams.get('oobCode');
+  const mode = searchParams.get('mode');
 
   useEffect(() => {
-    if (!oobCode) {
+    // Security check: If mode is not verifyEmail, it might be a wrong link
+    if (!oobCode || mode !== 'verifyEmail') {
+      if (mode === 'resetPassword') {
+        // Silently redirect if the mode is actually password reset
+        window.location.href = `/auth/reset-password?${searchParams.toString()}`;
+        return;
+      }
       setStatus('error');
       return;
     }
@@ -30,7 +37,7 @@ function VerifyEmailForm() {
         console.error(error);
         setStatus('error');
       });
-  }, [auth, oobCode]);
+  }, [auth, oobCode, mode, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0b141a] p-4 font-body">
@@ -63,7 +70,7 @@ function VerifyEmailForm() {
                 Your email has been successfully verified. You are now authorized to access the AntiPay Merchant Console.
               </p>
               <Button asChild className="w-full bg-[#16a34a] hover:bg-[#15803d] h-12 font-bold shadow-xl shadow-[#16a34a]/20">
-                <Link href="/login">Go to Dashboard</Link>
+                <Link href="/login">Go to Login</Link>
               </Button>
             </div>
           )}
@@ -74,7 +81,7 @@ function VerifyEmailForm() {
                 <AlertCircle size={40} />
               </div>
               <p className="text-slate-300 text-sm leading-relaxed">
-                The verification link is invalid or has expired. This can happen if the link was already used or is too old.
+                The verification link is invalid or has expired. This can happen if the link was already used or if it's the wrong action type.
               </p>
               <Button asChild className="w-full bg-[#162129] border border-border/10 hover:bg-[#1c2a35] h-12 font-bold">
                 <Link href="/login">Back to Login</Link>

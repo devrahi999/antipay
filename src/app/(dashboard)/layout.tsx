@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/header";
@@ -13,14 +14,24 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to login if not authenticated and loading is finished
+    // Redirect to login if not authenticated
     if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+
+    // Force verify email check
+    if (user && !user.emailVerified) {
+       // Only allow access if verified. For Google users, this is usually true.
+       // For Password users, we enforce it.
+       auth.signOut().then(() => {
+         router.push('/login?error=verify-email');
+       });
+    }
+  }, [user, isUserLoading, router, auth]);
 
   if (isUserLoading) {
     return (
@@ -31,7 +42,7 @@ export default function DashboardLayout({
     );
   }
 
-  if (!user) {
+  if (!user || !user.emailVerified) {
     return null; // Will redirect via useEffect
   }
 

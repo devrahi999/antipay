@@ -10,7 +10,8 @@ import {
   sendEmailVerification,
   User,
   UserCredential,
-  ActionCodeSettings
+  ActionCodeSettings,
+  signOut
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 import { notifyWelcome } from '@/app/actions/notifications';
@@ -68,10 +69,15 @@ export async function initiateEmailSignUp(
 
     // 2. Firebase verification link (internal)
     const actionCodeSettings: ActionCodeSettings = {
-      url: `${window.location.origin}/auth/verify-email`,
+      url: `${window.location.origin}/login`, // Final destination after verification
       handleCodeInApp: true,
     };
+    
+    // Send verification email
     await sendEmailVerification(userCredential.user, actionCodeSettings);
+    
+    // IMPORTANT: Force sign out immediately after signup to prevent direct access without verification
+    await signOut(authInstance);
   }
   return userCredential;
 }
@@ -84,7 +90,14 @@ export async function initiateEmailSignIn(
   password: string
 ): Promise<UserCredential> {
   const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+  
   if (userCredential.user) {
+    // Prevent login if email is not verified
+    if (!userCredential.user.emailVerified) {
+      await signOut(authInstance);
+      throw new Error("Your email is not verified. Please check your inbox for the verification link.");
+    }
+    
     await syncUserProfile(db, userCredential.user);
   }
   return userCredential;
@@ -96,8 +109,6 @@ export async function initiateGoogleSignIn(authInstance: Auth, db: Firestore): P
   const userCredential = await signInWithPopup(authInstance, provider);
   if (userCredential.user) {
     await syncUserProfile(db, userCredential.user);
-    // If new user, send welcome
-    // (Note: in production you'd check if it's the first time)
   }
   return userCredential;
 }
@@ -105,7 +116,7 @@ export async function initiateGoogleSignIn(authInstance: Auth, db: Firestore): P
 /** Send customized password reset email pointing to our custom page. */
 export async function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
   const actionCodeSettings: ActionCodeSettings = {
-    url: `${window.location.origin}/auth/reset-password`,
+    url: `${window.location.origin}/login`,
     handleCodeInApp: true,
   };
   await sendPasswordResetEmail(authInstance, email, actionCodeSettings);
