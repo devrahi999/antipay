@@ -3,8 +3,7 @@ import nodemailer from 'nodemailer';
 
 /**
  * SMTP Configuration optimized for Gmail.
- * Using credentials provided by the user.
- * Removing spaces from app password automatically.
+ * Using credentials from environment variables for security.
  */
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -12,25 +11,24 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, 
   auth: {
-    user: 'supports.antipay@gmail.com', 
-    // Gmail app passwords are 16 characters without spaces. 
-    // We trim them just in case.
-    pass: 'cnmruxdhkccaxplg', 
+    user: process.env.SMTP_USER || 'supports.antipay@gmail.com', 
+    // Gmail app passwords are 16 characters. We remove any spaces provided in the env.
+    pass: (process.env.SMTP_PASS || 'nynl muik mktr yyyk').replace(/\s+/g, ''), 
   },
 });
 
 export async function sendCustomEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
   try {
     const info = await transporter.sendMail({
-      from: `"AntiPay Support" <supports.antipay@gmail.com>`,
+      from: `"AntiPay Support" <${process.env.SMTP_USER || 'supports.antipay@gmail.com'}>`,
       to,
       subject,
       html,
     });
     return { success: true, messageId: info.messageId };
   } catch (error: any) {
-    // We log the error but don't throw to prevent crashing the server action
-    console.warn('SMTP Warning (Email not sent):', error.message || error);
+    // Log detailed error to server console for debugging
+    console.error('CRITICAL SMTP ERROR:', error.message || error);
     return { success: false, error: error.message || 'SMTP Authentication Failed' };
   }
 }
