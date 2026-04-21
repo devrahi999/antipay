@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Auth,
@@ -7,7 +6,9 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail,
+  User
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in (non-blocking). */
@@ -34,4 +35,14 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
 export function initiateGoogleSignIn(authInstance: Auth): void {
   const provider = new GoogleAuthProvider();
   signInWithPopup(authInstance, provider);
+}
+
+/** Send password reset email (non-blocking). */
+export function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
+  return sendPasswordResetEmail(authInstance, email);
+}
+
+/** Update user profile (non-blocking). */
+export function updateUserProfile(user: User, data: { displayName?: string; photoURL?: string }): Promise<void> {
+  return updateProfile(user, data);
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,16 +8,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth, useUser } from '@/firebase';
-import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
+import { initiateEmailSignIn, initiateGoogleSignIn, initiatePasswordReset } from '@/firebase/non-blocking-login';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -35,6 +39,28 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setLoading(true);
     initiateGoogleSignIn(auth);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+    setResetLoading(true);
+    try {
+      await initiatePasswordReset(auth, resetEmail);
+      toast({
+        title: "Reset Link Sent",
+        description: `A password reset link has been sent to ${resetEmail}`,
+      });
+      setResetEmail('');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Could not send reset link.",
+      });
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -69,7 +95,33 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button type="button" className="text-xs text-primary hover:underline">Forgot password?</button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                      <DialogDescription>Enter your email and we'll send you a link to reset your password.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email Address</Label>
+                        <Input 
+                          id="reset-email" 
+                          type="email" 
+                          placeholder="name@company.com" 
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          required 
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={resetLoading}>
+                        {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Send Reset Link"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
