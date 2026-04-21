@@ -14,11 +14,9 @@ import {
   Tags, 
   MoreHorizontal, 
   X,
-  Upload,
   Save,
   Loader2,
   Copy,
-  CheckCircle2,
   ExternalLink,
   Eye,
   Trash2,
@@ -183,17 +181,17 @@ export default function BrandsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[700px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/10 bg-[#162129]">
+            <DialogHeader className="p-4 border-b border-border/10 bg-[#162129]">
               <div className="flex items-center gap-2 text-[#16a34a]">
                 <Tags className="h-5 w-5" />
                 <DialogTitle className="font-bold text-lg text-[#16a34a]">
                   {isEditMode ? 'Edit Brand Details' : 'Register a New Brand'}
                 </DialogTitle>
               </div>
-              <DialogClose className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </DialogClose>
-            </div>
+              <DialogDescription className="text-[10px] text-muted-foreground">
+                Provide your store information to generate a unique API key for integration.
+              </DialogDescription>
+            </DialogHeader>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[85vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -398,20 +396,22 @@ export default function BrandsPage() {
         <DialogContent className="sm:max-w-[500px] bg-[#0b141a] border-border/20 text-foreground p-0">
           {selectedBrand && (
             <>
-              <div className="p-6 bg-[#162129] border-b border-border/10 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-2xl bg-[#0b141a] flex items-center justify-center text-[#16a34a] font-bold text-xl border border-border/10 overflow-hidden">
-                    {selectedBrand.logoUrl ? (
-                      <img src={selectedBrand.logoUrl} alt={selectedBrand.name} className="h-full w-full object-cover" />
-                    ) : selectedBrand.name.charAt(0)}
+              <DialogHeader className="p-6 bg-[#162129] border-b border-border/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-2xl bg-[#0b141a] flex items-center justify-center text-[#16a34a] font-bold text-xl border border-border/10 overflow-hidden">
+                      {selectedBrand.logoUrl ? (
+                        <img src={selectedBrand.logoUrl} alt={selectedBrand.name} className="h-full w-full object-cover" />
+                      ) : selectedBrand.name.charAt(0)}
+                    </div>
+                    <div>
+                      <DialogTitle className="text-xl font-bold text-white leading-tight">{selectedBrand.name}</DialogTitle>
+                      <DialogDescription className="text-xs text-muted-foreground">{selectedBrand.websiteUrl}</DialogDescription>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white leading-tight">{selectedBrand.name}</h2>
-                    <p className="text-xs text-muted-foreground">{selectedBrand.websiteUrl}</p>
-                  </div>
+                  <Badge className="bg-[#16a34a]/20 text-[#16a34a] border-[#16a34a]/30">Active</Badge>
                 </div>
-                <Badge className="bg-[#16a34a]/20 text-[#16a34a] border-[#16a34a]/30">Active</Badge>
-              </div>
+              </DialogHeader>
               <div className="p-6 space-y-6">
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">AntiPay API Key</Label>
