@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
   Wallet, 
@@ -35,7 +36,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/40 p-6 rounded-xl border border-border/50">
         <div>
           <h1 className="text-2xl font-headline font-bold text-foreground">Welcome back, {user?.displayName?.split(' ')[0] || "Merchant"}! 👋</h1>
@@ -49,7 +49,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Invoice Analytics */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Invoice Analytics</h2>
@@ -58,7 +57,7 @@ export default function DashboardPage() {
         <p className="text-xs text-muted-foreground -mt-3">Monitor volume, status, and performance</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-blue-600 border-none text-white shadow-lg shadow-blue-900/20">
+          <Card className="bg-emerald-700 border-none text-white shadow-lg shadow-emerald-900/40">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Total Volume</p>
               <Wallet className="h-5 w-5 opacity-40" />
@@ -69,7 +68,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-emerald-500 border-none text-white shadow-lg shadow-emerald-900/20">
+          <Card className="bg-emerald-500 border-none text-white shadow-lg shadow-emerald-900/40">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Completed Volume</p>
               <CircleCheck className="h-5 w-5 opacity-40" />
@@ -80,7 +79,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-amber-500 border-none text-white shadow-lg shadow-amber-900/20">
+          <Card className="bg-amber-500 border-none text-white shadow-lg shadow-amber-900/40">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Pending Recovery</p>
               <Clock className="h-5 w-5 opacity-40" />
@@ -91,7 +90,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-rose-500 border-none text-white shadow-lg shadow-rose-900/20">
+          <Card className="bg-rose-500 border-none text-white shadow-lg shadow-rose-900/40">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Canceled</p>
               <XCircle className="h-5 w-5 opacity-40" />
@@ -104,7 +103,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Transactions */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <div className="flex items-center gap-4">

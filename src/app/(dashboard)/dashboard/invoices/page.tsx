@@ -2,9 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { 
@@ -13,8 +12,7 @@ import {
   Filter as FilterIcon, 
   ChevronLeft, 
   ChevronRight,
-  FileText,
-  MoreHorizontal
+  FileText
 } from "lucide-react"
 import { 
   Select, 
@@ -32,11 +30,10 @@ export default function InvoicesPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-headline font-bold text-foreground">Invoices</h1>
-          <p className="text-sm text-muted-foreground">Manage and track your customer billing invoices.</p>
+          <p className="text-sm text-muted-foreground">Manage and track your AntiPay customer billing invoices.</p>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
       <div className="flex flex-wrap items-center gap-3 bg-[#0b141a] p-4 rounded-xl border border-border/20 shadow-lg">
         <Button className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-[0_0_15px_rgba(22,163,74,0.3)]">
           <Plus className="mr-2 h-4 w-4" /> Create Custom Invoice
@@ -45,7 +42,7 @@ export default function InvoicesPage() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search by ID, Email, Name, or A..." 
+            placeholder="Search by ID, Email, Name..." 
             className="pl-10 bg-[#162129] border-border/20 focus:ring-primary/20 h-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -76,12 +73,11 @@ export default function InvoicesPage() {
           </SelectContent>
         </Select>
 
-        <Button className="bg-[#0095ff] hover:bg-[#007acc] text-white font-bold shadow-[0_0_15px_rgba(0,149,255,0.3)] px-6">
+        <Button className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-[0_0_15px_rgba(22,163,74,0.3)] px-6">
           <FilterIcon className="mr-2 h-4 w-4" /> Filter
         </Button>
       </div>
 
-      {/* Invoices Table */}
       <Card className="bg-[#0b141a] border-border/40 shadow-2xl">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -118,7 +114,6 @@ export default function InvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
       <div className="flex justify-center items-center gap-4 py-4">
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-border/20 hover:bg-primary/10">
           <ChevronLeft className="h-4 w-4" />
