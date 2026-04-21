@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { doc } from 'firebase/firestore';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { Loader2, ShieldAlert, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -59,7 +59,9 @@ export default function AdminLayout({
         <div className="flex h-screen w-full overflow-hidden">
           <AdminSidebar />
           <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-[#0b141a]">
-            <header className="h-16 border-b border-border/10 flex items-center px-6 bg-[#162129]">
+            <header className="h-16 border-b border-border/10 flex items-center px-4 md:px-6 bg-[#162129] gap-4">
+               <SidebarTrigger className="h-9 w-9 text-muted-foreground hover:text-[#16a34a] transition-colors" />
+               <div className="h-6 w-[1px] bg-border/10 hidden md:block" />
                <h2 className="text-lg font-bold text-[#16a34a] flex items-center gap-2">
                  <ShieldAlert className="h-5 w-5" /> AntiPay Admin Center
                </h2>

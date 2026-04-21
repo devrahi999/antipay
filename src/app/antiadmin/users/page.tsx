@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { collection, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function ManageUsersPage() {
   const db = useFirestore();
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const usersQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -26,6 +28,11 @@ export default function ManageUsersPage() {
   }, [db]);
 
   const { data: users, isLoading } = useCollection(usersQuery);
+
+  const filteredUsers = users?.filter(u => 
+    u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const toggleAdmin = async (userId: string, currentAdminStatus: boolean) => {
     if (!db) return;
@@ -45,11 +52,16 @@ export default function ManageUsersPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Manage Users</h1>
-          <p className="text-muted-foreground">Monitor and manage all merchant accounts.</p>
+          <p className="text-muted-foreground text-sm">Monitor and manage all merchant accounts.</p>
         </div>
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search users..." className="pl-10 bg-[#162129] border-border/10" />
+          <Input 
+            placeholder="Search users by name or email..." 
+            className="pl-10 bg-[#162129] border-border/10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
@@ -70,8 +82,8 @@ export default function ManageUsersPage() {
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">Fetching users...</TableCell>
                 </TableRow>
-              ) : users && users.length > 0 ? (
-                users.map((u) => (
+              ) : filteredUsers && filteredUsers.length > 0 ? (
+                filteredUsers.map((u) => (
                   <TableRow key={u.id} className="border-border/5 hover:bg-white/5 transition-colors">
                     <TableCell className="pl-6">
                       <div className="flex items-center gap-3">
@@ -103,11 +115,11 @@ export default function ManageUsersPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-[#162129] border-border/20">
-                            <DropdownMenuItem className="text-xs cursor-pointer" onClick={() => toggleAdmin(u.id, u.isAdmin)}>
+                          <DropdownMenuContent align="end" className="bg-[#162129] border-border/20 text-white">
+                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10" onClick={() => toggleAdmin(u.id, u.isAdmin)}>
                               <ShieldCheck className="mr-2 h-3.5 w-3.5" /> {u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-xs cursor-pointer">
+                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-[#16a34a]/10">
                               <UserCog className="mr-2 h-3.5 w-3.5" /> View Full Profile
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -118,7 +130,9 @@ export default function ManageUsersPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic">No users registered yet.</TableCell>
+                  <TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic">
+                    {searchTerm ? "No users match your search." : "No users registered yet."}
+                  </TableCell>
                 </TableRow>
               )}
             </TableBody>
