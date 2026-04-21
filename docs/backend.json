@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -455,7 +456,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -644,7 +646,6 @@
           ]
         }
       }
-    ],
-    "reasoning": "The Firestore structure for AntiPay prioritizes Authorization Independence, Structural Segregation, and predictable access modeling to ensure secure, scalable, and debuggable security rules. All user-specific data is strictly segregated under a `/users/{userId}` path, establishing clear path-based ownership. This pattern is foundational for simplifying rules, as authorization checks primarily involve `request.auth.uid == userId` for subcollections.\n\n**Authorization Independence (CRITICAL):**\nThis design mandate is primarily achieved through pervasive denormalization:\n\n1.  **PaymentSession:** The `PaymentSession` entity is designed with two distinct access patterns: a private, comprehensive view for the merchant and a public, limited view for the external payment page. To eliminate `get()` calls in security rules for the public-facing `/public_payment_sessions/{sessionId}` path and simplify rules for the merchant's `/users/{userId}/paymentSessions/{sessionId}` path, critical related data is denormalized directly into the `PaymentSession` documents. This includes:\n    *   `userId` (for merchant ownership).\n    *   Essential `Store` details such as `storeName`, `logoUrl`, `successRedirectUrl`, `supportEmail`, and `websiteUrl` (from `/users/{userId}/stores/{storeId}`).\n    *   The specific `receiverNumber` associated with the chosen `method` (from `/users/{userId}/paymentMethods/{paymentMethodId}`).\n    This denormalization ensures that the external payment page can load and verify session data without needing to perform `get()` operations on `Store` or `PaymentMethodConfiguration` documents, adhering to atomic operation principles.\n\n2.  **UserSubscription:** To enable efficient rule-based checks on subscription limits (e.g., `maxApiKeys`, `maxDevices`, `transactionLimitMonthly`) without requiring `get()` calls to the global `/subscriptionPlans/{planId}` collection, these relevant plan limits are denormalized into the user's `UserSubscription` document (`/users/{userId}/userSubscription`). This ensures authorization rules can evaluate limits directly from the user's subscription record.\n\n3.  **Subcollection Ownership:** For all subcollections (e.g., `stores`, `apiKeys`, `paymentMethods`, `rawTransactions`, `devices`), the `userId` of the owner is explicitly stored within each document, even though it's implicit in the path. This redundancy enhances query flexibility and rule clarity, making authorization checks more robust (`resource.data.userId == request.auth.uid`).\n\n**QAPs (Rules are not Filters):**\nThis design explicitly supports secure `list` operations by implementing:\n\n1.  **Structural Segregation for Public vs. Private Data:** The separation of `PaymentSession` into two collections—`/users/{userId}/paymentSessions/{sessionId}` (private, merchant-owned) and `/public_payment_sessions/{sessionId}` (public, read-only for external verification)—is crucial. This ensures that the public collection has a homogenous security posture (everyone can read specific fields for a given session ID), while the private collection is strictly secured by `userId`. This prevents accidental exposure of sensitive merchant data during public access queries and makes `list` operations for merchants straightforward (e.g., `allow list: if request.auth.uid != null && request.auth.uid == userId;`).\n\n2.  **Path-Based Ownership:** All merchant-specific data collections are nested under `/users/{userId}`. This makes `list` operations on these collections (e.g., `/users/{userId}/apiKeys`, `/users/{userId}/paymentMethods`, `/users/{userId}/rawTransactions`, `/users/{userId}/devices`) inherently secure and performant. Firestore's security rules can easily enforce that users can only list documents within their own `/users/{userId}` path, satisfying the QAP principle by preventing unauthorized `list` access from the outset rather than filtering results after a broad query.\n\nBy adhering to these principles, the AntiPay system achieves a highly secure, maintainable, and debuggable Firestore backend, where authorization logic is clear, dependencies are minimized, and data integrity is preserved."
+    ]
   }
 }
