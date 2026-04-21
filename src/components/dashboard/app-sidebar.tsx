@@ -13,7 +13,8 @@ import {
   LogOut,
   ShieldCheck,
   WalletCards,
-  SmartphoneNfc
+  SmartphoneNfc,
+  Layers
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -67,19 +68,19 @@ const navItems = [
     url: "/dashboard/devices",
   },
   {
-    title: "Developer Docs",
-    icon: BookOpen,
-    url: "/docs",
+    title: "All Plans",
+    icon: Layers,
+    url: "/dashboard/plans",
+  },
+  {
+    title: "My Subscription",
+    icon: CreditCard,
+    url: "/dashboard/subscription",
   },
   {
     title: "Android App",
     icon: Smartphone,
     url: "/dashboard/android",
-  },
-  {
-    title: "Subscription",
-    icon: CreditCard,
-    url: "/dashboard/subscription",
   },
   {
     title: "Settings",

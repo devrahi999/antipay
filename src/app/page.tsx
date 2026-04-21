@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { collection, query, orderBy, getDocs } from "firebase/firestore"
+import { useFirestore, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
 import { 
   ShieldCheck, 
   Zap, 
@@ -22,6 +19,8 @@ import {
   Terminal,
   Cpu,
   BarChart3,
+  Loader2,
+  Sparkles
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -59,10 +58,37 @@ function RevealOnScroll({ children, className, style }: { children: React.ReactN
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
+  const { user } = useUser();
+  const db = useFirestore();
+  const router = useRouter();
+  const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    async function fetchPlans() {
+      if (!db) return;
+      try {
+        const q = query(collection(db, 'subscriptionPlans'), orderBy('price', 'asc'));
+        const snap = await getDocs(q);
+        const plansData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPlans(plansData);
+      } catch (error) {
+        console.error("Failed to fetch plans:", error);
+      } finally {
+        setPlansLoading(false);
+      }
+    }
+    fetchPlans();
+  }, [db]);
+
+  const handlePlanClick = () => {
+    if (user) {
+      router.push('/dashboard/plans');
+    } else {
+      router.push('/login');
+    }
+  };
 
   if (!mounted) return null;
 
@@ -111,10 +137,8 @@ export default function LandingPage() {
                   Verify bKash, Nagad, and Rocket payments in real-time using our powerful API. Built for the high-speed Bangladesh economy.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button asChild size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group cursor-pointer">
-                    <Link href="/signup">
-                      Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                  <Button onClick={handlePlanClick} size="lg" className="h-12 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group cursor-pointer">
+                    Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button asChild size="lg" variant="outline" className="h-12 px-8 text-lg hover:bg-accent/50 cursor-pointer">
                     <Link href="/docs">View Docs</Link>
@@ -131,10 +155,10 @@ export default function LandingPage() {
                     </div>
                     <div className="flex gap-4">
                       <div className="bg-white border p-2.5 rounded-xl shadow-md transform -rotate-12 translate-y-2">
-                        <Badge className="bg-[#e2136e] hover:bg-[#e2136e] text-[9px] px-2">bKash</Badge>
+                        <Badge className="bg-[#e2136e] hover:bg-[#e2136e] text-[9px] px-2 text-white">bKash</Badge>
                       </div>
                       <div className="bg-white border p-2.5 rounded-xl shadow-md transform rotate-6">
-                        <Badge className="bg-[#f7941d] hover:bg-[#f7941d] text-[9px] px-2">Nagad</Badge>
+                        <Badge className="bg-[#f7941d] hover:bg-[#f7941d] text-[9px] px-2 text-white">Nagad</Badge>
                       </div>
                     </div>
                     <div className="bg-accent/20 text-primary px-4 py-1.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-2 border border-primary/10">
@@ -147,8 +171,63 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing" className="py-24 bg-secondary/5">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
+              <RevealOnScroll>
+                <h2 className="text-3xl md:text-5xl font-headline font-bold">Simple, Transparent <span className="text-primary">Pricing</span></h2>
+                <p className="text-lg text-muted-foreground">Scale your payment infrastructure as your business grows.</p>
+              </RevealOnScroll>
+            </div>
+
+            {plansLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {plans.map((plan, idx) => (
+                  <RevealOnScroll key={plan.id} style={{ transitionDelay: `${idx * 150}ms` }}>
+                    <Card className="relative h-full flex flex-col border-2 border-border/50 bg-card hover:border-primary/50 transition-all duration-300">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                           <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
+                           {plan.price > 2000 && <Sparkles className="h-5 w-5 text-amber-500" />}
+                        </div>
+                        <CardDescription className="text-xs uppercase font-bold tracking-widest text-primary/70">
+                          {plan.billingCycle} billing
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1 space-y-6">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-bold">৳{plan.price}</span>
+                          <span className="text-muted-foreground text-sm">/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                        </div>
+                        <ul className="space-y-3">
+                          {plan.benefits?.map((benefit: string, i: number) => (
+                            <li key={i} className="flex items-start gap-3 text-sm">
+                              <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                              <span className="text-muted-foreground">{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                      <CardFooter>
+                        <Button onClick={handlePlanClick} className="w-full bg-primary hover:bg-primary/90 font-bold h-11">
+                          {user ? "View in Console" : "Start with " + plan.name}
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </RevealOnScroll>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Features Section */}
-        <section id="features" className="py-24 bg-secondary/5">
+        <section id="features" className="py-24 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center max-w-[800px] mx-auto mb-16 space-y-4">
               <RevealOnScroll>
@@ -193,71 +272,6 @@ export default function LandingPage() {
                   </Card>
                 </RevealOnScroll>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Interactive Code Preview */}
-        <section className="py-24 bg-background">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <RevealOnScroll className="space-y-8">
-                <div className="space-y-4">
-                  <h2 className="text-3xl md:text-5xl font-headline font-bold">Built for <span className="text-primary">Developers</span></h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
-                    Integrate our REST API with just a few lines of code. Simple, fast, and secure.
-                  </p>
-                </div>
-                <ul className="space-y-4">
-                  {[
-                    { icon: Code2, title: "Simple REST API", desc: "Easy to use JSON endpoints." },
-                    { icon: Terminal, title: "Webhooks", desc: "Get notified instantly on new payments." },
-                    { icon: Cpu, title: "Scalable", desc: "Handles thousands of requests per second." }
-                  ].map((item, i) => (
-                    <li key={i} className="flex gap-4">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        <item.icon size={14} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{item.desc}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </RevealOnScroll>
-              <RevealOnScroll className="relative" style={{ transitionDelay: '300ms' }}>
-                <div className="bg-slate-900 rounded-2xl p-1 shadow-2xl overflow-hidden border border-slate-800">
-                  <div className="bg-slate-800 px-4 py-2 flex items-center gap-2 border-b border-slate-700">
-                    <div className="flex gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono ml-2">verify.js</span>
-                  </div>
-                  <pre className="p-6 text-[12px] font-mono text-slate-300 overflow-x-auto">
-                    <code>{`// Post verification request
-const response = await fetch('https://api.antipay.io/v1/verify', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_SECRET_KEY',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    trxId: '8J9A1X7K',
-    amount: '1200',
-    method: 'bkash'
-  })
-});
-
-const result = await response.json();
-if (result.status === 'verified') {
-  console.log('Payment Confirmed!');
-}`}</code>
-                  </pre>
-                </div>
-              </RevealOnScroll>
             </div>
           </div>
         </section>

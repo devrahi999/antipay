@@ -1,128 +1,88 @@
-
 {
   "entities": {
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a merchant user within the AntiPay system. This entity links all user-specific data, assuming external authentication.",
+      "description": "Represents a merchant user within the AntiPay system.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
+          "type": "string"
         },
         "email": {
           "type": "string",
-          "description": "The email address associated with the user's account.",
           "format": "email"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "photoURL": {
+          "type": "string"
+        },
+        "subscriptionPlanId": {
+          "type": "string",
+          "description": "The ID of the currently active subscription plan."
+        },
+        "subscriptionStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subscriptionExpiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isAdmin": {
+          "type": "boolean"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
           "format": "date-time"
-        },
-        "webhookUrl": {
-          "type": "string",
-          "description": "Optional URL for receiving system webhooks and notifications.",
-          "format": "uri"
         }
-      },
-      "required": [
-        "id",
-        "email",
-        "createdAt",
-        "updatedAt"
-      ]
+      }
     },
     "Store": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Store",
       "type": "object",
-      "description": "Details about a merchant's store, associated with an API key and user, used for branding and redirect purposes.",
+      "description": "Merchant brand details.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Store entity."
+          "type": "string"
         },
         "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile this store belongs to."
+          "type": "string"
         },
         "name": {
-          "type": "string",
-          "description": "The name of the merchant's store."
+          "type": "string"
         },
         "websiteUrl": {
-          "type": "string",
-          "description": "The public website URL of the merchant's store.",
-          "format": "uri"
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL to the store's logo image.",
-          "format": "uri"
-        },
-        "supportEmail": {
-          "type": "string",
-          "description": "Email address for customer support.",
-          "format": "email"
+          "type": "string"
         },
         "apiKey": {
-          "type": "string",
-          "description": "The API key associated with this brand (same as doc ID)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "websiteUrl",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "PaymentSession": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PaymentSession",
-      "type": "object",
-      "description": "Represents a single payment request initiated by a client.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Merchant UID."
-        },
-        "amount": {
-          "type": "number"
-        },
-        "method": {
           "type": "string"
         },
         "status": {
           "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
         }
+      }
+    },
+    "SubscriptionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubscriptionPlan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "benefits": { "type": "array", "items": { "type": "string" } },
+        "billingCycle": { "type": "string", "enum": ["monthly", "yearly"] },
+        "maxApiKeys": { "type": "number" },
+        "maxDevices": { "type": "number" },
+        "isFreeTrialAvailable": { "type": "boolean" }
       }
     }
   },
@@ -141,7 +101,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Merchant profiles."
+          "description": "User profile data."
         }
       },
       {
@@ -151,7 +111,17 @@
           "schema": {
             "$ref": "#/backend/entities/Store"
           },
-          "description": "Root level brands collection."
+          "description": "Global stores collection."
+        }
+      },
+      {
+        "path": "/subscriptionPlans/{planId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Global plans defined by Admin."
         }
       }
     ]
