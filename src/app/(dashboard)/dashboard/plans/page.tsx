@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon } from "lucide-react"
+import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { notifyPlanActivation } from '@/app/actions/notifications';
 
@@ -36,6 +36,9 @@ export default function BrowsePlansPage() {
   const handleSelectPlan = async (plan: any) => {
     if (!user || !db) return;
     setIsSubmitting(plan.id);
+
+    const isUpgrade = profile?.subscriptionPlanId && profile.subscriptionPlanId !== plan.id;
+    const isRenew = profile?.subscriptionPlanId === plan.id;
 
     try {
       // Calculate expiry
@@ -85,7 +88,7 @@ export default function BrowsePlansPage() {
         planId: plan.id,
         planName: plan.name,
         amount: plan.price,
-        status: 'success',
+        status: isUpgrade ? 'upgrade' : (isRenew ? 'renew' : 'new_purchase'),
         createdAt: serverTimestamp()
       });
 
@@ -95,13 +98,13 @@ export default function BrowsePlansPage() {
       }
 
       toast({
-        title: "Plan Activated!",
-        description: `Your ${plan.name} is now active. Quotas updated.`,
+        title: isUpgrade ? "Plan Upgraded!" : (isRenew ? "Plan Renewed!" : "Plan Activated!"),
+        description: `Your ${plan.name} is now active. Quotas updated and expiry extended.`,
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Activation Failed",
+        title: "Action Failed",
         description: error.message || "Please try again later."
       });
     } finally {
@@ -145,6 +148,7 @@ export default function BrowsePlansPage() {
         {filteredPlans && filteredPlans.length > 0 ? (
           filteredPlans.map((plan) => {
             const isCurrent = currentPlanId === plan.id;
+            const hasOtherPlan = currentPlanId && !isCurrent;
             const isTrial = plan.isFreeTrialAvailable;
             
             return (
@@ -155,7 +159,7 @@ export default function BrowsePlansPage() {
                   </div>
                 )}
                 
-                {isTrial && !isCurrent && (
+                {isTrial && !currentPlanId && (
                   <div className="absolute top-4 right-4 animate-pulse">
                      <Badge className="bg-amber-500 hover:bg-amber-500 text-[9px] uppercase font-black px-2 py-0.5 shadow-lg shadow-amber-500/20">
                        <Clock className="h-2 w-2 mr-1" /> 1 Month Free
@@ -200,16 +204,18 @@ export default function BrowsePlansPage() {
                 <CardFooter className="bg-secondary/10 p-6">
                   <Button 
                     variant={isCurrent ? "outline" : "default"} 
-                    className={`w-full font-black h-12 text-md transition-all ${!isCurrent ? "bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20" : "border-primary/20 text-primary"}`}
-                    disabled={isCurrent || isProcessing === plan.id}
+                    className={`w-full font-black h-12 text-md transition-all ${isCurrent ? "border-primary text-primary hover:bg-primary/5" : "bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20"}`}
+                    disabled={isProcessing === plan.id}
                     onClick={() => handleSelectPlan(plan)}
                   >
                     {isProcessing === plan.id ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : isCurrent ? (
-                      "Stay on this Tier"
+                      <span className="flex items-center gap-2"><RefreshCcw className="h-4 w-4" /> Renew This Plan</span>
+                    ) : hasOtherPlan ? (
+                      <span className="flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Upgrade to {plan.name}</span>
                     ) : (
-                      `Upgrade to ${plan.name}`
+                      `Activate ${plan.name}`
                     )}
                   </Button>
                 </CardFooter>
