@@ -19,7 +19,7 @@ import {
   Trash2,
   Infinity as InfinityIcon
 } from "lucide-react"
-import { doc, deleteDoc, updateDoc, deleteField, serverTimestamp } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, deleteField, serverTimestamp, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +41,7 @@ export default function MySubscriptionPage() {
   const { toast } = useToast();
   const [isCanceling, setIsCanceling] = useState(false);
 
-  // Fetch real plan details from the dedicated user_plans collection (Root Level)
+  // Fetch real plan details from the dedicated user_plans collection
   const activePlanRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'user_plans', user.uid);
@@ -53,20 +53,31 @@ export default function MySubscriptionPage() {
     if (!user || !db) return;
     setIsCanceling(true);
     try {
+      const batch = writeBatch(db);
+
       // 1. Delete from user_plans collection
-      await deleteDoc(doc(db, 'user_plans', user.uid));
+      batch.delete(doc(db, 'user_plans', user.uid));
 
       // 2. Remove fields from users collection
-      await updateDoc(doc(db, 'users', user.uid), {
+      batch.update(doc(db, 'users', user.uid), {
         subscriptionPlanId: deleteField(),
         subscriptionStartedAt: deleteField(),
         subscriptionExpiresAt: deleteField(),
         updatedAt: serverTimestamp()
       });
 
+      // 3. Deactivate all brands (isActive: false)
+      const storesQuery = query(collection(db, 'stores'), where('userId', '==', user.uid));
+      const storesSnap = await getDocs(storesQuery);
+      storesSnap.forEach((storeDoc) => {
+        batch.update(storeDoc.ref, { isActive: false, updatedAt: serverTimestamp() });
+      });
+
+      await batch.commit();
+
       toast({
         title: "Subscription Canceled",
-        description: "Your plan has been removed. Access to premium features is now revoked."
+        description: "Plan removed. All API brand slots have been deactivated."
       });
     } catch (error: any) {
       toast({
@@ -206,7 +217,7 @@ export default function MySubscriptionPage() {
                        <AlertCircle className="text-rose-500" /> Cancel Subscription?
                      </AlertDialogTitle>
                      <AlertDialogDescription className="text-muted-foreground">
-                       This will immediately revoke your API brand slots and connection nodes. This action cannot be undone.
+                       This will immediately revoke your API brand slots and deactivate all processing nodes.
                      </AlertDialogDescription>
                    </AlertDialogHeader>
                    <AlertDialogFooter>
@@ -240,7 +251,7 @@ export default function MySubscriptionPage() {
                     <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden p-[1px] border border-border/5">
                        <div className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(22,163,74,0.5)]" style={{ width: '20%' }} />
                     </div>
-                    <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">1 Identity Registered</p>
+                    <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">Identity Monitoring Active</p>
                   </div>
 
                   <div className="space-y-3">
@@ -251,7 +262,7 @@ export default function MySubscriptionPage() {
                     <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden p-[1px] border border-border/5">
                        <div className="h-full bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" style={{ width: '0%' }} />
                     </div>
-                    <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">0 Connected Nodes</p>
+                    <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">Node Synchronization Ready</p>
                   </div>
                </CardContent>
             </Card>

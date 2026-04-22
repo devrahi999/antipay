@@ -111,7 +111,8 @@ export default function BrandsPage() {
           apiKey: storeId,
           userId: user.uid,
           status: 'active',
-          connected_devices_count: 0, // Initialized as requested
+          isActive: true, // Brand is active on creation
+          connected_devices_count: 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
@@ -305,8 +306,8 @@ export default function BrandsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-[9px] uppercase border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10 font-bold px-3">
-                          {brand.status || 'Active'}
+                        <Badge variant="outline" className={`text-[9px] uppercase font-bold px-3 ${brand.isActive === false ? 'border-rose-500/30 text-rose-500 bg-rose-500/10' : 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10'}`}>
+                          {brand.isActive === false ? 'Inactive' : 'Active'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right pr-6">

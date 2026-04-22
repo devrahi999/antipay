@@ -49,6 +49,7 @@
         "websiteUrl": { "type": "string" },
         "apiKey": { "type": "string" },
         "status": { "type": "string" },
+        "isActive": { "type": "boolean", "default": true },
         "connected_devices_count": { "type": "number", "default": 0 }
       }
     },

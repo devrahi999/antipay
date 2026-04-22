@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, doc, setDoc, serverTimestamp, Timestamp, writeBatch, getDocs, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,9 +53,11 @@ export default function BrowsePlansPage() {
         expiry.setDate(now.getDate() + 30);
       }
 
-      // 1. Update/Create user_plans/{userId} document (Root Collection)
+      const batch = writeBatch(db);
+
+      // 1. Update/Create user_plans/{userId} document
       const userPlanRef = doc(db, 'user_plans', user.uid);
-      await setDoc(userPlanRef, {
+      batch.set(userPlanRef, {
         userId: user.uid,
         userEmail: user.email,
         planId: plan.id,
@@ -72,7 +74,7 @@ export default function BrowsePlansPage() {
 
       // 2. Sync profile subscription ID
       const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
+      batch.set(userRef, {
         subscriptionPlanId: plan.id,
         subscriptionStartedAt: serverTimestamp(),
         subscriptionExpiresAt: Timestamp.fromDate(expiry),
@@ -81,7 +83,7 @@ export default function BrowsePlansPage() {
 
       // 3. Log a success transaction
       const txRef = doc(collection(db, 'plan_transactions'));
-      await setDoc(txRef, {
+      batch.set(txRef, {
         id: txRef.id,
         userId: user.uid,
         userEmail: user.email,
@@ -92,14 +94,23 @@ export default function BrowsePlansPage() {
         createdAt: serverTimestamp()
       });
 
-      // 4. Trigger Email
+      // 4. Reactive all user brands (isActive: true)
+      const storesQuery = query(collection(db, 'stores'), where('userId', '==', user.uid));
+      const storesSnap = await getDocs(storesQuery);
+      storesSnap.forEach((storeDoc) => {
+        batch.update(storeDoc.ref, { isActive: true, updatedAt: serverTimestamp() });
+      });
+
+      await batch.commit();
+
+      // 5. Trigger Email
       if (user.email) {
         notifyPlanActivation(user.email, plan.name).catch(e => console.error("Email failed:", e));
       }
 
       toast({
         title: isUpgrade ? "Plan Upgraded!" : (isRenew ? "Plan Renewed!" : "Plan Activated!"),
-        description: `Your ${plan.name} is now active. Quotas updated and expiry extended.`,
+        description: `Your ${plan.name} is now active. Brands reactivated.`,
       });
     } catch (error: any) {
       toast({
