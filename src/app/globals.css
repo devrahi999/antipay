@@ -23,7 +23,7 @@
     --border: 142 20% 85%;
     --input: 142 20% 85%;
     --ring: 142 71% 36%;
-    --radius: 0.75rem;
+    --radius: 0.6rem;
     --chart-1: 142 71% 36%;
     --chart-2: 87 69% 69%;
     --chart-3: 160 60% 45%;
@@ -72,6 +72,9 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    font-size: 15px;
   }
   body {
     @apply bg-background text-foreground;
