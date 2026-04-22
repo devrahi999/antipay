@@ -8,7 +8,6 @@ import {
   LogOut,
   Package,
   ArrowLeft,
-  Database,
   Tags,
   History
 } from "lucide-react"
@@ -35,7 +34,6 @@ const adminNavItems = [
   { title: "All Brands", icon: Tags, url: "/antiadmin/brands" },
   { title: "Plan Purchases", icon: History, url: "/antiadmin/transactions" },
   { title: "Subscription Plans", icon: Package, url: "/antiadmin/plans" },
-  { title: "System Logs", icon: Database, url: "/antiadmin/logs" },
   { title: "Global Settings", icon: Settings, url: "/antiadmin/settings" },
 ]
 

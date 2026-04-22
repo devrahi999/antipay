@@ -1,34 +1,37 @@
 'use client';
 
 import { useState } from "react";
-import { MessageCircle, X, Send, Phone } from "lucide-react";
+import { MessageCircle, X, Facebook, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export function SupportFAB() {
   const [isOpen, setIsOpen] = useState(false);
+  const db = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => {
+    if (!db) return null;
+    return doc(db, 'settings', 'global');
+  }, [db]);
+
+  const { data: settings } = useDoc(settingsRef);
 
   const supportOptions = [
     {
-      label: "Message us",
-      subLabel: "Messenger Support",
-      icon: MessageCircle,
+      label: "Facebook Support",
+      subLabel: "Chat via Messenger",
+      icon: Facebook,
       color: "bg-blue-600",
-      href: "https://m.me/yourpage"
+      href: settings?.facebookUrl || "https://facebook.com"
     },
     {
-      label: "Chat with us",
-      subLabel: "WhatsApp Support",
+      label: "WhatsApp Support",
+      subLabel: "Instant Response",
       icon: Phone,
       color: "bg-green-500",
-      href: "https://wa.me/yournumber"
-    },
-    {
-      label: "Join Channel",
-      subLabel: "Latest Updates",
-      icon: Send,
-      color: "bg-sky-500",
-      href: "https://t.me/yourchannel"
+      href: settings?.whatsappUrl || "https://wa.me/880"
     }
   ];
 
