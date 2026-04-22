@@ -25,7 +25,7 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 const toastVariants = cva(
-  "glass-toast group pointer-events-auto relative flex w-full max-w-[340px] items-center justify-between space-x-3 overflow-hidden rounded-[18px] p-4 transition-all data-[state=open]:animate-ios-in data-[state=closed]:animate-ios-out",
+  "glass-toast group pointer-events-auto relative flex w-full max-w-[340px] items-center justify-between space-x-3 overflow-hidden p-4 transition-all data-[state=open]:animate-ios-in data-[state=closed]:animate-ios-out",
   {
     variants: {
       variant: {
@@ -93,7 +93,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-[13px] font-bold tracking-tight text-white/95 leading-none", className)}
+    className={cn("text-[13px] font-semibold tracking-tight text-white leading-none", className)}
     {...props}
   />
 ))
@@ -105,7 +105,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={cn("text-[11px] text-white/70 leading-tight font-medium mt-1", className)}
+    className={cn("text-[11px] text-white/75 leading-tight font-medium mt-1", className)}
     {...props}
   />
 ))

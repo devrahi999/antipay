@@ -74,20 +74,51 @@
     @apply border-border;
   }
   html {
-    font-size: 15px;
+    font-size: 14px;
   }
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* iOS Glass Toast Specifics */
+/* Premium iOS Liquid Glass Toast */
 .glass-toast {
-  background: rgba(20, 30, 40, 0.55) !important;
+  position: relative;
+  background: linear-gradient(
+    to bottom,
+    rgba(30, 60, 80, 0.65),
+    rgba(10, 20, 30, 0.75)
+  ) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+}
+
+.glass-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(6px);
+  z-index: 0;
+}
+
+/* Ensure content stays above the glass overlay */
+.glass-toast > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
 }
