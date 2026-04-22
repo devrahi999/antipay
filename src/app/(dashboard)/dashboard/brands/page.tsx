@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit } from 'firebase/firestore';
+import { collection, query, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit, writeBatch, increment } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,8 @@ import {
   Eye,
   Trash2,
   Edit2,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from "lucide-react"
 import { 
   Dialog, 
@@ -46,8 +47,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function BrandsPage() {
   const { user } = useUser();
@@ -74,6 +76,13 @@ export default function BrandsPage() {
     supportPageLink: ''
   });
 
+  // Fetch active plan to check limits
+  const planRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'user_plans', user.uid);
+  }, [db, user?.uid]);
+  const { data: activePlan } = useDoc(planRef);
+
   const brandsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -85,18 +94,29 @@ export default function BrandsPage() {
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
 
+  const canAddBrand = activePlan && (brands ? brands.length < activePlan.maxApiKeys : true);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !db) return;
+
+    if (!isEditMode && !canAddBrand) {
+      toast({ variant: "destructive", title: "Limit Reached", description: "Your current plan does not allow more brands." });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      const batch = writeBatch(db);
+
       if (isEditMode && selectedBrand) {
         const docRef = doc(db, 'stores', selectedBrand.id);
-        await updateDoc(docRef, {
+        batch.update(docRef, {
           ...formData,
           updatedAt: serverTimestamp(),
         });
+        await batch.commit();
         toast({ title: "Brand Updated", description: "The store details have been successfully updated." });
       } else {
         const randomPart1 = Math.random().toString(36).substring(2, 15);
@@ -111,13 +131,19 @@ export default function BrandsPage() {
           apiKey: storeId,
           userId: user.uid,
           status: 'active',
-          isActive: true, // Brand is active on creation
+          isActive: true,
           connected_devices_count: 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
 
-        await setDoc(docRef, brandData);
+        batch.set(docRef, brandData);
+        
+        // Update counter in user_plans
+        const userPlanRef = doc(db, 'user_plans', user.uid);
+        batch.update(userPlanRef, { created_brands_count: increment(1), updatedAt: serverTimestamp() });
+
+        await batch.commit();
         toast({ title: "Brand Created", description: "Your new AntiPay brand and API key are ready." });
       }
       
@@ -166,7 +192,14 @@ export default function BrandsPage() {
   const handleDelete = async () => {
     if (!user || !db || !brandToDelete) return;
     try {
-      await deleteDoc(doc(db, 'stores', brandToDelete));
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'stores', brandToDelete));
+      
+      // Decrement counter
+      const userPlanRef = doc(db, 'user_plans', user.uid);
+      batch.update(userPlanRef, { created_brands_count: increment(-1), updatedAt: serverTimestamp() });
+
+      await batch.commit();
       toast({ title: "Deleted", description: "Brand has been successfully removed." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -189,70 +222,76 @@ export default function BrandsPage() {
           <p className="text-sm text-muted-foreground">Manage your AntiPay store identities and integration credentials.</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsDialogOpen(open); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-[0_0_15px_rgba(22,163,74,0.3)] border-none">
-              <Plus className="mr-2 h-4 w-4" /> Add New Brand
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[700px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
-            <DialogHeader className="p-4 border-b border-border/10 bg-[#162129]">
-              <div className="flex items-center gap-2 text-[#16a34a]">
-                <Tags className="h-5 w-5" />
-                <DialogTitle className="font-bold text-lg text-[#16a34a]">
-                  {isEditMode ? 'Edit Brand Details' : 'Register a New Brand'}
-                </DialogTitle>
-              </div>
-              <DialogDescription className="text-[10px] text-muted-foreground">
-                Provide your store information to generate a unique API key for integration.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[85vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                    Brand Identity
-                  </h3>
+        {!activePlan ? (
+          <Button asChild className="bg-amber-500 hover:bg-amber-600 font-bold">
+            <Link href="/dashboard/plans"><Lock className="mr-2 h-4 w-4" /> Buy Plan to Add Brand</Link>
+          </Button>
+        ) : (
+          <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsDialogOpen(open); }}>
+            <DialogTrigger asChild>
+              <Button disabled={!canAddBrand} className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-[0_0_15px_rgba(22,163,74,0.3)] border-none">
+                <Plus className="mr-2 h-4 w-4" /> {canAddBrand ? 'Add New Brand' : 'Limit Reached'}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[700px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+              <DialogHeader className="p-4 border-b border-border/10 bg-[#162129]">
+                <div className="flex items-center gap-2 text-[#16a34a]">
+                  <Tags className="h-5 w-5" />
+                  <DialogTitle className="font-bold text-lg text-[#16a34a]">
+                    {isEditMode ? 'Edit Brand Details' : 'Register a New Brand'}
+                  </DialogTitle>
+                </div>
+                <DialogDescription className="text-[10px] text-muted-foreground">
+                  Provide your store information to generate a unique API key for integration.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[85vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-100">Brand Name <span className="text-destructive">*</span></Label>
-                      <Input placeholder="e.g., My Gadget Shop" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                    <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                      Brand Identity
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-100">Brand Name <span className="text-destructive">*</span></Label>
+                        <Input placeholder="e.g., My Gadget Shop" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-100">Website URL <span className="text-destructive">*</span></Label>
+                        <Input placeholder="https://myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.websiteUrl} onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})} required />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-100">Website URL <span className="text-destructive">*</span></Label>
-                      <Input placeholder="https://myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.websiteUrl} onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})} required />
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                      Merchant Contact
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-100">Support Email</Label>
+                        <Input type="email" placeholder="help@myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.supportEmail} onChange={(e) => setFormData({...formData, supportEmail: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-100">WhatsApp Number</Label>
+                        <Input placeholder="+8801XXXXXXXXX" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.whatsappNumber} onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})} />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                    Merchant Contact
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-100">Support Email</Label>
-                      <Input type="email" placeholder="help@myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.supportEmail} onChange={(e) => setFormData({...formData, supportEmail: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-100">WhatsApp Number</Label>
-                      <Input placeholder="+8801XXXXXXXXX" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.whatsappNumber} onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})} />
-                    </div>
-                  </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
+                  <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8 border border-border/10" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-[#16a34a] hover:bg-[#15803d] text-white px-8 font-bold" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} 
+                    {isEditMode ? 'Update Brand' : 'Save Brand'}
+                  </Button>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
-                <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8 border border-border/10" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-[#16a34a] hover:bg-[#15803d] text-white px-8 font-bold" disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} 
-                  {isEditMode ? 'Update Brand' : 'Save Brand'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="bg-[#0b141a] border-border/40 shadow-2xl overflow-hidden">
