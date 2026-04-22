@@ -23,6 +23,7 @@ export default function PaymentMethodsPage() {
     bkash: { enabled: false, number: '' },
     nagad: { enabled: false, number: '' },
     rocket: { enabled: false, number: '' },
+    upay: { enabled: false, number: '' },
   });
 
   // Check if user has any brands
@@ -63,9 +64,10 @@ export default function PaymentMethodsPage() {
   };
 
   const methods = [
-    { id: "bkash", name: "bKash", color: "bg-[#e2136e]", icon: "BK" },
-    { id: "nagad", name: "Nagad", color: "bg-[#f7941d]", icon: "NG" },
-    { id: "rocket", name: "Rocket", color: "bg-[#8c3494]", icon: "RK" },
+    { id: "bkash", name: "bKash", logo: "https://i.imgur.com/GeOlI04.png" },
+    { id: "nagad", name: "Nagad", logo: "https://i.imgur.com/RZBbEjb.png" },
+    { id: "rocket", name: "Rocket", logo: "https://i.imgur.com/wolCFJc.png" },
+    { id: "upay", name: "Upay", logo: "https://i.imgur.com/iqgxYRk.png" },
   ];
 
   if (brandsLoading) {
@@ -120,13 +122,13 @@ export default function PaymentMethodsPage() {
         </AlertDescription>
       </Alert>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {methods.map((method) => (
-          <Card key={method.id} className="shadow-sm border-none bg-card/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <Card key={method.id} className="shadow-sm border-none bg-card/50 overflow-hidden flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 bg-secondary/10">
               <div className="flex items-center gap-3">
-                <div className={`${method.color} w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm`}>
-                  {method.icon}
+                <div className="h-10 w-20 rounded-lg flex items-center justify-center bg-white p-1 shadow-sm">
+                  <img src={method.logo} alt={method.name} className="h-full w-full object-contain" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">{method.name}</CardTitle>
@@ -137,16 +139,16 @@ export default function PaymentMethodsPage() {
                 onCheckedChange={(val) => updateMethod(method.id, 'enabled', val)}
               />
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="space-y-2">
-                <Label htmlFor={`${method.id}-number`}>Receiver Number</Label>
+                <Label htmlFor={`${method.id}-number`} className="font-bold">Receiver Number</Label>
                 <Input 
                   id={`${method.id}-number`} 
                   placeholder="01XXXXXXXXX" 
-                  value={configs[method.id]?.number}
+                  value={configs[method.id]?.number || ''}
                   onChange={(e) => updateMethod(method.id, 'number', e.target.value)}
                   disabled={!configs[method.id]?.enabled}
-                  className="bg-background/50"
+                  className="bg-background/50 h-11 font-mono"
                 />
               </div>
             </CardContent>
@@ -155,7 +157,7 @@ export default function PaymentMethodsPage() {
       </div>
 
       <div className="flex justify-end pt-4">
-        <Button size="lg" className="bg-primary hover:bg-primary/90 px-8" onClick={handleSave} disabled={loading}>
+        <Button size="lg" className="bg-primary hover:bg-primary/90 px-8 h-12 font-bold shadow-xl shadow-primary/20" onClick={handleSave} disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Configuration
         </Button>
       </div>

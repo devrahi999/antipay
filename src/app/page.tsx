@@ -75,12 +75,10 @@ export default function LandingPage() {
   if (!mounted) return null;
 
   const supportedMethods = [
-    { name: "bKash", color: "bg-[#e2136e]", icon: "BK" },
-    { name: "Nagad", color: "bg-[#f7941d]", icon: "NG" },
-    { name: "Rocket", color: "bg-[#8c3494]", icon: "RK" },
-    { name: "Upay", color: "bg-[#111111]", icon: "UP" },
-    { name: "CellFin", color: "bg-[#16a34a]", icon: "CF" },
-    { name: "Tap", color: "bg-[#0ea5e9]", icon: "TP" },
+    { name: "bKash", logo: "https://i.imgur.com/GeOlI04.png" },
+    { name: "Nagad", logo: "https://i.imgur.com/RZBbEjb.png" },
+    { name: "Rocket", logo: "https://i.imgur.com/wolCFJc.png" },
+    { name: "Upay", logo: "https://i.imgur.com/iqgxYRk.png" },
   ];
 
   return (
@@ -183,22 +181,16 @@ export default function LandingPage() {
             <p className="text-center text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground/60">Supported Payment Networks</p>
             <div className="flex overflow-hidden group select-none">
               <div className="flex animate-marquee whitespace-nowrap gap-12 items-center">
-                {[...supportedMethods, ...supportedMethods].map((method, i) => (
-                  <div key={i} className="flex items-center gap-4 bg-card px-8 py-4 rounded-2xl border shadow-sm">
-                    <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-inner", method.color)}>
-                      {method.icon}
-                    </div>
-                    <span className="text-lg font-bold text-foreground">{method.name}</span>
+                {[...supportedMethods, ...supportedMethods, ...supportedMethods, ...supportedMethods].map((method, i) => (
+                  <div key={i} className="flex items-center gap-4 bg-card px-8 py-4 rounded-2xl border shadow-sm h-20 w-48">
+                    <img src={method.logo} alt={method.name} className="h-10 w-auto object-contain mx-auto" />
                   </div>
                 ))}
               </div>
               <div className="flex animate-marquee whitespace-nowrap gap-12 items-center ml-12" aria-hidden="true">
-                {[...supportedMethods, ...supportedMethods].map((method, i) => (
-                  <div key={i} className="flex items-center gap-4 bg-card px-8 py-4 rounded-2xl border shadow-sm">
-                    <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-inner", method.color)}>
-                      {method.icon}
-                    </div>
-                    <span className="text-lg font-bold text-foreground">{method.name}</span>
+                {[...supportedMethods, ...supportedMethods, ...supportedMethods, ...supportedMethods].map((method, i) => (
+                  <div key={i} className="flex items-center gap-4 bg-card px-8 py-4 rounded-2xl border shadow-sm h-20 w-48">
+                    <img src={method.logo} alt={method.name} className="h-10 w-auto object-contain mx-auto" />
                   </div>
                 ))}
               </div>
