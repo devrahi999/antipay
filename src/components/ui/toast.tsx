@@ -25,13 +25,12 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full max-w-[340px] items-center justify-between space-x-3 overflow-hidden rounded-[2.5rem] border border-white/10 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all data-[state=open]:animate-ios-in data-[state=closed]:animate-ios-out backdrop-blur-3xl ring-1 ring-white/20",
+  "glass-toast group pointer-events-auto relative flex w-full max-w-[340px] items-center justify-between space-x-3 overflow-hidden rounded-[18px] p-4 transition-all data-[state=open]:animate-ios-in data-[state=closed]:animate-ios-out",
   {
     variants: {
       variant: {
-        default: "bg-white/5 dark:bg-black/10 text-white",
-        destructive:
-          "destructive group border-destructive/20 bg-destructive/60 text-white backdrop-blur-3xl",
+        default: "text-white",
+        destructive: "text-white",
       },
     },
     defaultVariants: {
@@ -62,7 +61,7 @@ const ToastAction = React.forwardRef<
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-bold ring-offset-background transition-colors hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-bold text-white ring-offset-background transition-colors hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       className
     )}
     {...props}
@@ -106,7 +105,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={cn("text-[11px] text-white/60 leading-tight font-medium mt-0.5", className)}
+    className={cn("text-[11px] text-white/70 leading-tight font-medium mt-1", className)}
     {...props}
   />
 ))

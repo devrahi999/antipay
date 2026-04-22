@@ -9,7 +9,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { CheckCircle2, AlertCircle } from "lucide-react"
+import { CheckCircle2, AlertCircle, Info } from "lucide-react"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -22,11 +22,11 @@ export function Toaster() {
             <div className="flex items-center gap-3 pr-2">
               <div className="shrink-0">
                 {variant === 'destructive' ? (
-                  <div className="h-9 w-9 rounded-full bg-destructive/20 flex items-center justify-center text-white">
+                  <div className="h-9 w-9 rounded-full bg-red-500/20 flex items-center justify-center text-red-400">
                     <AlertCircle className="h-5 w-5" />
                   </div>
                 ) : (
-                  <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                  <div className="h-9 w-9 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                 )}
