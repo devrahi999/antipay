@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle } from "lucide-react"
+import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { notifyPlanActivation } from '@/app/actions/notifications';
 
@@ -38,10 +38,13 @@ export default function BrowsePlansPage() {
     setIsSubmitting(plan.id);
 
     try {
-      // Calculate expiry (30 days from now for monthly, 365 for yearly)
+      // Calculate expiry
       const now = new Date();
-      const expiry = new Date();
-      if (plan.billingCycle === 'yearly') {
+      let expiry = new Date();
+      
+      if (plan.billingCycle === 'lifetime') {
+        expiry = new Date(2099, 11, 31); // Far future for lifetime
+      } else if (plan.billingCycle === 'yearly') {
         expiry.setDate(now.getDate() + 365);
       } else {
         expiry.setDate(now.getDate() + 30);
@@ -86,15 +89,9 @@ export default function BrowsePlansPage() {
         createdAt: serverTimestamp()
       });
 
-      // 4. Trigger Email (Await it but catch errors internally so UI isn't blocked)
-      // We pass user email directly to the server action
+      // 4. Trigger Email
       if (user.email) {
-        console.log("Triggering plan activation email for:", user.email);
-        notifyPlanActivation(user.email, plan.name)
-          .then(res => {
-            if (!res.success) console.error("SMTP error during activation:", res.error);
-          })
-          .catch(e => console.error("Background email failed fatal:", e));
+        notifyPlanActivation(user.email, plan.name).catch(e => console.error("Email failed:", e));
       }
 
       toast({
@@ -135,10 +132,11 @@ export default function BrowsePlansPage() {
           Choose the plan that fits your business volume. All plans include 99.9% uptime and automated verification.
         </p>
 
-        <Tabs defaultValue="monthly" className="w-[300px] mt-8" onValueChange={setBillingCycle}>
-          <TabsList className="grid w-full grid-cols-2 bg-[#162129] border border-border/10 p-1 rounded-full h-12">
+        <Tabs defaultValue="monthly" className="w-[450px] mt-8" onValueChange={setBillingCycle}>
+          <TabsList className="grid w-full grid-cols-3 bg-[#162129] border border-border/10 p-1 rounded-full h-12">
             <TabsTrigger value="monthly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Monthly</TabsTrigger>
             <TabsTrigger value="yearly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Yearly</TabsTrigger>
+            <TabsTrigger value="lifetime" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Lifetime</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -168,20 +166,20 @@ export default function BrowsePlansPage() {
                 <CardHeader className="pb-8">
                   <div className="flex items-center justify-between mb-4">
                     <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-                       <Zap className="h-7 w-7" />
+                       {plan.billingCycle === 'lifetime' ? <InfinityIcon className="h-7 w-7" /> : <Zap className="h-7 w-7" />}
                     </div>
                     {plan.price > 2000 && <Sparkles className="h-6 w-6 text-amber-500" />}
                   </div>
                   <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
                   <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                    {plan.billingCycle} Recurring
+                    {plan.billingCycle} {plan.billingCycle === 'lifetime' ? 'Access' : 'Recurring'}
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="flex-1 space-y-8">
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-black">৳{plan.price}</span>
-                    <span className="text-muted-foreground text-sm font-medium">/{plan.billingCycle === 'monthly' ? 'month' : 'year'}</span>
+                    <span className="text-muted-foreground text-sm font-medium">/{plan.billingCycle === 'monthly' ? 'month' : plan.billingCycle === 'yearly' ? 'year' : 'lifetime'}</span>
                   </div>
 
                   <div className="space-y-4">
@@ -223,7 +221,7 @@ export default function BrowsePlansPage() {
             <Zap className="mx-auto h-16 w-16 text-muted-foreground/10 mb-4" />
             <h3 className="text-xl font-bold text-slate-100 uppercase tracking-tighter">Financial Signal Missing</h3>
             <p className="text-muted-foreground max-w-sm mx-auto mt-2 text-xs">
-              Our automated billing system is syncing with the core node. Please check back in a moment.
+              No plans available for this cycle yet. Please check other options.
             </p>
           </div>
         )}

@@ -29,7 +29,8 @@ import {
   Clock, 
   AlertTriangle,
   Users,
-  Eye
+  Eye,
+  Infinity as InfinityIcon
 } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -198,6 +199,7 @@ export default function ManagePlansPage() {
                     <SelectContent className="bg-[#162129] border-border/20 text-white">
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="yearly">Yearly</SelectItem>
+                      <SelectItem value="lifetime">Lifetime</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -239,7 +241,7 @@ export default function ManagePlansPage() {
               <CardHeader className="bg-[#16a34a]/10 border-b border-[#16a34a]/10 pb-4">
                 <div className="flex justify-between items-start">
                   <div className="h-10 w-10 rounded-xl bg-[#16a34a] flex items-center justify-center text-white font-bold shadow-lg shadow-[#16a34a]/20">
-                    <Package className="h-5 w-5" />
+                    {plan.billingCycle === 'lifetime' ? <InfinityIcon className="h-5 w-5" /> : <Package className="h-5 w-5" />}
                   </div>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white" onClick={() => handleEdit(plan)}>
@@ -259,7 +261,7 @@ export default function ManagePlansPage() {
               <CardContent className="py-6 space-y-6">
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-black text-white">৳{plan.price}</span>
-                  <span className="text-xs text-muted-foreground">/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                  <span className="text-xs text-muted-foreground">/{plan.billingCycle === 'monthly' ? 'mo' : plan.billingCycle === 'yearly' ? 'yr' : 'lifetime'}</span>
                 </div>
                 
                 <div className="pt-4 border-t border-border/10 space-y-4">

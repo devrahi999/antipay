@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -14,15 +15,31 @@ import {
   HelpCircle,
   Calendar,
   AlertCircle,
-  Loader2
+  Loader2,
+  Trash2,
+  Infinity as InfinityIcon
 } from "lucide-react"
-import { doc } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, deleteField, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function MySubscriptionPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
+  const [isCanceling, setIsCanceling] = useState(false);
 
   // Fetch real plan details from the dedicated user_plans collection (Root Level)
   const activePlanRef = useMemoFirebase(() => {
@@ -31,6 +48,36 @@ export default function MySubscriptionPage() {
   }, [db, user?.uid]);
   
   const { data: activePlan, isLoading } = useDoc(activePlanRef);
+
+  const handleCancelSubscription = async () => {
+    if (!user || !db) return;
+    setIsCanceling(true);
+    try {
+      // 1. Delete from user_plans collection
+      await deleteDoc(doc(db, 'user_plans', user.uid));
+
+      // 2. Remove fields from users collection
+      await updateDoc(doc(db, 'users', user.uid), {
+        subscriptionPlanId: deleteField(),
+        subscriptionStartedAt: deleteField(),
+        subscriptionExpiresAt: deleteField(),
+        updatedAt: serverTimestamp()
+      });
+
+      toast({
+        title: "Subscription Canceled",
+        description: "Your plan has been removed. Access to premium features is now revoked."
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Cancellation Failed",
+        description: error.message || "Could not cancel subscription."
+      });
+    } finally {
+      setIsCanceling(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -47,6 +94,7 @@ export default function MySubscriptionPage() {
   }
 
   const hasActivePlan = !!activePlan;
+  const isLifetime = activePlan?.billingCycle === 'lifetime';
 
   // Real timestamps from Firestore
   const startDate = activePlan?.activatedAt?.toDate ? activePlan.activatedAt.toDate() : null;
@@ -95,7 +143,7 @@ export default function MySubscriptionPage() {
                 </div>
                 <div className="text-right">
                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Billing Rate</p>
-                   <p className="text-2xl font-black text-[#16a34a]">৳{activePlan.price}<span className="text-xs font-medium text-muted-foreground">/{activePlan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span></p>
+                   <p className="text-2xl font-black text-[#16a34a]">৳{activePlan.price}<span className="text-xs font-medium text-muted-foreground">/{activePlan.billingCycle === 'monthly' ? 'mo' : activePlan.billingCycle === 'yearly' ? 'yr' : 'lifetime'}</span></p>
                 </div>
               </div>
             </CardHeader>
@@ -111,14 +159,14 @@ export default function MySubscriptionPage() {
                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
                      <Clock className="h-3 w-3 text-amber-500" /> Renew Date
                    </p>
-                   <p className="font-bold text-slate-100">{expiryDate ? format(expiryDate, 'MMM dd, yyyy') : "—"}</p>
+                   <p className="font-bold text-slate-100">{isLifetime ? "Never" : (expiryDate ? format(expiryDate, 'MMM dd, yyyy') : "—")}</p>
                 </div>
                 <div className="space-y-1.5 p-4 bg-[#162129] rounded-xl border border-border/10">
                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
-                     <Zap className="h-3 w-3 text-[#16a34a]" /> Access Left
+                     {isLifetime ? <InfinityIcon className="h-3 w-3 text-[#16a34a]" /> : <Zap className="h-3 w-3 text-[#16a34a]" />} Access Left
                    </p>
                    <Badge variant="secondary" className="bg-[#16a34a]/20 text-[#16a34a] text-xs font-black px-3">
-                     {daysLeft} Days Remaining
+                     {isLifetime ? "Unlimited" : `${daysLeft} Days Remaining`}
                    </Badge>
                 </div>
               </div>
@@ -142,10 +190,37 @@ export default function MySubscriptionPage() {
               </div>
             </CardContent>
             <CardFooter className="bg-[#162129]/50 p-6 border-t border-border/10 flex justify-between items-center">
-               <p className="text-[10px] text-muted-foreground font-medium italic">Auto-renewal is active via linked payment method.</p>
-               <Button variant="ghost" className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10">
-                 Request Cancellation
-               </Button>
+               <p className="text-[10px] text-muted-foreground font-medium italic">
+                 {isLifetime ? "One-time purchase, no recurring billing." : "Auto-renewal is active via linked payment method."}
+               </p>
+               
+               <AlertDialog>
+                 <AlertDialogTrigger asChild>
+                    <Button variant="ghost" className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10">
+                      Request Cancellation
+                    </Button>
+                 </AlertDialogTrigger>
+                 <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
+                   <AlertDialogHeader>
+                     <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+                       <AlertCircle className="text-rose-500" /> Cancel Subscription?
+                     </AlertDialogTitle>
+                     <AlertDialogDescription className="text-muted-foreground">
+                       This will immediately revoke your API brand slots and connection nodes. This action cannot be undone.
+                     </AlertDialogDescription>
+                   </AlertDialogHeader>
+                   <AlertDialogFooter>
+                     <AlertDialogCancel className="bg-secondary/10 hover:bg-secondary/20 border-none text-white">Keep My Plan</AlertDialogCancel>
+                     <AlertDialogAction 
+                       className="bg-rose-500 hover:bg-rose-600 text-white font-bold"
+                       onClick={handleCancelSubscription}
+                       disabled={isCanceling}
+                     >
+                       {isCanceling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />} Yes, Cancel Access
+                     </AlertDialogAction>
+                   </AlertDialogFooter>
+                 </AlertDialogContent>
+               </AlertDialog>
             </CardFooter>
           </Card>
 

@@ -61,7 +61,7 @@
         "name": { "type": "string" },
         "price": { "type": "number" },
         "benefits": { "type": "array", "items": { "type": "string" } },
-        "billingCycle": { "type": "string", "enum": ["monthly", "yearly"] },
+        "billingCycle": { "type": "string", "enum": ["monthly", "yearly", "lifetime"] },
         "maxApiKeys": { "type": "number" },
         "maxDevices": { "type": "number" },
         "isFreeTrialAvailable": { "type": "boolean" }
