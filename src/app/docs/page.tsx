@@ -23,6 +23,7 @@ import {
   Activity
 } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
+import { SupportFAB } from "@/components/landing/support-fab"
 import { useToast } from "@/hooks/use-toast"
 
 export default function DocsPage() {
@@ -369,6 +370,7 @@ if (result.status === 'verified') {
         </div>
       </div>
       <Footer />
+      <SupportFAB />
     </div>
   )
 }

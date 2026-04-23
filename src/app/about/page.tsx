@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ShieldCheck, ArrowLeft } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
+import { SupportFAB } from "@/components/landing/support-fab"
 
 export default function AboutPage() {
   return (
@@ -48,6 +49,7 @@ export default function AboutPage() {
       </main>
 
       <Footer />
+      <SupportFAB />
     </div>
   )
 }

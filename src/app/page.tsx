@@ -92,11 +92,11 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background font-body selection:bg-primary/20">
       
-      {/* Dynamic Announcement Bar */}
+      {/* Dynamic Announcement Bar - Now GREEN theme */}
       {settings?.showAnnouncement && settings?.announcementText && (
-        <div className="w-full bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 text-white py-2.5 px-4 text-center">
+        <div className="w-full bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 text-white py-2.5 px-4 text-center">
           <div className="container mx-auto flex items-center justify-center gap-2 text-xs font-bold tracking-tight">
-            <Shield className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
+            <Shield className="h-3.5 w-3.5 text-white fill-white/20" />
             <span>{settings.announcementText}</span>
           </div>
         </div>

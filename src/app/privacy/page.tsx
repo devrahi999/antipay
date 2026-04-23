@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ShieldCheck, ArrowLeft } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
+import { SupportFAB } from "@/components/landing/support-fab"
 
 export default function PrivacyPage() {
   return (
@@ -53,6 +54,7 @@ export default function PrivacyPage() {
       </main>
 
       <Footer />
+      <SupportFAB />
     </div>
   )
 }

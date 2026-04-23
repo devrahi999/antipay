@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ShieldCheck, ArrowLeft, Mail, Phone, MapPin, Loader2 } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
+import { SupportFAB } from "@/components/landing/support-fab"
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 import { doc } from "firebase/firestore"
 
@@ -84,6 +85,7 @@ export default function ContactPage() {
       </main>
 
       <Footer />
+      <SupportFAB />
     </div>
   )
 }
