@@ -64,6 +64,24 @@
         }
       }
     },
+    "PaymentSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentSession",
+      "type": "object",
+      "description": "A payment verification session.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "storeId": { "type": "string" },
+        "storeName": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "status": { "type": "string" },
+        "userProvidedTransactionId": { "type": "string" },
+        "receiverNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "SubscriptionPlan": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubscriptionPlan",
@@ -103,6 +121,7 @@
       { "path": "/users/{userId}", "definition": { "entityName": "UserProfile", "description": "User profile data." } },
       { "path": "/user_plans/{userId}", "definition": { "entityName": "UserPlan", "description": "User's active subscription details." } },
       { "path": "/stores/{storeId}", "definition": { "entityName": "Store", "description": "Global stores collection." } },
+      { "path": "/payment_sessions/{sessionId}", "definition": { "entityName": "PaymentSession", "description": "Root payment history." } },
       { "path": "/subscriptionPlans/{planId}", "definition": { "entityName": "SubscriptionPlan", "description": "Global plans defined by Admin." } },
       { "path": "/plan_transactions/{txId}", "definition": { "entityName": "PlanTransaction", "description": "History of plan purchases." } },
       { "path": "/devices/{brandId}", "definition": { "entityName": "object", "description": "Root devices mapped by brandId." } }

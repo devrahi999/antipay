@@ -36,6 +36,11 @@ service cloud.firestore {
       allow list: if isSignedIn() && (isAdmin() || request.query.limit <= 100);
     }
     
+    match /payment_sessions/{sessionId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+    }
+    
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
@@ -50,7 +55,6 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
-    // Global settings access
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -38,7 +39,7 @@ import { doc } from "firebase/firestore"
 const navItems = [
   { title: "Overview", icon: LayoutDashboard, url: "/dashboard" },
   { title: "Brands", icon: Tags, url: "/dashboard/brands" },
-  { title: "Transactions", icon: History, url: "/dashboard/transactions" },
+  { title: "Payment History", icon: History, url: "/dashboard/transactions" },
   { title: "Invoices", icon: FileText, url: "/dashboard/invoices" },
   { title: "Payment Methods", icon: WalletCards, url: "/dashboard/payment-methods" },
   { title: "Devices", icon: SmartphoneNfc, url: "/dashboard/devices" },

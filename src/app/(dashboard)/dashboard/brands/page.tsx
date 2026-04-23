@@ -497,22 +497,31 @@ export default function BrandsPage() {
                     </div>
                   </div>
                 </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase text-[#16a34a] tracking-widest flex items-center gap-2">
+                     <Globe className="h-3 w-3" /> External Reference
+                  </h4>
+                  <a href={selectedBrand.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-[#162129]/30 rounded-2xl border border-border/5 group hover:bg-[#162129]/50 transition-colors">
+                     <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                           <Globe size={18} />
+                        </div>
+                        <div>
+                           <p className="text-[9px] uppercase font-bold text-muted-foreground">Visit Brand Website</p>
+                           <p className="text-xs font-medium text-slate-200 truncate max-w-[250px]">{selectedBrand.websiteUrl}</p>
+                        </div>
+                     </div>
+                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </a>
+                </div>
               </div>
 
-              <div className="p-6 bg-[#162129]/50 border-t border-border/10 flex justify-between items-center px-8">
-                <Button 
-                  variant="ghost" 
-                  className="text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl"
-                  onClick={() => { setIsViewOpen(false); confirmDelete(selectedBrand.id); }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" /> Revoke Key
+              <div className="p-6 bg-[#162129]/50 border-t border-border/10 flex justify-end items-center px-8 gap-3">
+                <Button variant="ghost" className="text-xs font-bold rounded-xl" onClick={() => setIsViewOpen(false)}>Close</Button>
+                <Button className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-xs font-bold rounded-xl px-8" onClick={() => { setIsViewOpen(false); handleEditClick(selectedBrand); }}>
+                  <Edit2 className="h-3.5 w-3.5 mr-2" /> Modify Configuration
                 </Button>
-                <div className="flex gap-3">
-                   <Button variant="ghost" className="text-xs font-bold rounded-xl" onClick={() => setIsViewOpen(false)}>Close</Button>
-                   <Button className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-xs font-bold rounded-xl px-8" onClick={() => { setIsViewOpen(false); handleEditClick(selectedBrand); }}>
-                     <Edit2 className="h-3.5 w-3.5 mr-2" /> Modify Configuration
-                   </Button>
-                </div>
               </div>
             </>
           )}
