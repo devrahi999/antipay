@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -22,14 +23,16 @@ export default function DashboardPage() {
   const db = useFirestore();
   const [showWelcome, setShowWelcome] = useState(true);
 
+  // Standardized query to use root payment_sessions with filter
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
-      collection(db, 'users', user.uid, 'paymentSessions'),
+      collection(db, 'payment_sessions'),
+      where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(5)
     );
-  }, [db, user]);
+  }, [db, user?.uid]);
 
   const { data: recentSessions, isLoading: sessionsLoading } = useCollection(sessionsQuery);
 
@@ -60,7 +63,7 @@ export default function DashboardPage() {
         <p className="text-xs text-muted-foreground -mt-3">Monitor volume, status, and performance</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border-none text-white bg-emerald-800 shadow-xl group">
+          <Card className="relative overflow-hidden border-none text-white bg-emerald-800 shadow-xl group ios-btn">
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Total Volume</p>
@@ -72,7 +75,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-none text-white bg-emerald-500 shadow-xl">
+          <Card className="relative overflow-hidden border-none text-white bg-emerald-500 shadow-xl ios-btn">
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Completed Volume</p>
@@ -84,7 +87,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-none text-white bg-amber-500 shadow-xl">
+          <Card className="relative overflow-hidden border-none text-white bg-amber-500 shadow-xl ios-btn">
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Pending Recovery</p>
@@ -96,7 +99,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-none text-white bg-rose-500 shadow-xl">
+          <Card className="relative overflow-hidden border-none text-white bg-rose-500 shadow-xl ios-btn">
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Canceled</p>

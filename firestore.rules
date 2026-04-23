@@ -14,7 +14,7 @@ service cloud.firestore {
       // Public needs to read session info to show amount/details on checkout
       allow get: if true;
       
-      // MERCHANT FIX: Allow merchants to list their own sessions
+      // MERCHANT FIX: Allow merchants to list their own sessions via filtered query
       allow list: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
       
       // API routes create/update sessions
