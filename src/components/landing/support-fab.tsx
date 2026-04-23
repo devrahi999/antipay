@@ -61,7 +61,7 @@ export function SupportFAB() {
         ))}
       </div>
 
-      {/* Main Toggle Button - Perfect Circle */}
+      {/* Main Toggle Button - Now forced to perfect circle */}
       <div className="relative">
         {!isOpen && (
           <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-25 pointer-events-none" />
@@ -69,7 +69,7 @@ export function SupportFAB() {
         <Button
           size="icon"
           className={cn(
-            "h-14 w-14 rounded-full shadow-2xl transition-all duration-300 relative z-10 p-0 border-none",
+            "h-14 w-14 rounded-full !rounded-full shadow-2xl transition-all duration-300 relative z-10 p-0 border-none",
             isOpen ? "bg-destructive hover:bg-destructive/90 rotate-90" : "bg-primary hover:bg-primary/90"
           )}
           onClick={() => setIsOpen(!isOpen)}

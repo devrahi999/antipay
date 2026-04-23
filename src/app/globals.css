@@ -81,11 +81,11 @@
   }
 }
 
-/* iOS Premium Buttons - Cleaned up shadows */
+/* iOS Premium Buttons - Refined for compact dashboards */
 .ios-btn {
   position: relative !important;
   overflow: hidden !important;
-  border-radius: 10px !important;
+  border-radius: 10px; /* Removed !important to allow overrides like rounded-full */
   font-weight: 600 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   
@@ -96,7 +96,6 @@
     transparent
   ) !important;
 
-  /* Only inner highlight for glass feel, no outer shadows */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 
