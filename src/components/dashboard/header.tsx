@@ -75,32 +75,32 @@ export function DashboardHeader() {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuContent className="w-56 dark bg-[#0b141a] border-border/20 text-slate-100" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{displayName}</p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="text-sm font-bold leading-none text-white">{displayName}</p>
+                <p className="text-[10px] leading-none text-muted-foreground">
                   {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings" className="flex items-center w-full cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+            <DropdownMenuSeparator className="bg-border/10" />
+            <DropdownMenuItem asChild className="focus:bg-[#16a34a]/10 focus:text-white cursor-pointer">
+              <Link href="/dashboard/settings" className="flex items-center w-full">
+                <User className="mr-2 h-4 w-4 text-[#16a34a]" />
+                <span className="font-medium">Profile</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings" className="flex items-center w-full cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+            <DropdownMenuItem asChild className="focus:bg-[#16a34a]/10 focus:text-white cursor-pointer">
+              <Link href="/dashboard/settings" className="flex items-center w-full">
+                <Settings className="mr-2 h-4 w-4 text-[#16a34a]" />
+                <span className="font-medium">Settings</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => auth.signOut()}>
+            <DropdownMenuSeparator className="bg-border/10" />
+            <DropdownMenuItem className="text-rose-400 focus:bg-rose-500/10 focus:text-rose-300 cursor-pointer" onClick={() => auth.signOut()}>
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign out</span>
+              <span className="font-bold">Sign out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
