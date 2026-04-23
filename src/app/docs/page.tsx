@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Mail,
-  Activity
+  Activity,
+  Download
 } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
 import { SupportFAB } from "@/components/landing/support-fab"
@@ -44,6 +45,122 @@ export default function DocsPage() {
     toast({ title: "Copied", description: "Code snippet copied to clipboard." });
   };
 
+  const downloadGuide = () => {
+    const content = `API Reference Guide
+
+The AntiPay API is organized around REST. Our API has predictable resource-oriented URLs, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
+
+This guide will walk you through the process of creating a payment session and verifying it on your backend.
+
+To start integrating, you will need an API Key which can be generated from your Brand Dashboard.
+
+----------------------------
+
+BASE URL
+
+https://pay.antipay.site/v1/
+
+----------------------------
+
+1. CREATE PAYMENT SESSION
+
+POST /v1/create
+
+Request Parameters:
+
+amount (number, required)
+The total amount to be charged in BDT.
+
+val_id (string, optional)
+Your internal reference (e.g. Order ID).
+
+Example (cURL):
+
+curl -X POST "https://pay.antipay.site/v1/create" \\
+-H "Content-Type: application/json" \\
+-H "x-api-key: YOUR_API_KEY" \\
+-d '{
+  "amount": 145.50,
+  "val_id": "ORDER_88721"
+}'
+
+----------------------------
+
+2. VERIFY PAYMENT
+
+POST /v1/verify
+
+Request Parameters:
+
+trxId (string, required)
+The transaction ID (e.g. bKash TrxID).
+
+sessionId (string, required)
+The original Session ID from Step 1.
+
+Example (JavaScript):
+
+const response = await fetch("https://pay.antipay.site/v1/verify", {
+  method: "POST",
+  headers: {
+    "x-api-key": "YOUR_API_KEY"
+  },
+  body: JSON.stringify({
+    trxId: "8J9A1X7K",
+    sessionId: "SESS_123"
+  })
+});
+
+const result = await response.json();
+
+if (result.status === 'verified') {
+  // Mark order as PAID
+  // Deliver service
+  // Show success
+}
+
+----------------------------
+
+AUTHENTICATION
+
+Use API key in headers:
+
+x-api-key: YOUR_BRAND_API_KEY
+
+Keep your API key secure. Do not expose it in frontend code.
+
+----------------------------
+
+ERROR CODES
+
+400 - Bad Request  
+401 - Unauthorized  
+404 - Not Found  
+500 - Server Error  
+
+----------------------------
+
+INTEGRATION WORKFLOW
+
+1. Server calls /create → get payment URL
+2. User pays using AntiPay UI
+3. User redirected back
+4. Backend calls /verify → confirm payment`;
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "antipay-integration-guide.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+    toast({ title: "Guide Downloaded", description: "The integration guide has been saved to your device." });
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col font-body selection:bg-primary/20">
       {/* Premium Header */}
@@ -56,6 +173,13 @@ export default function DocsPage() {
           <div className="flex items-center gap-4">
             <Button asChild variant="ghost" className="hidden sm:flex hover:bg-primary/5">
               <Link href="/"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</Link>
+            </Button>
+            <Button 
+              onClick={downloadGuide}
+              variant="outline" 
+              className="hidden md:flex font-bold border-primary/20 hover:bg-primary/5 text-primary"
+            >
+              <Download className="mr-2 h-4 w-4" /> Download Guide
             </Button>
             <Button asChild className="ios-btn bg-[#16a34a] hover:bg-[#15803d] font-bold shadow-lg shadow-[#16a34a]/20 border-none">
               <Link href="/login">Merchant Console</Link>
@@ -97,8 +221,18 @@ export default function DocsPage() {
             <div className="space-y-24 pb-20">
               {/* Introduction */}
               <section id="introduction" className="scroll-mt-32 space-y-6">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.15em] border border-primary/20">
-                  <BookOpen className="h-3 w-3" /> Developer Portal
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.15em] border border-primary/20 w-fit">
+                    <BookOpen className="h-3 w-3" /> Developer Portal
+                  </div>
+                  <Button 
+                    onClick={downloadGuide}
+                    variant="ghost" 
+                    size="sm"
+                    className="md:hidden text-primary font-bold hover:bg-primary/5"
+                  >
+                    <Download className="mr-2 h-4 w-4" /> Download .TXT
+                  </Button>
                 </div>
                 <h1 className="text-4xl md:text-6xl font-headline font-bold text-foreground tracking-tight">API Reference Guide</h1>
                 <div className="space-y-4">
