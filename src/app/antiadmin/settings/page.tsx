@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Settings, Save, ShieldCheck, Mail, Phone, MapPin, Facebook, MessageCircle, Loader2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Settings, Save, ShieldCheck, Mail, Phone, MapPin, Facebook, MessageCircle, Loader2, Megaphone } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminSettingsPage() {
@@ -28,6 +29,8 @@ export default function AdminSettingsPage() {
     supportEmail: '',
     supportPhone: '',
     officeAddress: '',
+    announcementText: '',
+    showAnnouncement: false,
     maintenanceMode: false
   });
 
@@ -39,6 +42,8 @@ export default function AdminSettingsPage() {
         supportEmail: globalSettings.supportEmail || '',
         supportPhone: globalSettings.supportPhone || '',
         officeAddress: globalSettings.officeAddress || '',
+        announcementText: globalSettings.announcementText || '',
+        showAnnouncement: globalSettings.showAnnouncement || false,
         maintenanceMode: globalSettings.maintenanceMode || false
       });
     }
@@ -62,25 +67,64 @@ export default function AdminSettingsPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading system settings...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading system settings...</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white font-headline">Global Settings</h1>
-        <p className="text-muted-foreground">Control system-wide contact information and social support links.</p>
+        <p className="text-muted-foreground">Control system-wide configuration, announcements, and contact information.</p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <form onSubmit={handleSave} className="space-y-8 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Announcement Bar */}
+          <Card className="bg-[#162129] border-none shadow-xl lg:col-span-2">
+            <CardHeader className="border-b border-white/5 pb-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-amber-500">
+                <Megaphone className="h-5 w-5" /> Announcement Bar
+              </CardTitle>
+              <CardDescription>Display a promotional banner at the very top of the landing page.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex items-center justify-between p-4 bg-[#0b141a] rounded-xl border border-border/10">
+                <div className="space-y-0.5">
+                  <Label className="text-slate-100 font-bold">Show Announcement</Label>
+                  <p className="text-[10px] text-muted-foreground">Toggle global visibility of the top offer bar.</p>
+                </div>
+                <Switch 
+                  checked={formData.showAnnouncement} 
+                  onCheckedChange={(v) => setFormData({...formData, showAnnouncement: v})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Announcement Text</Label>
+                <Input 
+                  placeholder="e.g. 100% Money Back Guarantee! Services" 
+                  className="bg-[#0b141a] border-border/10 h-11 text-white" 
+                  value={formData.announcementText}
+                  onChange={e => setFormData({...formData, announcementText: e.target.value})}
+                  disabled={!formData.showAnnouncement}
+                />
+                <p className="text-[10px] text-muted-foreground italic">Tip: You can use standard text. HTML is not supported here for security.</p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Support Links */}
           <Card className="bg-[#162129] border-none shadow-xl">
             <CardHeader className="border-b border-white/5 pb-4">
               <CardTitle className="text-lg font-bold flex items-center gap-2 text-[#16a34a]">
                 <MessageCircle className="h-5 w-5" /> Social Support Links
               </CardTitle>
-              <CardDescription>Managed links for the floating support button.</CardDescription>
+              <CardDescription>Links for the floating support button on landing page.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               <div className="space-y-2">
@@ -89,7 +133,7 @@ export default function AdminSettingsPage() {
                 </Label>
                 <Input 
                   placeholder="https://facebook.com/yourpage" 
-                  className="bg-[#0b141a] border-border/10" 
+                  className="bg-[#0b141a] border-border/10 h-11" 
                   value={formData.facebookUrl}
                   onChange={e => setFormData({...formData, facebookUrl: e.target.value})}
                 />
@@ -100,7 +144,7 @@ export default function AdminSettingsPage() {
                 </Label>
                 <Input 
                   placeholder="https://wa.me/8801XXXXXXXXX" 
-                  className="bg-[#0b141a] border-border/10" 
+                  className="bg-[#0b141a] border-border/10 h-11" 
                   value={formData.whatsappUrl}
                   onChange={e => setFormData({...formData, whatsappUrl: e.target.value})}
                 />
@@ -114,7 +158,7 @@ export default function AdminSettingsPage() {
               <CardTitle className="text-lg font-bold flex items-center gap-2 text-[#16a34a]">
                 <Mail className="h-5 w-5" /> Contact Information
               </CardTitle>
-              <CardDescription>Details shown on the public Contact Us page.</CardDescription>
+              <CardDescription>Details shown on the public Contact page.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               <div className="space-y-2">
@@ -122,8 +166,8 @@ export default function AdminSettingsPage() {
                   <Mail className="h-3 w-3" /> Support Email
                 </Label>
                 <Input 
-                  placeholder="support@antipay.io" 
-                  className="bg-[#0b141a] border-border/10" 
+                  placeholder="support@antipay.site" 
+                  className="bg-[#0b141a] border-border/10 h-11" 
                   value={formData.supportEmail}
                   onChange={e => setFormData({...formData, supportEmail: e.target.value})}
                 />
@@ -134,7 +178,7 @@ export default function AdminSettingsPage() {
                 </Label>
                 <Input 
                   placeholder="+880 17XXXXXXXXX" 
-                  className="bg-[#0b141a] border-border/10" 
+                  className="bg-[#0b141a] border-border/10 h-11" 
                   value={formData.supportPhone}
                   onChange={e => setFormData({...formData, supportPhone: e.target.value})}
                 />
@@ -145,7 +189,7 @@ export default function AdminSettingsPage() {
                 </Label>
                 <Input 
                   placeholder="Dhaka, Bangladesh" 
-                  className="bg-[#0b141a] border-border/10" 
+                  className="bg-[#0b141a] border-border/10 h-11" 
                   value={formData.officeAddress}
                   onChange={e => setFormData({...formData, officeAddress: e.target.value})}
                 />

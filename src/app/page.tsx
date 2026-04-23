@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useFirestore, useUser } from "@/firebase"
+import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase"
+import { doc } from "firebase/firestore"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -17,7 +17,8 @@ import {
   Activity,
   MessageCircle,
   BarChart3,
-  Cpu
+  Cpu,
+  Shield
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Footer } from "@/components/landing/footer"
@@ -60,6 +61,13 @@ export default function LandingPage() {
   const db = useFirestore();
   const router = useRouter();
 
+  // Fetch settings for announcement bar
+  const settingsRef = useMemoFirebase(() => {
+    if (!db) return null;
+    return doc(db, 'settings', 'global');
+  }, [db]);
+  const { data: settings } = useDoc(settingsRef);
+
   useEffect(() => {
     setMounted(true);
   }, [db]);
@@ -83,10 +91,21 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-body selection:bg-primary/20">
+      
+      {/* Dynamic Announcement Bar */}
+      {settings?.showAnnouncement && settings?.announcementText && (
+        <div className="w-full bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 text-white py-2.5 px-4 text-center">
+          <div className="container mx-auto flex items-center justify-center gap-2 text-xs font-bold tracking-tight">
+            <Shield className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
+            <span>{settings.announcementText}</span>
+          </div>
+        </div>
+      )}
+
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay" className="h-12 w-auto" />
+            <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay" className="h-10 w-auto" />
             <span className="text-2xl font-headline font-bold tracking-tight text-primary">AntiPay</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
@@ -96,7 +115,7 @@ export default function LandingPage() {
           </nav>
           <div className="flex items-center gap-4">
             {user ? (
-              <Button asChild className="bg-primary hover:bg-primary/90 font-bold">
+              <Button asChild className="ios-btn bg-primary hover:bg-primary/90 font-bold">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
             ) : (
@@ -104,7 +123,7 @@ export default function LandingPage() {
                 <Link href="/login" className="hidden sm:block text-sm font-medium hover:text-primary transition-colors">
                   Login
                 </Link>
-                <Button asChild className="bg-primary hover:bg-primary/90 font-bold">
+                <Button asChild className="ios-btn bg-primary hover:bg-primary/90 font-bold">
                   <Link href="/signup">Get Started</Link>
                 </Button>
               </>
@@ -136,7 +155,7 @@ export default function LandingPage() {
                   The most reliable verification API for bKash, Nagad, and Rocket in Bangladesh. Stop manual verification and start scaling your business with AntiPay.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button onClick={handlePlanClick} size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 group cursor-pointer font-bold rounded-xl">
+                  <Button onClick={handlePlanClick} size="lg" className="ios-btn h-14 px-10 text-lg bg-primary hover:bg-primary/90 group cursor-pointer font-bold rounded-xl border-none">
                     Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg hover:bg-accent/50 cursor-pointer font-bold rounded-xl border-border/60">

@@ -37,7 +37,6 @@ export default function DocsPage() {
     { id: "error-handling", title: "Error Handling" },
     { id: "webhooks", title: "Webhooks" },
     { id: "workflow", title: "Example Workflow" },
-    { id: "contact", title: "Contact Us" },
   ];
 
   const copyToClipboard = (text: string) => {
@@ -58,7 +57,7 @@ export default function DocsPage() {
             <Button asChild variant="ghost" className="hidden sm:flex hover:bg-primary/5">
               <Link href="/"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</Link>
             </Button>
-            <Button asChild className="bg-[#16a34a] hover:bg-[#15803d] font-bold shadow-lg shadow-[#16a34a]/20">
+            <Button asChild className="ios-btn bg-[#16a34a] hover:bg-[#15803d] font-bold shadow-lg shadow-[#16a34a]/20 border-none">
               <Link href="/login">Merchant Console</Link>
             </Button>
           </div>
@@ -416,52 +415,6 @@ if res.get('status') == 'verified':
                       </div>
                     </div>
                   ))}
-                </div>
-              </section>
-
-              {/* Contact Us - Premium Redesigned with Hydration Fix */}
-              <section id="contact" className="scroll-mt-32 space-y-8">
-                <h2 className="text-2xl font-bold text-foreground">Support & Assistance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Email Support Card */}
-                  <div className="relative group overflow-hidden p-8 bg-card border border-border/40 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all duration-500">
-                    <div className="absolute -top-12 -right-12 h-32 w-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
-                    <div className="relative z-10 space-y-6">
-                      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                        <Mail className="h-7 w-7" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em] mb-1">Direct Communication</p>
-                        <h4 className="text-2xl font-bold text-foreground">support@antipay.site</h4>
-                        <p className="text-xs text-muted-foreground mt-2 font-medium">Expected response time: Under 2 hours during business hours.</p>
-                      </div>
-                      <Button className="w-full bg-[#16a34a] hover:bg-[#15803d] font-bold h-12 rounded-xl shadow-lg shadow-[#16a34a]/20" asChild>
-                        <Link href="mailto:support@antipay.site">Send Email Notification</Link>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Infrastructure Status Card */}
-                  <div className="relative group overflow-hidden p-8 bg-card border border-border/40 rounded-[2.5rem] shadow-xl hover:shadow-2xl transition-all duration-500">
-                    <div className="absolute -top-12 -right-12 h-32 w-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors" />
-                    <div className="relative z-10 space-y-6">
-                      <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                        <Activity className="h-7 w-7" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-1">Infrastructure Health</p>
-                        {/* FIX: Using div instead of p to avoid descendant div inside p error */}
-                        <div className="text-2xl font-bold text-foreground flex items-center gap-3">
-                           <div className="h-4 w-4 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" /> 
-                           99.9% Operational
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2 font-medium">Real-time status tracking across all nodes & gateways.</p>
-                      </div>
-                      <Button variant="outline" className="w-full border-emerald-500/20 hover:bg-emerald-500/5 font-bold h-12 rounded-xl" asChild>
-                        <Link href="/">View Status Dashboard</Link>
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </section>
             </div>
