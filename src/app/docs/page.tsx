@@ -35,7 +35,6 @@ export default function DocsPage() {
     { id: "verify-payment", title: "2. Verify Payment" },
     { id: "authentication", title: "Authentication" },
     { id: "error-handling", title: "Error Handling" },
-    { id: "webhooks", title: "Webhooks" },
     { id: "workflow", title: "Example Workflow" },
   ];
 
@@ -86,11 +85,8 @@ export default function DocsPage() {
               </div>
               
               <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10">
-                <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Need Help?</p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">Our developer support team is available 24/7 for integration assistance.</p>
-                <Button asChild variant="link" className="p-0 h-auto text-xs font-black text-primary hover:no-underline">
-                  <Link href="/contact">Talk to Support →</Link>
-                </Button>
+                <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Technical Support</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">Our engineer-led support is available to help you with complex custom integrations.</p>
               </div>
             </div>
           </aside>
@@ -103,10 +99,15 @@ export default function DocsPage() {
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.15em] border border-primary/20">
                   <BookOpen className="h-3 w-3" /> Developer Portal
                 </div>
-                <h1 className="text-4xl md:text-6xl font-headline font-bold text-foreground tracking-tight">API Reference & Integration Guide</h1>
-                <p className="text-xl text-muted-foreground leading-relaxed">
-                  Welcome to <span className="text-primary font-bold">AntiPay</span>. This documentation provides everything you need to automate your payment verification for bKash, Nagad, and Rocket instantly using our robust JSON API.
-                </p>
+                <h1 className="text-4xl md:text-6xl font-headline font-bold text-foreground tracking-tight">API Reference Guide</h1>
+                <div className="space-y-4">
+                  <p className="text-xl text-muted-foreground leading-relaxed">
+                    The AntiPay API is organized around REST. Our API has predictable resource-oriented URLs, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    This guide will walk you through the process of creating a payment session and verifying it on your backend. To start integrating, you will need an <strong>API Key</strong> which can be generated from your <Link href="/dashboard/brands" className="text-primary font-bold hover:underline">Brand Dashboard</Link>.
+                  </p>
+                </div>
               </section>
 
               {/* Base URL */}
@@ -115,10 +116,14 @@ export default function DocsPage() {
                   <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><Globe size={18} /></div>
                   Base URL
                 </h2>
-                <p className="text-muted-foreground leading-relaxed">All API requests are made over HTTPS to the following production environment:</p>
-                <div className="bg-[#0b141a] p-6 rounded-2xl border border-border/10 flex justify-between items-center group shadow-xl">
-                  <code className="text-[#16a34a] font-mono text-sm break-all font-bold">https://pay.antipay.site/v1/</code>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-white" onClick={() => copyToClipboard("https://pay.antipay.site/v1/")}><Copy className="h-5 w-5" /></Button>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">
+                    Every request to the AntiPay API must be made to the following base URL. We recommend using environment variables in your application to store this path securely.
+                  </p>
+                  <div className="bg-[#0b141a] p-6 rounded-2xl border border-border/10 flex justify-between items-center group shadow-xl">
+                    <code className="text-[#16a34a] font-mono text-sm break-all font-bold">https://pay.antipay.site/v1/</code>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-white" onClick={() => copyToClipboard("https://pay.antipay.site/v1/")}><Copy className="h-5 w-5" /></Button>
+                  </div>
                 </div>
               </section>
 
@@ -129,9 +134,14 @@ export default function DocsPage() {
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><Server size={18} /></div>
                     1. Create Payment Session
                   </h2>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Initiate a secure payment session. This endpoint returns a <code className="text-primary font-bold bg-primary/5 px-1 rounded">payment_url</code> where your customer should be redirected to complete the transaction.
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed">
+                      To initiate a payment, you must call the <code>/create</code> endpoint. This step registers the intent to pay and sets the amount. Once successful, the API returns a <strong>Session ID</strong> and a <strong>Payment URL</strong>.
+                    </p>
+                    <p className="text-sm font-medium p-4 bg-primary/5 border-l-4 border-primary rounded-r-xl">
+                      <strong>Developer Note:</strong> You should store the <code>sessionId</code> in your database associated with your order. You will need it in step 2 to verify the final payment status.
+                    </p>
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-3 bg-[#162129] w-fit px-4 py-2 rounded-xl border border-border/10 shadow-inner">
@@ -140,7 +150,7 @@ export default function DocsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold flex items-center gap-2">Request Body</h3>
+                  <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">Request Parameters</h3>
                   <div className="overflow-hidden rounded-2xl border border-border/10 shadow-lg">
                     <table className="w-full text-sm text-left">
                       <thead className="bg-[#162129] text-muted-foreground uppercase text-[10px] font-black tracking-widest">
@@ -154,12 +164,12 @@ export default function DocsPage() {
                         <tr className="hover:bg-primary/5 transition-colors">
                           <td className="px-6 py-4 font-mono text-primary font-bold">amount <span className="text-destructive">*</span></td>
                           <td className="px-6 py-4 text-muted-foreground font-medium">number</td>
-                          <td className="px-6 py-4">Transaction value in BDT. Minimum 10.00</td>
+                          <td className="px-6 py-4">The total amount to be charged in BDT.</td>
                         </tr>
                         <tr className="hover:bg-primary/5 transition-colors">
                           <td className="px-6 py-4 font-mono text-primary font-bold">val_id</td>
                           <td className="px-6 py-4 text-muted-foreground font-medium">string</td>
-                          <td className="px-6 py-4">Your internal Order/Reference ID.</td>
+                          <td className="px-6 py-4">Your internal reference (e.g. Order ID).</td>
                         </tr>
                       </tbody>
                     </table>
@@ -167,13 +177,12 @@ export default function DocsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold">Integration Examples</h3>
+                  <h3 className="text-lg font-bold">Implementation Snippets</h3>
                   <Tabs defaultValue="curl" className="w-full">
                     <TabsList className="bg-[#162129] border border-border/10 p-1 rounded-t-2xl rounded-b-none h-auto flex flex-wrap justify-start border-b-0">
                       <TabsTrigger value="curl" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">cURL</TabsTrigger>
                       <TabsTrigger value="js" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">Node.js</TabsTrigger>
                       <TabsTrigger value="php" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">PHP</TabsTrigger>
-                      <TabsTrigger value="python" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">Python</TabsTrigger>
                     </TabsList>
                     <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
                       <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard('curl -X POST "https://pay.antipay.site/v1/create"')}><Copy size={16} /></Button>
@@ -215,16 +224,6 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 $res = json_decode(curl_exec($ch), true);
 header("Location: " . $res['payment_url']);`}</code></pre>
                       </TabsContent>
-                      <TabsContent value="python" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`import requests
-
-url = "https://pay.antipay.site/v1/create"
-headers = {"x-api-key": "YOUR_API_KEY"}
-data = {"amount": 145.50, "val_id": "ORDER_88721"}
-
-res = requests.post(url, json=data, headers=headers).json()
-print(f"Redirect to: {res['payment_url']}")`}</code></pre>
-                      </TabsContent>
                     </div>
                   </Tabs>
                 </div>
@@ -237,9 +236,15 @@ print(f"Redirect to: {res['payment_url']}")`}</code></pre>
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><ShieldCheck size={18} /></div>
                     2. Verify Payment
                   </h2>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Verify the validity of a transaction ID returned by the checkout page. Always perform this check on your server before granting access to services/products.
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed">
+                      After the customer completes the transaction on our hosted page, they are redirected back to your <strong>Redirect URL</strong>. At this point, your backend must verify the payment to confirm the funds were successfully received.
+                    </p>
+                    <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                      <p className="text-xs text-amber-500 font-medium">Never fulfill an order based solely on client-side redirection. Always call our <code>/verify</code> endpoint server-side to confirm the transaction is legitimate.</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 bg-[#162129] w-fit px-4 py-2 rounded-xl border border-border/10 shadow-inner">
@@ -248,7 +253,7 @@ print(f"Redirect to: {res['payment_url']}")`}</code></pre>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold flex items-center gap-2">Request Body</h3>
+                  <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">Request Parameters</h3>
                   <div className="overflow-hidden rounded-2xl border border-border/10 shadow-lg">
                     <table className="w-full text-sm text-left">
                       <thead className="bg-[#162129] text-muted-foreground uppercase text-[10px] font-black tracking-widest">
@@ -262,12 +267,12 @@ print(f"Redirect to: {res['payment_url']}")`}</code></pre>
                         <tr className="hover:bg-primary/5 transition-colors">
                           <td className="px-6 py-4 font-mono text-primary font-bold">trxId <span className="text-destructive">*</span></td>
                           <td className="px-6 py-4 text-muted-foreground font-medium">string</td>
-                          <td className="px-6 py-4">The 8-10 digit Transaction ID (e.g., 8J9A1X7K)</td>
+                          <td className="px-6 py-4">The transaction ID (e.g. bKash TrxID).</td>
                         </tr>
                         <tr className="hover:bg-primary/5 transition-colors">
                           <td className="px-6 py-4 font-mono text-primary font-bold">sessionId <span className="text-destructive">*</span></td>
                           <td className="px-6 py-4 text-muted-foreground font-medium">string</td>
-                          <td className="px-6 py-4">The original Session ID returned during creation.</td>
+                          <td className="px-6 py-4">The original Session ID from Step 1.</td>
                         </tr>
                       </tbody>
                     </table>
@@ -275,85 +280,20 @@ print(f"Redirect to: {res['payment_url']}")`}</code></pre>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold">Verification Examples</h3>
-                  <Tabs defaultValue="curl" className="w-full">
-                    <TabsList className="bg-[#162129] border border-border/10 p-1 rounded-t-2xl rounded-b-none h-auto flex flex-wrap justify-start border-b-0">
-                      <TabsTrigger value="curl" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">cURL</TabsTrigger>
-                      <TabsTrigger value="js" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">Node.js</TabsTrigger>
-                      <TabsTrigger value="php" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">PHP</TabsTrigger>
-                      <TabsTrigger value="python" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all">Python</TabsTrigger>
-                    </TabsList>
-                    <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
-                      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard('curl -X POST "https://pay.antipay.site/v1/verify"')}>
-                        <Copy size={16} />
-                      </Button>
-                      <TabsContent value="curl" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/verify" \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: YOUR_API_KEY" \\
-  -d '{
-    "trxId": "DDI8ANJG4Q",
-    "sessionId": "SESSION_ID_HERE"
-  }'`}</code></pre>
-                      </TabsContent>
-                      <TabsContent value="js" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/v1/verify", {
+                  <h3 className="text-lg font-bold">Verification Logic Example</h3>
+                  <div className="bg-[#0b141a] rounded-2xl border border-border/10 p-8 shadow-2xl">
+                    <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`// Post the TrxID and SessionID to our API
+const response = await fetch("https://pay.antipay.site/v1/verify", {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": "YOUR_API_KEY"
-  },
-  body: JSON.stringify({
-    trxId: "DDI8ANJG4Q",
-    sessionId: "SESSION_ID_HERE"
-  })
+  headers: { "x-api-key": "YOUR_API_KEY" },
+  body: JSON.stringify({ trxId: "8J9A1X7K", sessionId: "SESS_123" })
 });
+
 const result = await response.json();
 if (result.status === 'verified') {
-    // Deliver services here
-}`}</code></pre>
-                      </TabsContent>
-                      <TabsContent value="php" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`<?php
-$payload = ["trxId" => "DDI8ANJG4Q", "sessionId" => "SESSION_ID_HERE"];
-$ch = curl_init("https://pay.antipay.site/v1/verify");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Content-Type: application/json",
-    "x-api-key: YOUR_API_KEY"
-]);
-$result = json_decode(curl_exec($ch), true);
-if ($result['status'] == 'verified') {
-    // Deliver services
-}`}</code></pre>
-                      </TabsContent>
-                      <TabsContent value="python" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`import requests
-
-url = "https://pay.antipay.site/v1/verify"
-headers = {"x-api-key": "YOUR_API_KEY"}
-data = {"trxId": "DDI8ANJG4Q", "sessionId": "SESSION_ID_HERE"}
-
-res = requests.post(url, json=data, headers=headers).json()
-if res.get('status') == 'verified':
-    print("Payment Verified Successfully!")`}</code></pre>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold">Successful Response</h3>
-                  <div className="bg-[#0b141a] rounded-2xl border border-border/10 p-6 shadow-xl">
-                    <pre className="text-[13px] font-mono text-emerald-400 overflow-x-auto"><code>{`{
-  "status": "verified",
-  "message": "Payment successfully verified",
-  "trx_id": "DDI8ANJG4Q",
-  "amount": 145.50,
-  "method": "bkash",
-  "verified_at": "2024-10-24T14:22:10Z"
+    // 1. Mark order as PAID in your database
+    // 2. Deliver the digital product or service
+    // 3. Inform the user of success
 }`}</code></pre>
                   </div>
                 </div>
@@ -365,47 +305,54 @@ if res.get('status') == 'verified':
                   <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><LinkIcon size={18} /></div>
                   Authentication
                 </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  To authenticate your API requests, you must include the <code className="text-primary font-bold">x-api-key</code> header in every request. You can find your API key in the <strong>Brands</strong> section of your Merchant Console.
-                </p>
-                <div className="bg-secondary/30 p-6 rounded-2xl border border-border/10 shadow-inner flex items-center gap-4">
-                   <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0"><Zap size={20} /></div>
-                   <code className="text-sm font-mono text-foreground font-bold">x-api-key: YOUR_BRAND_API_KEY</code>
-                </div>
-                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-3">
-                   <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                   <p className="text-xs text-amber-500/80 font-medium">Keep your API keys secret. Do not expose them in client-side code like React or Vue apps without a backend proxy.</p>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">
+                    AntiPay uses API keys to authenticate requests. You can view and manage your API keys in the <strong>Brands</strong> section of the merchant console.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Your API keys carry many privileges, so be sure to keep them secure! Do not share your secret API keys in publicly accessible areas such as GitHub, client-side code, and so forth.
+                  </p>
+                  <div className="bg-secondary/30 p-6 rounded-2xl border border-border/10 shadow-inner flex items-center gap-4">
+                     <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0"><Zap size={20} /></div>
+                     <code className="text-sm font-mono text-foreground font-bold">x-api-key: YOUR_BRAND_API_KEY</code>
+                  </div>
                 </div>
               </section>
 
               {/* Error Handling */}
               <section id="error-handling" className="scroll-mt-32 space-y-6">
-                <h2 className="text-2xl font-bold text-foreground">Error Handling</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { code: "400", title: "Bad Request", desc: "Invalid payload or missing required fields." },
-                    { code: "401", title: "Unauthorized", desc: "Missing or invalid x-api-key header." },
-                    { code: "404", title: "Not Found", desc: "Requested resource or session does not exist." },
-                    { code: "500", title: "Server Error", desc: "Internal AntiPay failure. Contact support." }
-                  ].map((err) => (
-                    <div key={err.code} className="p-6 bg-card border border-border/10 rounded-2xl flex flex-col gap-2 hover:border-primary/30 transition-colors">
-                      <Badge variant="outline" className="w-fit border-destructive/20 text-destructive bg-destructive/5">{err.code}</Badge>
-                      <h4 className="font-bold">{err.title}</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{err.desc}</p>
-                    </div>
-                  ))}
+                <h2 className="text-2xl font-bold text-foreground">Error Codes</h2>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">
+                    AntiPay uses conventional HTTP response codes to indicate the success or failure of an API request. In general: Codes in the <code>2xx</code> range indicate success. Codes in the <code>4xx</code> range indicate an error that failed given the information provided.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { code: "400", title: "Bad Request", desc: "The request was unacceptable, often due to missing a required parameter." },
+                      { code: "401", title: "Unauthorized", desc: "No valid API key provided." },
+                      { code: "404", title: "Not Found", desc: "The requested resource doesn't exist." },
+                      { code: "500", title: "Server Errors", desc: "Something went wrong on AntiPay's end." }
+                    ].map((err) => (
+                      <div key={err.code} className="p-6 bg-card border border-border/10 rounded-2xl flex flex-col gap-2 hover:border-primary/30 transition-colors">
+                        <Badge variant="outline" className="w-fit border-destructive/20 text-destructive bg-destructive/5 font-black">{err.code}</Badge>
+                        <h4 className="font-bold text-foreground">{err.title}</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{err.desc}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
 
               {/* Workflow */}
               <section id="workflow" className="scroll-mt-32 space-y-8">
-                <h2 className="text-2xl font-bold text-foreground">Example Workflow</h2>
+                <h2 className="text-2xl font-bold text-foreground">Integration Workflow</h2>
                 <div className="space-y-6 relative">
                   <div className="absolute left-6 top-0 bottom-0 w-px bg-border/20 z-0 hidden md:block" />
                   {[
-                    { step: "01", title: "Create Session", desc: "Post the amount and val_id to /create. Store the sessionId for later verification." },
-                    { step: "02", title: "Redirect Customer", desc: "Redirect your user to the payment_url. We handle the UI and secure SMS verification." },
-                    { step: "03", title: "Confirm Payment", desc: "Once the user is redirected back to your success_url, verify the trxId on your backend." }
+                    { step: "01", title: "Server Call", desc: "Your backend calls /create to get a payment URL. Store the sessionId for later." },
+                    { step: "02", title: "User Payment", desc: "User is redirected to AntiPay. They send money and enter the TrxID on our UI." },
+                    { step: "03", title: "Redirection", desc: "User is redirected back to your site. You grab the TrxID from the URL parameters." },
+                    { step: "04", title: "Final Verification", desc: "Your backend calls /verify with the TrxID and stored SessionID to finalize the order." }
                   ].map((item) => (
                     <div key={item.step} className="flex gap-6 p-6 bg-[#162129]/30 rounded-[2rem] border border-border/10 relative z-10 hover:bg-primary/5 transition-colors group">
                       <span className="h-12 w-12 rounded-2xl bg-[#16a34a] text-white flex items-center justify-center font-black text-xl shadow-lg shadow-[#16a34a]/20 group-hover:scale-110 transition-transform">{item.step}</span>

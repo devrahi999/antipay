@@ -60,46 +60,50 @@ export default function DashboardPage() {
         <p className="text-xs text-muted-foreground -mt-3">Monitor volume, status, and performance</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-emerald-700 border-none text-white shadow-lg shadow-emerald-900/40">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <Card className="relative overflow-hidden border-none text-white bg-emerald-800 shadow-xl group">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Total Volume</p>
               <Wallet className="h-5 w-5 opacity-40" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">৳0</div>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-black">৳0</div>
               <p className="text-[10px] mt-1 opacity-70">0 Invoices Generated</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-emerald-500 border-none text-white shadow-lg shadow-emerald-900/40">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <Card className="relative overflow-hidden border-none text-white bg-emerald-500 shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Completed Volume</p>
               <CircleCheck className="h-5 w-5 opacity-40" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">৳0</div>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-black">৳0</div>
               <p className="text-[10px] mt-1 opacity-70">0 Invoices Paid</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-amber-500 border-none text-white shadow-lg shadow-amber-900/40">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <Card className="relative overflow-hidden border-none text-white bg-amber-500 shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Pending Recovery</p>
               <Clock className="h-5 w-5 opacity-40" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">৳0</div>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-black">৳0</div>
               <p className="text-[10px] mt-1 opacity-70">0 Awaiting Payment</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-rose-500 border-none text-white shadow-lg shadow-rose-900/40">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <Card className="relative overflow-hidden border-none text-white bg-rose-500 shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 relative z-10">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Canceled</p>
               <XCircle className="h-5 w-5 opacity-40" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">৳0</div>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-black">৳0</div>
               <p className="text-[10px] mt-1 opacity-70">0 Invoices Canceled</p>
             </CardContent>
           </Card>
