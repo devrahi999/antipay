@@ -1,7 +1,6 @@
-
 'use client';
 
-import { query, collection, orderBy } from 'firebase/firestore';
+import { query, collection, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -14,10 +13,15 @@ export default function SessionsPage() {
   const { user } = useUser();
   const db = useFirestore();
 
+  // Updated to use root payment_sessions collection filtered by userId
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(collection(db, 'users', user.uid, 'paymentSessions'), orderBy('createdAt', 'desc'));
-  }, [db, user]);
+    return query(
+      collection(db, 'payment_sessions'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+  }, [db, user?.uid]);
 
   const { data: sessions, isLoading } = useCollection(sessionsQuery);
 
@@ -83,7 +87,9 @@ export default function SessionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{session.userProvidedTransactionId || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground text-[10px]">{new Date(session.createdAt).toLocaleString()}</TableCell>
+                    <TableCell className="text-muted-foreground text-[10px]">
+                      {session.createdAt?.toDate ? session.createdAt.toDate().toLocaleString() : new Date(session.createdAt).toLocaleString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" asChild>
                         <a href={`/s/${session.id}`} target="_blank" rel="noopener noreferrer">
