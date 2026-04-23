@@ -3,6 +3,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- AntiPay Gateway Rules (At Top for Priority) ---
+
+    match /stores/{apiKey} {
+      allow read: if true; 
+      allow write: if false; // Only via console/admin
+    }
+
+    match /payment_sessions/{sessionId} {
+      // Public needs to read session info to show amount/details on checkout
+      allow get: if true;
+      
+      // MERCHANT FIX: Allow merchants to list their own sessions
+      allow list: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
+      
+      // API routes create/update sessions
+      allow create, update: if true;
+    }
+
+    match /transactions/{trxId} {
+      // Server-side verification needs to read/write
+      allow read, write: if true;
+    }
+
+    // --- Existing System Rules (Do not remove) ---
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -36,11 +61,6 @@ service cloud.firestore {
       allow list: if isSignedIn() && (isAdmin() || request.query.limit <= 100);
     }
     
-    match /payment_sessions/{sessionId} {
-      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn();
-    }
-    
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
@@ -55,6 +75,7 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
+    // Global settings access
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
