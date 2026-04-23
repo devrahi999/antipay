@@ -47,10 +47,21 @@
         "userId": { "type": "string" },
         "name": { "type": "string" },
         "websiteUrl": { "type": "string" },
+        "logoUrl": { "type": "string" },
         "apiKey": { "type": "string" },
         "status": { "type": "string" },
         "isActive": { "type": "boolean", "default": true },
-        "connected_devices_count": { "type": "number", "default": 0 }
+        "connected_devices_count": { "type": "number", "default": 0 },
+        "redirectSuccessUrl": { "type": "string" },
+        "redirectCancelUrl": { "type": "string" },
+        "supportEmail": { "type": "string" },
+        "supportPhone": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "supportPageLink": { "type": "string" },
+        "methods": { 
+          "type": "array",
+          "items": { "type": "object" }
+        }
       }
     },
     "SubscriptionPlan": {

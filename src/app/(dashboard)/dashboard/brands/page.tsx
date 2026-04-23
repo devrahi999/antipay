@@ -73,7 +73,9 @@ export default function BrandsPage() {
     supportEmail: '',
     supportPhone: '',
     whatsappNumber: '',
-    supportPageLink: ''
+    supportPageLink: '',
+    redirectSuccessUrl: '',
+    redirectCancelUrl: ''
   });
 
   // Fetch active plan to check limits
@@ -133,6 +135,11 @@ export default function BrandsPage() {
           status: 'active',
           isActive: true,
           connected_devices_count: 0,
+          methods: [
+            { bkash: { isActive: true, number: "" } },
+            { nagad: { isActive: true, number: "" } },
+            { rocket: { isActive: true, number: "" } }
+          ],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
@@ -162,7 +169,7 @@ export default function BrandsPage() {
 
   const resetForm = () => {
     setFormData({
-      name: '', websiteUrl: '', logoUrl: '', supportEmail: '', supportPhone: '', whatsappNumber: '', supportPageLink: ''
+      name: '', websiteUrl: '', logoUrl: '', supportEmail: '', supportPhone: '', whatsappNumber: '', supportPageLink: '', redirectSuccessUrl: '', redirectCancelUrl: ''
     });
     setIsEditMode(false);
     setSelectedBrand(null);
@@ -171,9 +178,15 @@ export default function BrandsPage() {
   const handleEditClick = (brand: any) => {
     setSelectedBrand(brand);
     setFormData({
-      name: brand.name, websiteUrl: brand.websiteUrl, logoUrl: brand.logoUrl || '',
-      supportEmail: brand.supportEmail || '', supportPhone: brand.supportPhone || '',
-      whatsappNumber: brand.whatsappNumber || '', supportPageLink: brand.supportPageLink || ''
+      name: brand.name, 
+      websiteUrl: brand.websiteUrl, 
+      logoUrl: brand.logoUrl || '',
+      supportEmail: brand.supportEmail || '', 
+      supportPhone: brand.supportPhone || '',
+      whatsappNumber: brand.whatsappNumber || '', 
+      supportPageLink: brand.supportPageLink || '',
+      redirectSuccessUrl: brand.redirectSuccessUrl || '',
+      redirectCancelUrl: brand.redirectCancelUrl || ''
     });
     setIsEditMode(true);
     setIsDialogOpen(true);
@@ -233,7 +246,7 @@ export default function BrandsPage() {
                 <Plus className="mr-2 h-4 w-4" /> {canAddBrand ? 'Add New Brand' : 'Limit Reached'}
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+            <DialogContent className="sm:max-w-[800px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
               <DialogHeader className="p-4 border-b border-border/10 bg-[#162129]">
                 <div className="flex items-center gap-2 text-[#16a34a]">
                   <Tags className="h-5 w-5" />
@@ -248,34 +261,64 @@ export default function BrandsPage() {
               
               <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[85vh] overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-                      Brand Identity
-                    </h3>
+                  <div className="space-y-6">
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-100">Brand Name <span className="text-destructive">*</span></Label>
-                        <Input placeholder="e.g., My Gadget Shop" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                      <h3 className="text-[#16a34a] font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        Brand Identity
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-100">Brand Name <span className="text-destructive">*</span></Label>
+                          <Input placeholder="e.g., My Gadget Shop" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-100">Website URL <span className="text-destructive">*</span></Label>
+                          <Input placeholder="https://myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.websiteUrl} onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})} required />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-100">Logo URL</Label>
+                          <Input placeholder="https://myshop.com/logo.png" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.logoUrl} onChange={(e) => setFormData({...formData, logoUrl: e.target.value})} />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-100">Website URL <span className="text-destructive">*</span></Label>
-                        <Input placeholder="https://myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.websiteUrl} onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})} required />
+                    </div>
+
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-[#16a34a] font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        Endpoint Configuration
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-100">Redirect Success URL <span className="text-destructive">*</span></Label>
+                          <Input placeholder="https://myshop.com/payment/success" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.redirectSuccessUrl} onChange={(e) => setFormData({...formData, redirectSuccessUrl: e.target.value})} required />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-100">Redirect Cancel URL <span className="text-destructive">*</span></Label>
+                          <Input placeholder="https://myshop.com/payment/cancel" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.redirectCancelUrl} onChange={(e) => setFormData({...formData, redirectCancelUrl: e.target.value})} required />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-[#16a34a] font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                  <div className="space-y-6">
+                    <h3 className="text-[#16a34a] font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                       Merchant Contact
                     </h3>
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-100">Support Email</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-100">Support Email</Label>
                         <Input type="email" placeholder="help@myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.supportEmail} onChange={(e) => setFormData({...formData, supportEmail: e.target.value})} />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-100">WhatsApp Number</Label>
-                        <Input placeholder="+8801XXXXXXXXX" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.whatsappNumber} onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})} />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-100">Support Phone</Label>
+                        <Input placeholder="+880 17XXXXXXXX" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.supportPhone} onChange={(e) => setFormData({...formData, supportPhone: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-100">WhatsApp Number</Label>
+                        <Input placeholder="+880 1XXXXXXXXX" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.whatsappNumber} onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-100">Support Page Link</Label>
+                        <Input placeholder="https://myshop.com/contact" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.supportPageLink} onChange={(e) => setFormData({...formData, supportPageLink: e.target.value})} />
                       </div>
                     </div>
                   </div>
@@ -407,6 +450,14 @@ export default function BrandsPage() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
+                     <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Success URL</p>
+                     <p className="text-xs font-medium text-slate-100 truncate">{selectedBrand.redirectSuccessUrl || "—"}</p>
+                  </div>
+                  <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
+                     <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Cancel URL</p>
+                     <p className="text-xs font-medium text-slate-100 truncate">{selectedBrand.redirectCancelUrl || "—"}</p>
+                  </div>
                   <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
                      <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Support Email</p>
                      <p className="text-xs font-medium text-slate-100">{selectedBrand.supportEmail || "—"}</p>
