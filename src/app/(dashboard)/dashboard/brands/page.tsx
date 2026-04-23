@@ -3,11 +3,10 @@
 
 import { useState } from 'react';
 import { collection, query, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit, writeBatch, increment } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { 
   Plus, 
@@ -21,7 +20,13 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  Lock
+  Lock,
+  Globe,
+  Settings,
+  Mail,
+  Phone,
+  MessageCircle,
+  Link as LinkIcon
 } from "lucide-react"
 import { 
   Dialog, 
@@ -31,12 +36,6 @@ import {
   DialogTrigger,
   DialogDescription
 } from "@/components/ui/dialog"
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -236,17 +235,17 @@ export default function BrandsPage() {
         </div>
         
         {!activePlan ? (
-          <Button asChild className="bg-amber-500 hover:bg-amber-600 font-bold">
+          <Button asChild className="ios-btn bg-amber-500 hover:bg-amber-600 font-bold">
             <Link href="/dashboard/plans"><Lock className="mr-2 h-4 w-4" /> Buy Plan to Add Brand</Link>
           </Button>
         ) : (
           <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsDialogOpen(open); }}>
             <DialogTrigger asChild>
-              <Button disabled={!canAddBrand} className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-[0_0_15px_rgba(22,163,74,0.3)] border-none">
+              <Button disabled={!canAddBrand} className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-lg shadow-[#16a34a]/20 border-none">
                 <Plus className="mr-2 h-4 w-4" /> {canAddBrand ? 'Add New Brand' : 'Limit Reached'}
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+            <DialogContent className="sm:max-w-[800px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-2xl">
               <DialogHeader className="p-4 border-b border-border/10 bg-[#162129]">
                 <div className="flex items-center gap-2 text-[#16a34a]">
                   <Tags className="h-5 w-5" />
@@ -325,8 +324,8 @@ export default function BrandsPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
-                  <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8 border border-border/10" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-[#16a34a] hover:bg-[#15803d] text-white px-8 font-bold" disabled={isSubmitting}>
+                  <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8 border border-border/10 rounded-xl" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-white px-8 font-bold rounded-xl" disabled={isSubmitting}>
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} 
                     {isEditMode ? 'Update Brand' : 'Save Brand'}
                   </Button>
@@ -337,162 +336,205 @@ export default function BrandsPage() {
         )}
       </div>
 
-      <Card className="bg-[#0b141a] border-border/40 shadow-2xl overflow-hidden">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/20 hover:bg-transparent bg-[#162129]/50">
-                  <TableHead className="w-12 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 pl-6">#</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Brand Info</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">AntiPay API Key</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Status</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 text-right pr-6">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Scanning Network...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : brands && brands.length > 0 ? (
-                  brands.map((brand, index) => (
-                    <TableRow key={brand.id} className="border-border/10 hover:bg-primary/5 transition-colors group">
-                      <TableCell className="text-xs font-mono text-muted-foreground pl-6">{(index + 1).toString().padStart(2, '0')}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-[#162129] border border-border/10 flex items-center justify-center text-[#16a34a] font-bold text-sm shadow-inner overflow-hidden uppercase">
-                            {brand.logoUrl ? <img src={brand.logoUrl} alt="" className="h-full w-full object-cover" /> : brand.name.charAt(0)}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-100">{brand.name}</span>
-                            <span className="text-[9px] text-muted-foreground font-mono flex items-center gap-1">
-                              {brand.websiteUrl} <ExternalLink className="h-2 w-2" />
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 max-w-[280px]">
-                          <code className="text-[10px] font-mono text-[#16a34a] bg-[#16a34a]/10 px-3 py-1.5 rounded border border-[#16a34a]/20 truncate">
-                            {brand.apiKey}
-                          </code>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary shrink-0" onClick={() => copyToClipboard(brand.apiKey)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-[9px] uppercase font-bold px-3 ${brand.isActive === false ? 'border-rose-500/30 text-rose-500 bg-rose-500/10' : 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10'}`}>
-                          {brand.isActive === false ? 'Inactive' : 'Active'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary/20">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-[#0b141a] border-border/20 text-slate-200">
-                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-primary/10" onClick={() => handleViewClick(brand)}><Eye className="mr-2 h-3.5 w-3.5" /> Details</DropdownMenuItem>
-                            <DropdownMenuItem className="text-xs cursor-pointer focus:bg-primary/10" onClick={() => handleEditClick(brand)}><Edit2 className="mr-2 h-3.5 w-3.5" /> Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="text-xs cursor-pointer text-rose-500 focus:bg-rose-500/10" onClick={() => confirmDelete(brand.id)}><Trash2 className="mr-2 h-3.5 w-3.5" /> Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-32">
-                      <div className="flex flex-col items-center gap-3">
-                        <Tags className="h-10 w-10 text-muted-foreground/20" />
-                        <p className="text-sm font-bold text-muted-foreground">No Brands Active</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          <div className="col-span-full py-20 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Scanning Network...</p>
           </div>
-        </CardContent>
-      </Card>
+        ) : brands && brands.length > 0 ? (
+          brands.map((brand) => (
+            <Card key={brand.id} className="bg-[#0b141a] border-border/40 shadow-xl overflow-hidden flex flex-col group hover:border-primary/20 transition-all duration-300">
+              <div className="h-1.5 bg-[#16a34a] w-full" />
+              <CardHeader className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-[#162129] border border-border/10 flex items-center justify-center text-[#16a34a] font-bold text-xl uppercase shadow-inner">
+                    {brand.logoUrl ? (
+                      <img src={brand.logoUrl} alt="" className="h-full w-full object-cover rounded-2xl" />
+                    ) : (
+                      brand.name.charAt(0)
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg font-bold text-slate-100 truncate">{brand.name}</CardTitle>
+                      <Badge variant="outline" className={`text-[8px] uppercase px-2 py-0 h-5 font-black ${brand.isActive === false ? 'border-rose-500/30 text-rose-500 bg-rose-500/10' : 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10'}`}>
+                        {brand.isActive === false ? 'Inactive' : 'Active'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                      <Globe className="h-3 w-3" />
+                      <span className="truncate">{brand.websiteUrl}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-6 pt-0 space-y-4 flex-1">
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60 flex items-center gap-2">
+                    <Lock className="h-3 w-3" /> AntiPay Identity Key
+                  </Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-[#162129] p-3 rounded-xl text-[10px] font-mono text-[#16a34a] flex justify-between items-center border border-border/5">
+                      <span className="truncate">{brand.apiKey}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => copyToClipboard(brand.apiKey)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
 
-      {/* View Brand Details */}
+              <CardFooter className="p-6 pt-0 border-t border-border/5 bg-[#162129]/20 grid grid-cols-2 gap-3 mt-auto">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-10 font-bold border-border/20 text-xs gap-2 rounded-xl hover:bg-primary/5 hover:text-primary"
+                  onClick={() => handleViewClick(brand)}
+                >
+                  <Eye className="h-4 w-4" /> View
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full h-10 font-bold border-border/20 text-xs gap-2 rounded-xl hover:bg-[#16a34a]/10 hover:text-[#16a34a]"
+                  onClick={() => handleEditClick(brand)}
+                >
+                  <Edit2 className="h-4 w-4" /> Edit
+                </Button>
+              </CardFooter>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full py-32 text-center bg-[#0b141a] rounded-[2.5rem] border-2 border-dashed border-border/10">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-16 w-16 bg-[#162129] rounded-full flex items-center justify-center mb-2">
+                <Tags className="h-8 w-8 text-muted-foreground/20" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-200">No Brands Configured</h3>
+              <p className="text-xs text-muted-foreground max-w-xs">Create your first brand identity to generate an API key and start collecting payments.</p>
+              <Button 
+                onClick={() => setIsDialogOpen(true)}
+                className="mt-6 bg-[#16a34a] hover:bg-[#15803d] rounded-xl font-bold px-8"
+              >
+                Create My First Brand
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* View Brand Details Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-[#0b141a] border-border/20 text-foreground p-0 shadow-2xl">
+        <DialogContent className="sm:max-w-[600px] bg-[#0b141a] border-border/20 text-foreground p-0 shadow-2xl overflow-hidden rounded-[2rem]">
           {selectedBrand && (
             <>
-              <DialogHeader className="p-6 bg-[#162129] border-b border-border/10">
-                <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-2xl bg-[#0b141a] flex items-center justify-center text-[#16a34a] font-bold text-xl border border-border/10 uppercase">
-                      {selectedBrand.name.charAt(0)}
+              <DialogHeader className="p-8 bg-gradient-to-br from-[#162129] to-[#0b141a] border-b border-border/10">
+                <div className="flex items-center gap-6">
+                    <div className="h-20 w-20 rounded-3xl bg-[#0b141a] flex items-center justify-center text-[#16a34a] font-bold text-3xl border border-border/10 uppercase shadow-2xl">
+                      {selectedBrand.logoUrl ? (
+                         <img src={selectedBrand.logoUrl} alt="" className="h-full w-full object-cover rounded-3xl" />
+                      ) : selectedBrand.name.charAt(0)}
                     </div>
-                    <div>
-                      <DialogTitle className="text-xl font-bold text-white">{selectedBrand.name}</DialogTitle>
-                      <DialogDescription className="text-xs text-muted-foreground">{selectedBrand.websiteUrl}</DialogDescription>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <DialogTitle className="text-2xl font-headline font-black text-white">{selectedBrand.name}</DialogTitle>
+                        <Badge className="bg-[#16a34a]/20 text-[#16a34a] border-[#16a34a]/10 text-[9px] uppercase px-3">Live Instance</Badge>
+                      </div>
+                      <DialogDescription className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+                        <LinkIcon className="h-3 w-3" /> {selectedBrand.websiteUrl}
+                      </DialogDescription>
                     </div>
                 </div>
               </DialogHeader>
-              <div className="p-6 space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">AntiPay Identity</Label>
-                  <div className="bg-[#162129] p-3 rounded-xl border border-border/10 flex items-center gap-2">
-                    <code className="text-[10px] font-mono text-[#16a34a] truncate flex-1">{selectedBrand.apiKey}</code>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => copyToClipboard(selectedBrand.apiKey)}><Copy className="h-3 w-3" /></Button>
+
+              <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-black">API Integration Key</Label>
+                  <div className="bg-[#162129] p-4 rounded-2xl border border-border/10 flex items-center gap-4 group shadow-inner">
+                    <code className="text-sm font-mono text-[#16a34a] truncate flex-1 font-bold">{selectedBrand.apiKey}</code>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-white" onClick={() => copyToClipboard(selectedBrand.apiKey)}>
+                      <Copy className="h-5 w-5" />
+                    </Button>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
-                     <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Success URL</p>
-                     <p className="text-xs font-medium text-slate-100 truncate">{selectedBrand.redirectSuccessUrl || "—"}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase text-[#16a34a] tracking-widest flex items-center gap-2">
+                       <Globe className="h-3 w-3" /> Dynamic Endpoints
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-[#162129]/30 rounded-2xl border border-border/5">
+                        <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Success Redirect</p>
+                        <p className="text-xs font-medium text-slate-200 truncate">{selectedBrand.redirectSuccessUrl || "—"}</p>
+                      </div>
+                      <div className="p-4 bg-[#162129]/30 rounded-2xl border border-border/5">
+                        <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Cancel Redirect</p>
+                        <p className="text-xs font-medium text-slate-200 truncate">{selectedBrand.redirectCancelUrl || "—"}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
-                     <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Cancel URL</p>
-                     <p className="text-xs font-medium text-slate-100 truncate">{selectedBrand.redirectCancelUrl || "—"}</p>
-                  </div>
-                  <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
-                     <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Support Email</p>
-                     <p className="text-xs font-medium text-slate-100">{selectedBrand.supportEmail || "—"}</p>
-                  </div>
-                  <div className="bg-[#162129]/30 p-4 rounded-xl border border-border/5">
-                     <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">WhatsApp</p>
-                     <p className="text-xs font-medium text-slate-100">{selectedBrand.whatsappNumber || "—"}</p>
+
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase text-[#16a34a] tracking-widest flex items-center gap-2">
+                       <Phone className="h-3 w-3" /> Merchant Support
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-[#162129]/30 rounded-2xl border border-border/5 flex items-center gap-3">
+                        <Mail className="h-3.5 w-3.5 text-primary opacity-40" />
+                        <div>
+                           <p className="text-[9px] uppercase font-bold text-muted-foreground">Support Email</p>
+                           <p className="text-xs font-medium text-slate-200">{selectedBrand.supportEmail || "—"}</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-[#162129]/30 rounded-2xl border border-border/5 flex items-center gap-3">
+                        <MessageCircle className="h-3.5 w-3.5 text-primary opacity-40" />
+                        <div>
+                           <p className="text-[9px] uppercase font-bold text-muted-foreground">WhatsApp</p>
+                           <p className="text-xs font-medium text-slate-200">{selectedBrand.whatsappNumber || "—"}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="p-4 bg-[#162129]/50 border-t border-border/10 flex justify-end gap-3">
-                <Button variant="ghost" className="text-xs" onClick={() => setIsViewOpen(false)}>Close</Button>
-                <Button className="bg-[#16a34a] hover:bg-[#15803d] text-xs font-bold" onClick={() => { setIsViewOpen(false); handleEditClick(selectedBrand); }}>Edit Brand</Button>
+
+              <div className="p-6 bg-[#162129]/50 border-t border-border/10 flex justify-between items-center px-8">
+                <Button 
+                  variant="ghost" 
+                  className="text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl"
+                  onClick={() => { setIsViewOpen(false); confirmDelete(selectedBrand.id); }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" /> Revoke Key
+                </Button>
+                <div className="flex gap-3">
+                   <Button variant="ghost" className="text-xs font-bold rounded-xl" onClick={() => setIsViewOpen(false)}>Close</Button>
+                   <Button className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-xs font-bold rounded-xl px-8" onClick={() => { setIsViewOpen(false); handleEditClick(selectedBrand); }}>
+                     <Edit2 className="h-3.5 w-3.5 mr-2" /> Modify Configuration
+                   </Button>
+                </div>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
+        <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white rounded-[2rem]">
           <AlertDialogHeader>
-            <div className="h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-4">
-               <AlertTriangle size={24} />
+            <div className="h-16 w-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-4 mx-auto md:mx-0">
+               <AlertTriangle size={32} />
             </div>
-            <AlertDialogTitle className="text-xl font-bold font-headline">Delete Brand?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              This will permanently revoke the API key and disconnect all associated nodes.
+            <AlertDialogTitle className="text-2xl font-black font-headline">Revoke Brand Identity?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground leading-relaxed text-sm">
+              This action is irreversible. The associated API key will stop working immediately across all your integrations and connected nodes.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-3">
-            <AlertDialogCancel className="bg-secondary/10 hover:bg-secondary/20 border-none text-white">Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-rose-500 hover:bg-rose-600 text-white font-bold" onClick={handleDelete}>
-              Confirm Deletion
+          <AlertDialogFooter className="gap-3 mt-6">
+            <AlertDialogCancel className="bg-[#162129] hover:bg-[#1c2a35] border-none text-white rounded-xl h-11 px-6 font-bold">Retain Brand</AlertDialogCancel>
+            <AlertDialogAction className="bg-rose-500 hover:bg-rose-600 text-white font-black rounded-xl h-11 px-8 shadow-lg shadow-rose-500/20" onClick={handleDelete}>
+              Yes, Revoke Key
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
