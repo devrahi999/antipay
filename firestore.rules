@@ -9,16 +9,23 @@ service cloud.firestore {
       allow write: if false; // Only via console/admin
     }
 
-    match /payment_sessions/{sessionId} {
+    // UPDATED: Session moved to subcollection for better organization
+    match /payment_sessions/{userId}/sessions/{sessionId} {
       // Public needs to read session info to show amount/details on checkout
       allow get: if true;
       
-      // MERCHANT FIX: Allow merchants to list their own sessions via filtered query
-      // Works when document ID is random but userId field matches merchant UID
-      allow list: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
+      // Allow merchants to list their own sessions
+      allow list: if request.auth != null && (request.auth.uid == userId || 
+                    (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true));
       
       // API routes create/update sessions
       allow create, update: if true;
+    }
+
+    // Fix for public checkout collectionGroup query
+    match /{path=**}/sessions/{sessionId} {
+      allow get, list: if true;
     }
 
     match /transactions/{trxId} {
@@ -26,7 +33,7 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // --- Existing System Rules (Do not remove) ---
+    // --- Existing System Rules (Preserved) ---
 
     function isSignedIn() {
       return request.auth != null;

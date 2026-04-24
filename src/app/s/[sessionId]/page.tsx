@@ -26,12 +26,11 @@ export default function PublicPaymentPage() {
     async function fetchSession() {
       if (!db || !sessionId) return;
       try {
-        // Querying collection group 'sessions' and filtering by userId existence to use an index
-        // Then finding the specific document by its ID (sessionId) in the results
-        const q = query(collectionGroup(db, 'sessions'), where('userId', '!=', ''), limit(50));
+        // Querying collection group 'sessions' to find the document by its ID
+        const q = query(collectionGroup(db, 'sessions'), limit(100));
         const querySnapshot = await getDocs(q);
         
-        // Find the document that matches the sessionId
+        // Find the specific document that matches the sessionId
         const docSnap = querySnapshot.docs.find(d => d.id === sessionId);
         
         if (docSnap) {
@@ -117,7 +116,7 @@ export default function PublicPaymentPage() {
                 <div className="p-4 bg-secondary/50 rounded-xl border space-y-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Payment Method:</span>
-                    <Badge className="bg-primary">{session.method}</Badge>
+                    <Badge className="bg-primary uppercase">{session.method}</Badge>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Send Money to:</span>
