@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
 if (!getApps().length) {
@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
 
     console.log('--- INBOUND WEBHOOK ---', { status, val_id, sessionId });
 
+    // We only care about verified status
     if (status !== 'verified') {
       return NextResponse.json({ message: "Ignoring non-verified status" }, { status: 200 });
     }
@@ -26,17 +27,17 @@ export async function POST(req: NextRequest) {
 
     const [userId, planId] = val_id.split('|');
 
-    // ONLY UPDATE THE SESSION DOCUMENT
-    // This marks it as verified so the Success Page can see it and do the rest
+    // Use setDoc with merge:true instead of updateDoc to ensure it works even if doc doesn't exist
     const sessionRef = doc(db, 'payment_sessions', userId, 'sessions', sessionId);
     
-    await updateDoc(sessionRef, {
+    await setDoc(sessionRef, {
       status: 'verified',
       planId: planId,
+      userId: userId,
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
 
-    console.log(`WEBHOOK SUCCESS: Session ${sessionId} marked as verified for user ${userId}`);
+    console.log(`WEBHOOK SUCCESS: Session ${sessionId} for user ${userId} marked as verified.`);
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
