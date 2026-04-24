@@ -164,10 +164,12 @@ export function BrandsPageClient() {
           status: 'active',
           isActive: true,
           connected_devices_count: 0,
+          // New requested Array of Maps structure for methods
           methods: [
             { bkash: { isActive: true, number: "" } },
             { nagad: { isActive: true, number: "" } },
-            { rocket: { isActive: true, number: "" } }
+            { rocket: { isActive: true, number: "" } },
+            { upay: { isActive: false, number: "" } }
           ],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
