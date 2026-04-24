@@ -4,8 +4,8 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 /**
- * Generates a professional PDF invoice for a payment session using pdf-lib.
- * This avoids AFM font loading issues common with pdfkit in bundled environments.
+ * Generates a high-end professional PDF invoice for a payment session.
+ * Uses strict coordinate-based layout for pixel-perfect alignment.
  * @param data The session data (plain object)
  * @param store The merchant store details (plain object)
  * @returns A base64 encoded string of the PDF buffer.
@@ -14,36 +14,28 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
   try {
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
+    const { width, height } = page.getSize();
     
-    // Embed standard fonts (these don't require external .afm files)
+    // Fonts
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
-    const { width, height } = page.getSize();
-    
-    // Design Constants
-    const primaryColor = rgb(0.086, 0.639, 0.29); // AntiPay Green (#16a34a)
-    const secondaryColor = rgb(0.42, 0.447, 0.5); // Muted Gray
-    const darkColor = rgb(0.066, 0.094, 0.15); // Dark text
-    
-    // 1. Top Accent Bar
-    page.drawRectangle({
-      x: 0,
-      y: height - 10,
-      width: width,
-      height: 10,
-      color: primaryColor,
-    });
+    // Constants
+    const MARGIN = 40;
+    const PRIMARY_GREEN = rgb(0.086, 0.639, 0.29); // #16a34a
+    const TEXT_BLACK = rgb(0.066, 0.094, 0.15);   // #111827
+    const TEXT_GRAY = rgb(0.42, 0.447, 0.5);      // #6b7280
+    const BORDER_COLOR = rgb(0.898, 0.91, 0.92);  // #e5e7eb
+    const BG_LIGHT = rgb(0.976, 0.98, 0.984);     // #f9fafb
 
-    // 2. Header Section
-    let headerY = height - 70;
-    
-    // Handle Store Logo
+    let currentY = height - MARGIN;
+
+    // --- 1. HEADER SECTION ---
+    // LEFT: Logo + Store Name
     if (store.logoUrl && store.logoUrl.startsWith('http')) {
       try {
         const response = await fetch(store.logoUrl);
         const imageBytes = await response.arrayBuffer();
-        
         let logoImage;
         if (store.logoUrl.toLowerCase().endsWith('.png')) {
           logoImage = await pdfDoc.embedPng(imageBytes);
@@ -51,169 +43,196 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
           logoImage = await pdfDoc.embedJpg(imageBytes);
         }
         
-        const dims = logoImage.scale(0.25);
+        const logoSize = 32;
         page.drawImage(logoImage, {
-          x: 50,
-          y: headerY - (dims.height / 2),
-          width: 40,
-          height: 40,
+          x: MARGIN,
+          y: currentY - logoSize,
+          width: logoSize,
+          height: logoSize,
         });
         
-        page.drawText(store.name || "Merchant Receipt", {
-          x: 100,
-          y: headerY,
-          size: 20,
+        page.drawText(store.name || "Merchant", {
+          x: MARGIN + logoSize + 12,
+          y: currentY - 22,
+          size: 16,
           font: fontBold,
-          color: primaryColor,
+          color: TEXT_BLACK,
         });
       } catch (e) {
-        // Fallback if logo fetch fails
-        page.drawText(store.name || "Merchant Receipt", {
-          x: 50,
-          y: headerY,
-          size: 20,
+        page.drawText(store.name || "Merchant", {
+          x: MARGIN,
+          y: currentY - 22,
+          size: 16,
           font: fontBold,
-          color: primaryColor,
+          color: TEXT_BLACK,
         });
       }
     } else {
-      page.drawText(store.name || "Merchant Receipt", {
-        x: 50,
-        y: headerY,
-        size: 20,
+      page.drawText(store.name || "Merchant", {
+        x: MARGIN,
+        y: currentY - 22,
+        size: 16,
         font: fontBold,
-        color: primaryColor,
+        color: TEXT_BLACK,
       });
     }
 
-    page.drawText("OFFICIAL RECEIPT", {
-      x: width - 200,
-      y: headerY,
-      size: 16,
+    // RIGHT: Invoice Label
+    const invoiceLabel = "INVOICE";
+    const invoiceLabelWidth = fontBold.widthOfTextAtSize(invoiceLabel, 18);
+    page.drawText(invoiceLabel, {
+      x: width - MARGIN - invoiceLabelWidth,
+      y: currentY - 18,
+      size: 18,
       font: fontBold,
-      color: darkColor,
+      color: TEXT_BLACK,
     });
-
-    // 3. Amount Hero Section
-    const amountY = height - 180;
-    page.drawRectangle({
-      x: 50,
-      y: amountY - 40,
-      width: width - 100,
-      height: 100,
-      color: rgb(0.97, 0.98, 0.98),
-      opacity: 0.5,
-    });
-
-    page.drawText("Total Settled Amount", {
-      x: 75,
-      y: amountY + 30,
+    
+    const subtitle = "Official Receipt";
+    const subtitleWidth = fontRegular.widthOfTextAtSize(subtitle, 10);
+    page.drawText(subtitle, {
+      x: width - MARGIN - subtitleWidth,
+      y: currentY - 32,
       size: 10,
       font: fontRegular,
-      color: secondaryColor,
+      color: TEXT_GRAY,
     });
 
-    page.drawText(`BDT ${data.amount}.00`, {
-      x: 75,
-      y: amountY - 10,
-      size: 42,
-      font: fontBold,
-      color: primaryColor,
+    currentY -= 60;
+
+    // Divider
+    page.drawLine({
+      start: { x: MARGIN, y: currentY },
+      end: { x: width - MARGIN, y: currentY },
+      thickness: 1,
+      color: BORDER_COLOR,
     });
 
-    // Status Badge
-    const status = (data.status || 'pending').toUpperCase();
-    const statusColor = status === 'VERIFIED' ? primaryColor : rgb(0.96, 0.62, 0.04);
-    
+    currentY -= 40;
+
+    // --- 2. AMOUNT CARD ---
+    const cardHeight = 100;
     page.drawRectangle({
-      x: width - 180,
-      y: amountY,
-      width: 130,
-      height: 30,
-      color: statusColor,
-      borderRadius: 15,
+      x: MARGIN,
+      y: currentY - cardHeight,
+      width: width - (MARGIN * 2),
+      height: cardHeight,
+      color: BG_LIGHT,
     });
 
-    page.drawText(status, {
-      x: width - 180 + (130 / 2) - (fontBold.widthOfTextAtSize(status, 10) / 2),
-      y: amountY + 10,
-      size: 10,
+    page.drawText("Total Amount", {
+      x: MARGIN + 25,
+      y: currentY - 30,
+      size: 11,
+      font: fontRegular,
+      color: TEXT_GRAY,
+    });
+
+    const amountText = `৳ ${Number(data.amount).toFixed(2)}`;
+    page.drawText(amountText, {
+      x: MARGIN + 25,
+      y: currentY - 70,
+      size: 32,
       font: fontBold,
-      color: rgb(1, 1, 1),
+      color: PRIMARY_GREEN,
     });
 
-    // 4. Details Table
-    const tableStartY = amountY - 100;
-    const rowHeight = 35;
-    
-    const drawRow = (label: string, value: string, index: number) => {
-      const y = tableStartY - (index * rowHeight);
-      page.drawText(label, { x: 75, y, size: 10, font: fontRegular, color: secondaryColor });
-      page.drawText(value, { x: 240, y, size: 10, font: fontBold, color: darkColor });
+    // Verified Pill
+    const isVerified = data.status === 'verified';
+    if (isVerified) {
+      const pillLabel = "VERIFIED";
+      const pillWidth = 80;
+      const pillHeight = 24;
+      page.drawRectangle({
+        x: width - MARGIN - pillWidth - 25,
+        y: currentY - 60,
+        width: pillWidth,
+        height: pillHeight,
+        color: PRIMARY_GREEN,
+      });
       
-      // Border line
+      const labelWidth = fontBold.widthOfTextAtSize(pillLabel, 9);
+      page.drawText(pillLabel, {
+        x: width - MARGIN - pillWidth - 25 + (pillWidth / 2) - (labelWidth / 2),
+        y: currentY - 60 + 8,
+        size: 9,
+        font: fontBold,
+        color: rgb(1, 1, 1),
+      });
+    }
+
+    currentY -= (cardHeight + 50);
+
+    // --- 3. DETAILS TABLE ---
+    const drawRow = (label: string, value: string, y: number) => {
+      page.drawText(label, { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
+      page.drawText(value, { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
+      
       page.drawLine({
-        start: { x: 50, y: y - 10 },
-        end: { x: width - 50, y: y - 10 },
+        start: { x: MARGIN + 10, y: y - 12 },
+        end: { x: width - MARGIN - 10, y: y - 12 },
         thickness: 0.5,
-        color: rgb(0.9, 0.9, 0.9),
+        color: BORDER_COLOR,
       });
     };
 
-    drawRow("Transaction ID", data.trxId || "—", 0);
-    drawRow("Payment Method", (data.method || "—").toUpperCase(), 1);
-    drawRow("Order Reference", data.val_id || "—", 2);
-    drawRow("Sender Number", data.sender || "—", 3);
-    drawRow("Date Created", data.createdAtFormatted || "—", 4);
-    drawRow("Date Verified", data.verifiedAtFormatted || "—", 5);
+    const rows = [
+      { label: "Transaction ID", value: data.trxId || "—" },
+      { label: "Payment Method", value: (data.method || "—").toUpperCase() },
+      { label: "Order Reference", value: data.val_id || "—" },
+      { label: "Sender Number", value: data.sender || "—" },
+      { label: "Date Created", value: data.createdAtFormatted || "—" },
+      { label: "Date Verified", value: data.verifiedAtFormatted || "—" },
+    ];
 
-    // 5. Verification Seal
-    if (status === 'VERIFIED') {
-      const sealX = width - 130;
-      const sealY = tableStartY - (3 * rowHeight);
-      
+    rows.forEach((row, i) => {
+      drawRow(row.label, row.value, currentY - (i * 35));
+    });
+
+    // --- 4. VERIFIED STAMP ---
+    if (isVerified) {
+      const stampX = width - 120;
+      const stampY = 220;
       page.drawCircle({
-        x: sealX + 30,
-        y: sealY,
-        size: 35,
-        borderWidth: 2,
-        borderColor: primaryColor,
+        x: stampX,
+        y: stampY,
+        size: 45,
+        borderWidth: 1.5,
+        borderColor: PRIMARY_GREEN,
+        opacity: 0.3,
       });
-      
-      const sealText = "VERIFIED";
-      page.drawText(sealText, {
-        x: sealX + 30 - (fontBold.widthOfTextAtSize(sealText, 8) / 2),
-        y: sealY - 30,
-        size: 8,
+      const stampText = "VERIFIED";
+      const sWidth = fontBold.widthOfTextAtSize(stampText, 10);
+      page.drawText(stampText, {
+        x: stampX - (sWidth / 2),
+        y: stampY - 4,
+        size: 10,
         font: fontBold,
-        color: primaryColor,
+        color: PRIMARY_GREEN,
+        opacity: 0.3,
       });
     }
 
-    // 6. Footer
-    const footerY = 50;
-    page.drawLine({
-      start: { x: 50, y: footerY + 30 },
-      end: { x: width - 50, y: footerY + 30 },
-      thickness: 1,
-      color: rgb(0.9, 0.9, 0.9),
-    });
-
-    const footerText = "This receipt was automatically generated and verified by the AntiPay Infrastructure.";
-    page.drawText(footerText, {
-      x: (width / 2) - (fontRegular.widthOfTextAtSize(footerText, 9) / 2),
-      y: footerY + 10,
+    // --- 5. FOOTER ---
+    const footerY = 60;
+    const footerNote = "This receipt was automatically generated and verified by AntiPay.";
+    const noteWidth = fontRegular.widthOfTextAtSize(footerNote, 9);
+    page.drawText(footerNote, {
+      x: (width / 2) - (noteWidth / 2),
+      y: footerY,
       size: 9,
       font: fontRegular,
-      color: secondaryColor,
+      color: TEXT_GRAY,
     });
 
-    page.drawText("Powered by AntiPay Ltd.", {
-      x: (width / 2) - (fontBold.widthOfTextAtSize("Powered by AntiPay Ltd.", 10) / 2),
-      y: footerY - 10,
-      size: 10,
+    const poweredBy = "Powered by AntiPay";
+    const pWidth = fontBold.widthOfTextAtSize(poweredBy, 11);
+    page.drawText(poweredBy, {
+      x: (width / 2) - (pWidth / 2),
+      y: footerY - 18,
+      size: 11,
       font: fontBold,
-      color: primaryColor,
+      color: PRIMARY_GREEN,
     });
 
     const pdfBase64 = await pdfDoc.saveAsBase64();
