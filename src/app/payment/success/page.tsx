@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { doc, getDoc, writeBatch, serverTimestamp, Timestamp, collection } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2, AlertCircle, LogIn } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2, AlertCircle, LogIn, RefreshCcw } from "lucide-react";
 import { useUser, useFirestore } from "@/firebase";
 import { verifyPaymentSession } from "@/app/actions/payment";
 
@@ -20,47 +20,56 @@ function PaymentSuccessContent() {
   const [error, setError] = useState<string | null>(null);
   const [planName, setPlanName] = useState("");
 
+  // Get params directly from URL as fallback if searchParams is empty
   const sessionId = searchParams.get('sessionId');
   const trxId = searchParams.get('trxId');
 
   useEffect(() => {
     async function activatePlan() {
+      // 1. Wait for Auth and Params to be ready
       if (isUserLoading) return;
-
+      
+      // Give the router a moment to populate params if they are missing
       if (!sessionId || !trxId) {
-        setError("Missing payment parameters.");
-        setIsVerifying(false);
-        return;
+        const timeout = setTimeout(() => {
+          if (!sessionId || !trxId) {
+            setError("MISSING PARAMETERS");
+            setIsVerifying(false);
+          }
+        }, 2000);
+        return () => clearTimeout(timeout);
       }
 
       if (!user) {
-        // Wait a bit to ensure auth is properly synced after external redirect
-        await new Promise(r => setTimeout(r, 1000));
-        if (!user) {
-            setError("Session authentication timed out. Please sign in.");
+        // If params are here but user isn't, it might be a sync issue. Wait a bit.
+        const authTimeout = setTimeout(() => {
+          if (!user) {
+            setError("AUTH_REQUIRED");
             setIsVerifying(false);
-            return;
-        }
+          }
+        }, 1500);
+        return () => clearTimeout(authTimeout);
       }
+
+      // 2. Start Verification
+      setIsVerifying(true);
+      setError(null);
 
       try {
         const verifyRes = await verifyPaymentSession(sessionId, trxId);
         
         if (!verifyRes.success) {
-          setError(verifyRes.error || "Verification failed at gateway.");
-          setIsVerifying(false);
-          return;
+          throw new Error(verifyRes.error || "Gateway verification failed.");
         }
 
         const gatewayData = verifyRes.data;
-        // val_id format: userId|planId
-        const planId = (gatewayData.val_id || '').split('|')[1];
+        const [targetUserId, planId] = (gatewayData.val_id || '').split('|');
         
-        if (!planId) throw new Error("Plan identification failed.");
+        if (!planId) throw new Error("Could not identify plan from gateway data.");
 
-        // Fetch plan details to get correct name and limits
+        // 3. Update Firestore
         const planSnap = await getDoc(doc(db, 'subscriptionPlans', planId));
-        if (!planSnap.exists()) throw new Error("Plan definition missing.");
+        if (!planSnap.exists()) throw new Error(`Plan configuration '${planId}' not found.`);
         
         const planData = planSnap.data();
         setPlanName(planData.name);
@@ -76,7 +85,7 @@ function PaymentSuccessContent() {
           expiry.setDate(now.getDate() + 30);
         }
 
-        // 1. Update active quotas
+        // Update quotas
         batch.set(doc(db, 'user_plans', user.uid), {
           userId: user.uid,
           planId: planId,
@@ -91,7 +100,7 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         }, { merge: true });
 
-        // 2. Update profile status
+        // Update profile
         batch.update(doc(db, 'users', user.uid), {
           subscriptionPlanId: planId,
           subscriptionStartedAt: serverTimestamp(),
@@ -99,7 +108,7 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         });
 
-        // 3. Log historical transaction
+        // Log Transaction
         const txRef = doc(collection(db, 'plan_transactions'));
         batch.set(txRef, {
           id: txRef.id,
@@ -117,7 +126,8 @@ function PaymentSuccessContent() {
         await batch.commit();
         setIsSuccess(true);
       } catch (err: any) {
-        setError(err.message || "Activation interrupted.");
+        console.error("ACTIVATION ERROR:", err);
+        setError(err.message || "Failed to activate plan.");
       } finally {
         setIsVerifying(false);
       }
@@ -126,94 +136,96 @@ function PaymentSuccessContent() {
     activatePlan();
   }, [user, isUserLoading, db, sessionId, trxId]);
 
-  if (isVerifying || isUserLoading) {
+  if (isVerifying) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Establishing Secure Connection...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 gap-6 animate-in fade-in duration-500">
-        <div className="h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
+      <div className="max-w-xs w-full bg-[#162129] border border-border/10 rounded-[2rem] p-8 text-center space-y-6 shadow-2xl">
+        <div className="h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mx-auto">
            <AlertCircle size={24} />
         </div>
-        <div className="space-y-1 text-center">
+        <div className="space-y-1">
            <h2 className="text-lg font-black text-white uppercase tracking-tight">Activation Halted</h2>
-           <p className="text-muted-foreground max-w-xs mx-auto text-[10px] uppercase font-bold tracking-widest">{error}</p>
+           <p className="text-muted-foreground text-[9px] uppercase font-bold tracking-widest">
+             {error === "AUTH_REQUIRED" ? "Please sign in to link payment" : error}
+           </p>
         </div>
-        {!user ? (
-          <Button asChild className="ios-btn bg-primary hover:bg-primary/90 font-bold px-8 h-10 text-xs">
-             <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In to Retry</Link>
+        <div className="space-y-3">
+          {error === "AUTH_REQUIRED" ? (
+            <Button asChild className="ios-btn bg-primary w-full h-11 font-bold">
+               <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In Now</Link>
+            </Button>
+          ) : (
+            <Button onClick={() => window.location.reload()} className="ios-btn bg-white text-black w-full h-11 font-bold">
+               <RefreshCcw className="mr-2 h-4 w-4" /> Retry Verification
+            </Button>
+          )}
+          <Button asChild variant="ghost" className="w-full text-muted-foreground text-[10px] font-bold">
+             <Link href="/dashboard/subscription">Return to Subscription</Link>
           </Button>
-        ) : (
-          <Button asChild variant="outline" className="border-white/10 text-white rounded-xl h-9 text-[10px] px-6">
-             <Link href="/dashboard/subscription">Go to Dashboard</Link>
-          </Button>
-        )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xs w-full space-y-6 text-center animate-in zoom-in-95 fade-in duration-700">
+    <div className="max-w-xs w-full space-y-6 text-center animate-in zoom-in-95 duration-500">
       <div className="relative inline-block">
-        <div className="absolute inset-0 bg-[#16a34a] blur-2xl opacity-20 rounded-full animate-pulse" />
-        <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-[#16a34a] to-emerald-700 border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
-           <CheckCircle2 size={28} className="text-white" />
-           <div className="absolute -top-1 -right-1 bg-amber-500 p-0.5 rounded shadow-lg">
-             <Sparkles size={8} className="text-white" />
-           </div>
+        <div className="absolute inset-0 bg-[#16a34a] blur-2xl opacity-20 rounded-full" />
+        <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-[#16a34a] to-emerald-700 border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
+           <CheckCircle2 size={32} className="text-white" />
+           <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-amber-500 animate-pulse" />
         </div>
       </div>
 
-      <div className="space-y-1">
-        <h1 className="text-xl font-black text-white tracking-tighter uppercase italic">
-          Payment <span className="text-[#16a34a]">Verified!</span>
-        </h1>
-        <p className="text-slate-300 text-xs font-bold tracking-tight">
-          Congratulations! Your <span className="text-[#16a34a]">{planName || 'New'}</span> plan is now active.
+      <div className="space-y-1 px-4">
+        <h1 className="text-xl font-black text-white tracking-tight uppercase">Payment <span className="text-[#16a34a]">Verified!</span></h1>
+        <p className="text-slate-300 text-xs font-bold leading-tight">
+          Congratulations! Your <span className="text-[#16a34a]">{planName || 'New'}</span> plan is now fully active on your account.
         </p>
       </div>
 
-      <Card className="bg-[#162129]/60 backdrop-blur-xl border-border/10 shadow-2xl overflow-hidden rounded-[1.25rem] border">
-        <CardContent className="p-4 space-y-5">
-          <div className="flex items-center justify-between p-2.5 bg-[#0b141a]/50 rounded-lg border border-white/5">
-             <div className="flex items-center gap-2.5">
-                <div className="h-7 w-7 rounded-lg bg-[#16a34a]/20 flex items-center justify-center text-[#16a34a]">
-                   <Zap size={14} className="animate-pulse" />
-                </div>
+      <Card className="bg-[#162129]/60 backdrop-blur-xl border-border/10 shadow-2xl overflow-hidden rounded-[1.5rem] border mx-4">
+        <CardContent className="p-5 space-y-6">
+          <div className="flex items-center justify-between p-3 bg-[#0b141a]/50 rounded-xl border border-white/5">
+             <div className="flex items-center gap-3">
+                <Zap size={16} className="text-[#16a34a] animate-pulse" />
                 <div className="text-left">
-                   <p className="text-[6px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Account Status</p>
-                   <p className="font-black text-white text-[10px] tracking-tight uppercase italic">Active & Secured</p>
+                   <p className="text-[6px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Instance Status</p>
+                   <p className="font-black text-white text-[10px] tracking-tight uppercase">Active & Secured</p>
                 </div>
              </div>
-             <div className="h-1 w-1 rounded-full bg-[#16a34a] shadow-[0_0_8px_rgba(22,163,74,0.8)] animate-pulse" />
+             <div className="h-1.5 w-1.5 rounded-full bg-[#16a34a] shadow-[0_0_8px_rgba(22,163,74,0.8)]" />
           </div>
 
-          <div className="grid grid-cols-1 gap-2">
-             <Button asChild className="ios-btn bg-[#16a34a] hover:bg-[#15803d] w-full h-9 text-[10px] font-black rounded-lg border-none shadow-xl">
+          <div className="grid grid-cols-1 gap-2.5">
+             <Button asChild className="ios-btn bg-[#16a34a] hover:bg-[#15803d] w-full h-10 text-[11px] font-black rounded-xl border-none">
                 <Link href="/dashboard" className="flex items-center justify-center gap-2">
-                   Go to Console <ArrowRight className="h-3 w-3" />
+                   Go to Dashboard <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
              </Button>
              
              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" asChild className="h-8 text-[8px] font-bold rounded-lg border-white/5 hover:bg-white/5 text-muted-foreground">
-                    <Link href="/dashboard/subscription">View Quotas</Link>
+                <Button variant="outline" asChild className="h-9 text-[9px] font-bold rounded-xl border-white/5 bg-white/5 text-muted-foreground">
+                    <Link href="/dashboard/subscription">View Limits</Link>
                 </Button>
-                <Button variant="outline" asChild className="h-8 text-[8px] font-bold rounded-lg border-white/5 hover:bg-white/5 text-muted-foreground">
-                    <Link href="/dashboard/invoices">History</Link>
+                <Button variant="outline" asChild className="h-9 text-[9px] font-bold rounded-xl border-white/5 bg-white/5 text-muted-foreground">
+                    <Link href="/dashboard/invoices">Receipts</Link>
                 </Button>
              </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-center gap-1.5 text-[7px] text-muted-foreground font-black uppercase tracking-[0.2em]">
-         <ShieldCheck size={8} className="text-[#16a34a]" /> AntiPay Secure Payment System
+      <div className="flex items-center justify-center gap-2 text-[8px] text-muted-foreground font-black uppercase tracking-[0.2em] pt-4">
+         <ShieldCheck size={10} className="text-[#16a34a]" /> AntiPay Infrastructure
       </div>
     </div>
   );
@@ -223,14 +235,14 @@ export default function PaymentSuccessPage() {
   return (
     <div className="min-h-screen bg-[#0b141a] flex flex-col font-body selection:bg-primary/20">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] bg-primary/10 blur-[100px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-emerald-500/10 blur-[100px] rounded-full" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full" />
       </div>
 
       <header className="border-b border-white/5 bg-[#162129]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto flex h-12 items-center justify-between px-4">
+        <div className="container mx-auto flex h-14 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay" className="h-7 w-auto" />
+            <img src="https://i.imgur.com/18owxBD.png" alt="AntiPay" className="h-8 w-auto" />
             <span className="text-lg font-headline font-bold tracking-tight text-[#16a34a]">AntiPay</span>
           </Link>
         </div>
