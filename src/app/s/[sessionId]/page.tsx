@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { doc, getDocs, query, collectionGroup, where, updateDoc, serverTimestamp, documentId, limit } from 'firebase/firestore';
-import { ShieldCheck, Lock, CheckCircle2, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import { doc, getDocs, query, collectionGroup, where, updateDoc, serverTimestamp, limit } from 'firebase/firestore';
+import { ShieldCheck, Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,8 @@ export default function PublicPaymentPage() {
     async function fetchSession() {
       if (!db || !sessionId) return;
       try {
-        const q = query(collectionGroup(db, 'sessions'), where(documentId(), '==', sessionId), limit(1));
+        // Fix: Use 'id' field instead of documentId() for collection group query to avoid path segment errors
+        const q = query(collectionGroup(db, 'sessions'), where('id', '==', sessionId), limit(1));
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
