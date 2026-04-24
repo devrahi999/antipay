@@ -21,7 +21,7 @@ service cloud.firestore {
       allow get, list: if true;
     }
 
-    // UPDATED: plan_transactions must allow webhook write and success page read
+    // Webhook and Activation Access
     match /plan_transactions/{txId} {
       allow read, write: if true;
     }
@@ -68,11 +68,6 @@ service cloud.firestore {
     match /subscriptionPlans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
-    }
-
-    match /plan_transactions/{txId} {
-      allow read: if true;
-      allow write: if true;
     }
 
     match /devices/{brandId} {
