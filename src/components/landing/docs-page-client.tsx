@@ -79,48 +79,16 @@ Request Parameters:
 - redirect_success_url (string, required): Redirect after success.
 - redirect_cancel_url (string, required): Redirect if cancelled.
 
-Example (cURL):
-curl -X POST "https://pay.antipay.site/v1/create" \\
--H "Content-Type: application/json" \\
--H "antipay-api-key: YOUR_API_KEY" \\
--d '{
-  "amount": 145.50,
-  "val_id": "ORDER_88721",
-  "webhook_url": "https://your-site.com/api/webhook"
-}'
-
 ----------------------------------------
 2. VERIFY PAYMENT (SERVER ONLY)
 ----------------------------------------
 POST /v1/verify
-
-Request Parameters:
-- trxId (string, required): Transaction ID.
-- sessionId (string, required): Session ID.
 
 ----------------------------------------
 3. WEBHOOK (IMPORTANT)
 ----------------------------------------
 AntiPay sends a POST request to your webhook_url when payment status changes.
 ⚠️ This is the PRIMARY way to confirm payments.
-
-Example Body:
-{
-  "status": "verified",
-  "sessionId": "sess_xxx",
-  "trxId": "8J9A1X7K",
-  "amount": 145.50,
-  "method": "bkash",
-  "val_id": "ORDER_88721"
-}
-
-----------------------------------------
-4. REDIRECT FLOW
-----------------------------------------
-Success -> redirectSuccessUrl
-Cancel -> redirectCancelUrl
-
-⚠️ Do NOT trust query params alone. Always rely on webhook or /verify.
 
 ----------------------------------------
 FINAL INTEGRATION FLOW
@@ -295,17 +263,88 @@ FINAL INTEGRATION FLOW
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold">Example cURL</h3>
-                  <div className="bg-[#0b141a] rounded-2xl border border-border/10 p-8 shadow-2xl relative group">
-                    <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/create" \\
+                  <h3 className="text-lg font-bold">Implementation Snippets</h3>
+                  <Tabs defaultValue="curl" className="w-full">
+                    <TabsList className="bg-[#162129] border border-border/10 p-1 rounded-t-2xl rounded-b-none h-auto flex flex-wrap justify-start border-b-0">
+                      <TabsTrigger value="curl" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">cURL</TabsTrigger>
+                      <TabsTrigger value="nodejs" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">Node.js</TabsTrigger>
+                      <TabsTrigger value="php" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">PHP</TabsTrigger>
+                      <TabsTrigger value="python" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">Python</TabsTrigger>
+                    </TabsList>
+                    <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
+                      <TabsContent value="curl" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/create" \\
   -H "Content-Type: application/json" \\
   -H "antipay-api-key: YOUR_API_KEY" \\
   -d '{
     "amount": 145.50,
     "val_id": "ORDER_88721",
-    "webhook_url": "https://your-site.com/api/webhook"
+    "webhook_url": "https://your-site.com/webhook",
+    "redirect_success_url": "https://your-site.com/success",
+    "redirect_cancel_url": "https://your-site.com/cancel"
   }'`}</code></pre>
-                  </div>
+                      </TabsContent>
+                      <TabsContent value="nodejs" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/v1/create", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "antipay-api-key": "YOUR_API_KEY"
+  },
+  body: JSON.stringify({
+    amount: 145.50,
+    val_id: "ORDER_88721",
+    webhook_url: "https://your-site.com/webhook",
+    redirect_success_url: "https://your-site.com/success",
+    redirect_cancel_url: "https://your-site.com/cancel"
+  })
+});
+
+const { paymentUrl } = await response.json();
+window.location.href = paymentUrl;`}</code></pre>
+                      </TabsContent>
+                      <TabsContent value="php" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`<?php
+$data = [
+    "amount" => 145.50,
+    "val_id" => "ORDER_88721",
+    "webhook_url" => "https://your-site.com/webhook",
+    "redirect_success_url" => "https://your-site.com/success",
+    "redirect_cancel_url" => "https://your-site.com/cancel"
+];
+
+$ch = curl_init("https://pay.antipay.site/v1/create");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Content-Type: application/json",
+    "antipay-api-key: YOUR_API_KEY"
+]);
+
+$result = json_decode(curl_exec($ch), true);
+header("Location: " . $result['paymentUrl']);
+?>`}</code></pre>
+                      </TabsContent>
+                      <TabsContent value="python" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`import requests
+
+url = "https://pay.antipay.site/v1/create"
+headers = {"antipay-api-key": "YOUR_API_KEY"}
+payload = {
+    "amount": 145.50,
+    "val_id": "ORDER_88721",
+    "webhook_url": "https://your-site.com/webhook",
+    "redirect_success_url": "https://your-site.com/success",
+    "redirect_cancel_url": "https://your-site.com/cancel"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+data = response.json()
+print(f"Redirect user to: {data['paymentUrl']}")`}</code></pre>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
                 </div>
               </section>
 
@@ -320,16 +359,72 @@ FINAL INTEGRATION FLOW
                   </p>
                 </div>
 
-                <div className="bg-[#0b141a] rounded-2xl border border-border/10 p-8 shadow-2xl">
-                  <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/v1/verify", {
+                <Tabs defaultValue="curl" className="w-full">
+                    <TabsList className="bg-[#162129] border border-border/10 p-1 rounded-t-2xl rounded-b-none h-auto flex flex-wrap justify-start border-b-0">
+                      <TabsTrigger value="curl" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">cURL</TabsTrigger>
+                      <TabsTrigger value="nodejs" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">Node.js</TabsTrigger>
+                      <TabsTrigger value="php" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">PHP</TabsTrigger>
+                      <TabsTrigger value="python" className="px-6 py-2.5 text-xs font-bold data-[state=active]:bg-[#16a34a] data-[state=active]:text-white transition-all uppercase">Python</TabsTrigger>
+                    </TabsList>
+                    <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
+                      <TabsContent value="curl" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/verify" \\
+  -H "Content-Type: application/json" \\
+  -H "antipay-api-key: YOUR_API_KEY" \\
+  -d '{
+    "trxId": "8J9A1X7K",
+    "sessionId": "sess_xxx"
+  }'`}</code></pre>
+                      </TabsContent>
+                      <TabsContent value="nodejs" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/v1/verify", {
   method: "POST",
-  headers: { "antipay-api-key": "YOUR_API_KEY" },
+  headers: {
+    "Content-Type": "application/json",
+    "antipay-api-key": "YOUR_API_KEY"
+  },
   body: JSON.stringify({ 
     trxId: "8J9A1X7K", 
     sessionId: "sess_xxx" 
   })
-});`}</code></pre>
-                </div>
+});
+
+const result = await response.json();
+if (result.status === 'verified') {
+  console.log("Payment Confirmed");
+}`}</code></pre>
+                      </TabsContent>
+                      <TabsContent value="php" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`<?php
+$data = ["trxId" => "8J9A1X7K", "sessionId" => "sess_xxx"];
+$ch = curl_init("https://pay.antipay.site/v1/verify");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Content-Type: application/json",
+    "antipay-api-key: YOUR_API_KEY"
+]);
+
+$result = json_decode(curl_exec($ch), true);
+if($result['status'] === 'verified') {
+    // Success logic
+}
+?>`}</code></pre>
+                      </TabsContent>
+                      <TabsContent value="python" className="m-0">
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`import requests
+
+url = "https://pay.antipay.site/v1/verify"
+headers = {"antipay-api-key": "YOUR_API_KEY"}
+payload = {"trxId": "8J9A1X7K", "sessionId": "sess_xxx"}
+
+response = requests.post(url, json=payload, headers=headers)
+if response.json().get('status') == 'verified':
+    print("Verification Successful")`}</code></pre>
+                      </TabsContent>
+                    </div>
+                </Tabs>
               </section>
 
               <section id="webhook" className="scroll-mt-32 space-y-8">
@@ -358,24 +453,6 @@ FINAL INTEGRATION FLOW
   "val_id": "ORDER_88721"
 }`}</code></pre>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                     <div className="p-4 bg-secondary/20 rounded-xl border border-border/10">
-                        <p className="text-xs font-bold mb-2">Possible Status Values</p>
-                        <ul className="text-xs space-y-1 text-muted-foreground">
-                           <li><span className="text-emerald-500 font-bold">verified</span> → Success</li>
-                           <li><span className="text-rose-500 font-bold">cancelled</span> → User exited</li>
-                           <li><span className="text-amber-500 font-bold">pending</span> → Incomplete</li>
-                        </ul>
-                     </div>
-                     <div className="p-4 bg-secondary/20 rounded-xl border border-border/10">
-                        <p className="text-xs font-bold mb-2">Developer Checklist</p>
-                        <ul className="text-[10px] space-y-1 text-muted-foreground list-disc pl-4">
-                           <li>Match sessionId with your DB</li>
-                           <li>Mark order as PAID if verified</li>
-                           <li>Ignore duplicate calls (Idempotency)</li>
-                        </ul>
-                     </div>
-                  </div>
                 </div>
               </section>
 
@@ -388,13 +465,6 @@ FINAL INTEGRATION FLOW
                   <p className="text-muted-foreground leading-relaxed">
                     After payment, users are redirected back to your configured URLs. Note: These URLs must be configured in your AntiPay Brand Dashboard.
                   </p>
-                  <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-6">
-                    <li><strong>Success</strong> → redirectSuccessUrl</li>
-                    <li><strong>Cancel</strong> → redirectCancelUrl</li>
-                  </ul>
-                  <div className="bg-[#0b141a] p-4 rounded-xl border border-border/10">
-                     <code className="text-[11px] text-emerald-400">https://your-site.com/payment/success?sessionId=sess_xxx</code>
-                  </div>
                   <div className="p-4 bg-rose-500/5 border border-rose-500/20 rounded-xl flex gap-3">
                     <AlertCircle className="h-5 w-5 text-rose-500 shrink-0" />
                     <p className="text-xs text-rose-500 font-medium">⚠️ Do NOT trust query parameters alone for order fulfillment. Always rely on the webhook or /verify endpoint.</p>
