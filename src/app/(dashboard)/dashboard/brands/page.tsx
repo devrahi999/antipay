@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { collection, query, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, where, limit, writeBatch, increment } from 'firebase/firestore';
+import { useState, useRef } from 'react';
+import { collection, query, serverTimestamp, doc, setDoc, updateDoc, where, limit, writeBatch, increment } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,7 +26,10 @@ import {
   Mail,
   Phone,
   MessageCircle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Upload,
+  Image as ImageIcon,
+  X
 } from "lucide-react"
 import { 
   Dialog, 
@@ -48,13 +51,17 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { uploadLogoAction } from '@/app/actions/upload';
 import Link from 'next/link';
 
 export default function BrandsPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -96,6 +103,37 @@ export default function BrandsPage() {
   const { data: brands, isLoading } = useCollection(brandsQuery);
 
   const canAddBrand = activePlan && (brands ? brands.length < activePlan.maxApiKeys : true);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an image file." });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({ variant: "destructive", title: "File Too Large", description: "Image size should be less than 5MB." });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      
+      const secureUrl = await uploadLogoAction(uploadData);
+      setFormData(prev => ({ ...prev, logoUrl: secureUrl }));
+      
+      toast({ title: "Logo Uploaded", description: "Image has been processed successfully." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: error.message || "Could not upload image." });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,6 +303,65 @@ export default function BrandsPage() {
                       <h3 className="text-[#16a34a] font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                         Brand Identity
                       </h3>
+                      
+                      {/* Logo Upload Section */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-100">Store Logo</Label>
+                        <div className="flex items-center gap-4">
+                          <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="h-20 w-20 rounded-2xl bg-[#162129] border-2 border-dashed border-border/20 flex flex-col items-center justify-center cursor-pointer hover:border-[#16a34a]/40 hover:bg-[#162129]/80 transition-all relative overflow-hidden group"
+                          >
+                            {formData.logoUrl ? (
+                              <>
+                                <img src={formData.logoUrl} alt="Preview" className="h-full w-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <Upload className="h-5 w-5 text-white" />
+                                </div>
+                              </>
+                            ) : isUploading ? (
+                              <Loader2 className="h-6 w-6 animate-spin text-[#16a34a]" />
+                            ) : (
+                              <>
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                <span className="text-[8px] font-bold text-muted-foreground mt-1">UPLOAD</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-1">
+                             <p className="text-[10px] text-muted-foreground leading-tight">Recommended size: 500x500px. Max size: 5MB.</p>
+                             <input 
+                              type="file" 
+                              ref={fileInputRef} 
+                              onChange={handleFileChange} 
+                              className="hidden" 
+                              accept="image/*" 
+                             />
+                             <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 text-[10px] border-border/10 bg-[#162129]"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploading}
+                             >
+                               {isUploading ? "Uploading..." : "Choose Image"}
+                             </Button>
+                             {formData.logoUrl && (
+                               <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-[10px] text-destructive hover:bg-destructive/10"
+                                onClick={() => setFormData(p => ({ ...prev, logoUrl: '' }))}
+                               >
+                                 Remove
+                               </Button>
+                             )}
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-4">
                         <div className="space-y-1">
                           <Label className="text-xs font-bold text-slate-100">Brand Name <span className="text-destructive">*</span></Label>
@@ -273,10 +370,6 @@ export default function BrandsPage() {
                         <div className="space-y-1">
                           <Label className="text-xs font-bold text-slate-100">Website URL <span className="text-destructive">*</span></Label>
                           <Input placeholder="https://myshop.com" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.websiteUrl} onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})} required />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs font-bold text-slate-100">Logo URL</Label>
-                          <Input placeholder="https://myshop.com/logo.png" className="bg-[#162129] border-border/20 h-10 text-white" value={formData.logoUrl} onChange={(e) => setFormData({...formData, logoUrl: e.target.value})} />
                         </div>
                       </div>
                     </div>
@@ -325,7 +418,7 @@ export default function BrandsPage() {
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
                   <Button type="button" variant="ghost" className="bg-[#162129] hover:bg-[#1c2a35] text-muted-foreground px-8 border border-border/10 rounded-xl" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-white px-8 font-bold rounded-xl" disabled={isSubmitting}>
+                  <Button type="submit" className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-white px-8 font-bold rounded-xl" disabled={isSubmitting || isUploading}>
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} 
                     {isEditMode ? 'Update Brand' : 'Save Brand'}
                   </Button>
@@ -348,9 +441,9 @@ export default function BrandsPage() {
               <div className="h-1.5 bg-[#16a34a] w-full" />
               <CardHeader className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-2xl bg-[#162129] border border-border/10 flex items-center justify-center text-[#16a34a] font-bold text-xl uppercase shadow-inner">
+                  <div className="h-14 w-14 rounded-2xl bg-[#162129] border border-border/10 flex items-center justify-center text-[#16a34a] font-bold text-xl uppercase shadow-inner overflow-hidden">
                     {brand.logoUrl ? (
-                      <img src={brand.logoUrl} alt="" className="h-full w-full object-cover rounded-2xl" />
+                      <img src={brand.logoUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       brand.name.charAt(0)
                     )}
@@ -430,9 +523,9 @@ export default function BrandsPage() {
             <>
               <DialogHeader className="p-8 bg-gradient-to-br from-[#162129] to-[#0b141a] border-b border-border/10">
                 <div className="flex items-center gap-6">
-                    <div className="h-20 w-20 rounded-3xl bg-[#0b141a] flex items-center justify-center text-[#16a34a] font-bold text-3xl border border-border/10 uppercase shadow-2xl">
+                    <div className="h-20 w-20 rounded-3xl bg-[#0b141a] flex items-center justify-center text-[#16a34a] font-bold text-3xl border border-border/10 uppercase shadow-2xl overflow-hidden">
                       {selectedBrand.logoUrl ? (
-                         <img src={selectedBrand.logoUrl} alt="" className="h-full w-full object-cover rounded-3xl" />
+                         <img src={selectedBrand.logoUrl} alt="" className="h-full w-full object-cover" />
                       ) : selectedBrand.name.charAt(0)}
                     </div>
                     <div className="space-y-1">
