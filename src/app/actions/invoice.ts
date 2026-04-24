@@ -4,8 +4,8 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 /**
- * Generates a high-end professional PDF invoice for a payment session.
- * Uses strict coordinate-based layout for pixel-perfect alignment.
+ * Generates a professional PDF invoice for a payment session.
+ * Uses a strict coordinate-based layout for pixel-perfect alignment.
  * @param data The session data (plain object)
  * @param store The merchant store details (plain object)
  * @returns A base64 encoded string of the PDF buffer.
@@ -16,7 +16,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size: 595.28 x 841.89 pts
     const { width, height } = page.getSize();
     
-    // Embed Standard Fonts (Safe across all environments)
+    // Embed Standard Fonts
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
@@ -34,25 +34,29 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     let logoEmbedded = false;
     const logoSize = 32;
 
-    // Defensively handle Logo
+    // Resilient Logo Logic
     if (store.logoUrl && typeof store.logoUrl === 'string' && store.logoUrl.startsWith('http')) {
       try {
-        const response = await fetch(store.logoUrl, { next: { revalidate: 0 } });
-        if (response.ok) {
-          const imageBytes = await response.arrayBuffer();
-          // Resilient detection: try PNG then JPG. Fail gracefully.
-          try {
-            const logoImage = await pdfDoc.embedPng(imageBytes);
-            page.drawImage(logoImage, {
-              x: MARGIN,
-              y: currentY - logoSize,
-              width: logoSize,
-              height: logoSize,
-            });
-            logoEmbedded = true;
-          } catch {
+        const logoResponse = await fetch(store.logoUrl);
+        if (logoResponse.ok) {
+          const arrayBuffer = await logoResponse.arrayBuffer();
+          const uint8Logo = new Uint8Array(arrayBuffer);
+          
+          if (uint8Logo.length > 0) {
+            let logoImage;
             try {
-              const logoImage = await pdfDoc.embedJpg(imageBytes);
+              // Try PNG first
+              logoImage = await pdfDoc.embedPng(uint8Logo);
+            } catch (pngErr) {
+              try {
+                // Fallback to JPG
+                logoImage = await pdfDoc.embedJpg(uint8Logo);
+              } catch (jpgErr) {
+                console.warn('Logo format not supported by pdf-lib (only PNG/JPG)');
+              }
+            }
+
+            if (logoImage) {
               page.drawImage(logoImage, {
                 x: MARGIN,
                 y: currentY - logoSize,
@@ -60,18 +64,16 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
                 height: logoSize,
               });
               logoEmbedded = true;
-            } catch {
-              console.warn('Image format not supported by pdf-lib (needs PNG/JPG)');
             }
           }
         }
       } catch (e) {
-        console.warn('Logo embedding failed, skipping...', e);
+        console.warn('Silent fail: Logo fetch/embed failed', e);
       }
     }
 
-    // Store Name (Positioned beside logo if embedded)
-    page.drawText(store.name || "Merchant", {
+    // Store Name
+    page.drawText(String(store.name || "AntiPay Merchant"), {
       x: logoEmbedded ? MARGIN + logoSize + 12 : MARGIN,
       y: currentY - 22,
       size: 16,
@@ -168,8 +170,8 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     // --- 3. DETAILS GRID ---
     const drawRow = (label: string, value: string, y: number) => {
-      page.drawText(label, { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
-      page.drawText(String(value), { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
+      page.drawText(String(label), { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
+      page.drawText(String(value || "—"), { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
       
       page.drawLine({
         start: { x: MARGIN + 10, y: y - 12 },
@@ -180,12 +182,12 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     };
 
     const rows = [
-      { label: "Transaction ID", value: data.trxId || "—" },
+      { label: "Transaction ID", value: data.trxId },
       { label: "Payment Method", value: (String(data.method || "—")).toUpperCase() },
-      { label: "Order Reference", value: data.val_id || "—" },
-      { label: "Sender Number", value: data.sender || "—" },
-      { label: "Date Created", value: data.createdAtFormatted || "—" },
-      { label: "Date Verified", value: data.verifiedAtFormatted || "—" },
+      { label: "Order Reference", value: data.val_id },
+      { label: "Sender Number", value: data.sender },
+      { label: "Date Created", value: data.createdAtFormatted },
+      { label: "Date Verified", value: data.verifiedAtFormatted },
     ];
 
     rows.forEach((row, i) => {
