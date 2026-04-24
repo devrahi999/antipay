@@ -10,44 +10,55 @@ const db = getFirestore();
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("🔥 WEBHOOK HIT");
+    
     const body = await req.json();
-    // Gateway returns sessionId (or session_id), amount, val_id, and status
-    const sessionId = body.sessionId || body.session_id;
-    const amount = body.amount;
-    const val_id = body.val_id;
-    const status = body.status;
+    console.log("📦 Webhook Body:", body);
 
-    console.log('--- INBOUND WEBHOOK (PLAN TRANSACTION) ---', { status, val_id, sessionId });
+    const { status, amount, val_id } = body;
+    // Support both sessionId and session_id from gateway
+    const sessionId = body.sessionId || body.session_id;
+
+    if (!sessionId || !val_id) {
+      console.error("❌ MISSING FIELDS:", { sessionId, val_id });
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
 
     if (status !== 'verified') {
+      console.log("ℹ️ Ignoring non-verified status:", status);
       return NextResponse.json({ message: "Ignoring non-verified status" }, { status: 200 });
     }
 
-    if (!val_id || !val_id.includes('|') || !sessionId) {
-      console.error('WEBHOOK ERROR: Invalid payload structure');
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    if (!val_id.includes('|')) {
+      console.error("❌ INVALID val_id format:", val_id);
+      return NextResponse.json({ error: "Invalid val_id format" }, { status: 400 });
     }
 
     const [userId, planId] = val_id.split('|');
 
-    // OBJECTIVE 1: Store verified transaction in plan_transactions root collection
-    // Document ID is the sessionId from the gateway
+    if (!userId || !planId) {
+      console.error("❌ PARSE ERROR:", { userId, planId });
+      return NextResponse.json({ error: "Invalid val_id content" }, { status: 400 });
+    }
+
+    // Write to plan_transactions collection
     await setDoc(doc(db, 'plan_transactions', sessionId), {
       sessionId,
       userId,
       planId,
       amount: Number(amount),
       status: "verified",
-      isActivated: false, // Will be flipped by Success Page
+      isActivated: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    console.log(`WEBHOOK SUCCESS: Transaction ${sessionId} recorded for user ${userId}.`);
+    console.log("✅ Document created in plan_transactions:", sessionId);
+    
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error('WEBHOOK CRITICAL ERROR:', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("❌ WEBHOOK CRITICAL ERROR:", error);
+    return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 });
   }
 }

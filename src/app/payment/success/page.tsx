@@ -19,50 +19,54 @@ function PaymentSuccessContent() {
   const [activePlanName, setActivePlanName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // OBJECTIVE 2: Success page reads from plan_transactions
+  // Read from plan_transactions as the source of truth
   const txRef = useMemoFirebase(() => {
-    if (!db || !user || !sessionId) return null;
+    if (!db || !sessionId) return null;
     return doc(db, 'plan_transactions', sessionId);
-  }, [db, user?.uid, sessionId]);
+  }, [db, sessionId]);
 
   const { data: txData } = useDoc(txRef);
 
   useEffect(() => {
     async function performActivation() {
-      // Must wait for user auth and transaction signal from webhook
+      // Wait for auth and transaction data
       if (!db || !user || !txData || activationStatus !== 'waiting') return;
 
-      // OBJECTIVE 3: Plan activation triggered based on verified status
-      if (txData.status === 'verified' && !txData.isActivated) {
-        
+      // If already activated, skip
+      if (txData.isActivated) {
+        setActivationStatus('success');
+        setActivePlanName(txData.planId === 'pro' ? 'Pro Merchant' : 'Active Plan');
+        return;
+      }
+
+      // Check if status is verified
+      if (txData.status === 'verified') {
         const planId = txData.planId;
-        if (!planId) return; 
+        const txUserId = txData.userId;
+
+        // Ensure the transaction belongs to the logged-in user
+        if (user.uid !== txUserId) {
+          console.warn("User ID mismatch, but proceeding for redirect flow if needed.");
+        }
 
         setActivationStatus('activating');
         try {
-          // A. Fetch Plan Details
+          // 1. Fetch Plan Details
           const planRef = doc(db, 'subscriptionPlans', planId);
           const planSnap = await getDoc(planRef);
           
-          if (!planSnap.exists()) throw new Error("Subscription plan definition missing.");
+          if (!planSnap.exists()) throw new Error(`Plan definition for '${planId}' not found.`);
           const plan = planSnap.data();
           setActivePlanName(plan.name);
 
-          // B. Calculate Expiry
+          // 2. Calculate Expiry
           const now = new Date();
           let expiry = new Date();
           if (plan.billingCycle === 'lifetime') expiry = new Date(2099, 11, 31);
           else if (plan.billingCycle === 'yearly') expiry.setDate(now.getDate() + 365);
           else expiry.setDate(now.getDate() + 30);
 
-          // C. Atomic Activation Logic
-          // Mark transaction as activated to prevent double runs (Idempotency)
-          await updateDoc(txRef!, { 
-            isActivated: true, 
-            activatedAt: serverTimestamp() 
-          });
-
-          // Update user_plans collection (The source of truth for quotas)
+          // 3. Update User Plan & Profile
           await setDoc(doc(db, 'user_plans', user.uid), {
             userId: user.uid,
             planId: planId,
@@ -77,7 +81,6 @@ function PaymentSuccessContent() {
             updatedAt: serverTimestamp()
           }, { merge: true });
 
-          // Update user profile for quick reference
           await updateDoc(doc(db, 'users', user.uid), {
             subscriptionPlanId: planId,
             subscriptionStartedAt: serverTimestamp(),
@@ -85,30 +88,32 @@ function PaymentSuccessContent() {
             updatedAt: serverTimestamp()
           });
 
+          // 4. Mark transaction as activated (Idempotency)
+          await updateDoc(txRef!, { 
+            isActivated: true, 
+            activatedAt: serverTimestamp() 
+          });
+
           setActivationStatus('success');
         } catch (err: any) {
-          console.error("Activation Logic Crash:", err);
+          console.error("Activation Error:", err);
           setErrorMessage(err.message);
           setActivationStatus('error');
         }
-      } else if (txData.isActivated) {
-        // Already activated by webhook or previous run
-        setActivationStatus('success');
-        setActivePlanName(txData.planId === 'pro' ? 'Pro Merchant' : 'Active Plan');
       }
     }
 
     performActivation();
   }, [txData, user, db, txRef, activationStatus]);
 
-  // Clean Loading State
+  // Loading UI
   if (isUserLoading || !txData || (txData.status !== 'verified' && activationStatus === 'waiting') || activationStatus === 'activating') {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] animate-pulse">
-          Validating Transaction...
-        </p>
+        <div className="h-1.5 w-24 bg-secondary rounded-full overflow-hidden">
+           <div className="h-full bg-primary animate-progress origin-left" />
+        </div>
       </div>
     );
   }
@@ -116,10 +121,11 @@ function PaymentSuccessContent() {
   if (activationStatus === 'error') {
     return (
       <Card className="max-w-xs w-full bg-rose-500/5 border-rose-500/20 p-6 text-center rounded-[2rem]">
-        <p className="text-rose-500 font-bold text-xs mb-2 uppercase tracking-wider">Sync Failed</p>
+        <RefreshCcw className="h-10 w-10 text-rose-500 mx-auto mb-4 opacity-50" />
+        <p className="text-rose-500 font-bold text-xs mb-2 uppercase">Sync Error</p>
         <p className="text-[10px] text-muted-foreground mb-4 leading-relaxed">{errorMessage}</p>
-        <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="h-9 rounded-xl border-rose-500/20 bg-white/5">
-           <RefreshCcw className="mr-2 h-3 w-3" /> Retry Sync
+        <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="rounded-xl border-rose-500/20">
+           Retry Connection
         </Button>
       </Card>
     );
@@ -136,20 +142,20 @@ function PaymentSuccessContent() {
       </div>
 
       <div className="space-y-1">
-        <h1 className="text-xl font-black text-white tracking-tight uppercase">Payment <span className="text-[#16a34a]">Verified!</span></h1>
+        <h1 className="text-xl font-black text-white tracking-tight uppercase">Verified!</h1>
         <p className="text-slate-300 text-[11px] font-bold leading-tight">
-          Congratulations! Your <span className="text-[#16a34a] font-black">{activePlanName}</span> is activated.
+          Congratulations! Your <span className="text-[#16a34a] font-black">{activePlanName}</span> is now active.
         </p>
       </div>
 
-      <Card className="bg-[#162129]/60 backdrop-blur-xl border-border/10 shadow-2xl overflow-hidden rounded-[1.5rem] border">
-        <CardContent className="p-5 space-y-6">
+      <Card className="bg-[#162129]/60 backdrop-blur-xl border-border/10 shadow-2xl overflow-hidden rounded-[1.5rem]">
+        <CardContent className="p-5 space-y-5">
           <div className="flex items-center justify-between p-3 bg-[#0b141a]/50 rounded-xl border border-white/5">
              <div className="flex items-center gap-3">
                 <Zap size={16} className="text-[#16a34a] animate-pulse" />
                 <div className="text-left">
-                   <p className="text-[6px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Handshake</p>
-                   <p className="font-black text-white text-[10px] tracking-tight uppercase">Active & Secured</p>
+                   <p className="text-[6px] font-black text-muted-foreground uppercase tracking-widest">Status</p>
+                   <p className="font-black text-white text-[10px] uppercase">Plan Activated</p>
                 </div>
              </div>
              <div className="h-1.5 w-1.5 rounded-full bg-[#16a34a] shadow-[0_0_8px_rgba(22,163,74,0.8)]" />
@@ -158,16 +164,16 @@ function PaymentSuccessContent() {
           <div className="grid grid-cols-1 gap-2">
              <Button asChild className="ios-btn bg-[#16a34a] hover:bg-[#15803d] w-full h-10 text-[11px] font-black rounded-xl border-none">
                 <Link href="/dashboard" className="flex items-center justify-center gap-2">
-                   Go to Dashboard <ArrowRight className="h-3.5 w-3.5" />
+                   Open Dashboard <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
              </Button>
              
              <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" asChild className="h-9 text-[9px] font-bold rounded-xl border-white/5 bg-white/5 text-muted-foreground">
-                    <Link href="/dashboard/subscription">My Limits</Link>
+                    <Link href="/dashboard/subscription">Quotas</Link>
                 </Button>
                 <Button variant="outline" asChild className="h-9 text-[9px] font-bold rounded-xl border-white/5 bg-white/5 text-muted-foreground">
-                    <Link href="/dashboard/invoices">Receipts</Link>
+                    <Link href="/dashboard/invoices">Ledger</Link>
                 </Button>
              </div>
           </div>
@@ -175,7 +181,7 @@ function PaymentSuccessContent() {
       </Card>
 
       <div className="flex items-center justify-center gap-2 text-[8px] text-muted-foreground font-black uppercase tracking-[0.2em] pt-2">
-         <ShieldCheck size={10} className="text-[#16a34a]" /> AntiPay Infrastructure
+         <ShieldCheck size={10} className="text-[#16a34a]" /> AntiPay Nodes Active
       </div>
     </div>
   );
@@ -183,7 +189,7 @@ function PaymentSuccessContent() {
 
 export default function PaymentSuccessPage() {
   return (
-    <div className="min-h-screen bg-[#0b141a] flex flex-col font-body selection:bg-primary/20">
+    <div className="min-h-screen bg-[#0b141a] flex flex-col font-body">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full" />
