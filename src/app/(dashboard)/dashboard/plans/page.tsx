@@ -38,13 +38,18 @@ export default function BrowsePlansPage() {
 
     try {
       // Initiate payment session via Gateway
-      const { paymentUrl } = await createPlanPaymentSession(user.uid, plan.id, plan.price);
+      const response = await createPlanPaymentSession(user.uid, plan.id, plan.price);
       
+      if (!response.paymentUrl) {
+        throw new Error("No redirection URL received from gateway.");
+      }
+
       toast({ title: "Redirecting...", description: "Connecting to secure payment gateway." });
       
-      // Redirect to AntiPay hosted payment page
-      window.location.href = paymentUrl;
+      // Use location.replace for a cleaner redirect that doesn't mess up history as much for external sites
+      window.location.replace(response.paymentUrl);
     } catch (error: any) {
+      console.error('PAYMENT INITIATION FAILED:', error);
       toast({
         variant: "destructive",
         title: "Payment Error",

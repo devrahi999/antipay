@@ -39,7 +39,6 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
       }),
     });
 
-    // Check if the response is actually JSON before parsing
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const textError = await response.text();
@@ -48,7 +47,7 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
         url: endpoint,
         responseSnippet: textError.substring(0, 200)
       });
-      throw new Error(`Gateway returned non-JSON response (${response.status}). The endpoint might be incorrect.`);
+      throw new Error(`Gateway returned invalid response format (${response.status})`);
     }
 
     const data = await response.json();
@@ -57,7 +56,19 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
       throw new Error(data.message || 'Failed to create payment session');
     }
 
-    return { paymentUrl: data.paymentUrl };
+    // Safety: The gateway might return a URL with double protocol if misconfigured
+    let finalUrl = data.paymentUrl;
+    if (finalUrl && finalUrl.startsWith('https://https://')) {
+      finalUrl = finalUrl.replace('https://https://', 'https://');
+    }
+
+    if (!finalUrl) {
+      throw new Error('Gateway did not provide a redirect URL.');
+    }
+
+    console.log('GATEWAY SESSION CREATED:', { sessionId: data.sessionId, url: finalUrl });
+
+    return { paymentUrl: finalUrl };
   } catch (error: any) {
     console.error('GATEWAY FETCH FAILED:', error);
     throw new Error(error.message || 'Payment gateway unreachable or misconfigured');
