@@ -323,8 +323,8 @@ export default function BrandsPage() {
                               <Loader2 className="h-6 w-6 animate-spin text-[#16a34a]" />
                             ) : (
                               <>
-                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                                <span className="text-[8px] font-bold text-muted-foreground mt-1">UPLOAD</span>
+                                <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                                <span className="text-[8px] font-bold text-muted-foreground/30 mt-1">NO LOGO</span>
                               </>
                             )}
                           </div>
@@ -353,7 +353,7 @@ export default function BrandsPage() {
                                 variant="ghost" 
                                 size="sm" 
                                 className="h-7 text-[10px] text-destructive hover:bg-destructive/10"
-                                onClick={() => setFormData(p => ({ ...prev, logoUrl: '' }))}
+                                onClick={() => setFormData(p => ({ ...p, logoUrl: '' }))}
                                >
                                  Remove
                                </Button>
