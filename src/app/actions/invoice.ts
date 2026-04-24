@@ -5,14 +5,20 @@ import PDFDocument from 'pdfkit';
 
 /**
  * Generates a professional PDF invoice for a payment session.
- * @param data The session data (amount, trxId, status, etc)
- * @param store The merchant store details (name, logo)
+ * @param data The session data (plain object)
+ * @param store The merchant store details (plain object)
  * @returns A base64 encoded string of the PDF buffer.
  */
 export async function generateInvoiceAction(data: any, store: any): Promise<string> {
   return new Promise<string>(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      // Initialize PDFDocument with standard font loading configuration for Server Actions
+      const doc = new PDFDocument({ 
+        margin: 50, 
+        size: 'A4',
+        bufferPages: true 
+      });
+
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk) => chunks.push(chunk));
@@ -33,27 +39,26 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       // Header: Store Identity
       let headerY = 45;
       
-      // Try to add logo if URL is provided and valid (using standard fetch in server action)
+      // Attempt to include store logo if valid URL provided
       if (store.logoUrl && store.logoUrl.startsWith('http')) {
         try {
           const response = await fetch(store.logoUrl);
           const arrayBuffer = await response.arrayBuffer();
           const logoBuffer = Buffer.from(arrayBuffer);
           doc.image(logoBuffer, 50, 45, { width: 40 });
-          headerY = 45;
           doc.fillColor(primaryColor)
              .fontSize(22)
-             .text(store.name || "Merchant Invoice", 100, 52, { bold: true });
+             .text(store.name || "Merchant Invoice", 100, 52);
         } catch (e) {
-          // Fallback if logo fails
+          // Fallback if logo fetch fails
           doc.fillColor(primaryColor)
              .fontSize(22)
-             .text(store.name || "Merchant Invoice", 50, 45, { bold: true });
+             .text(store.name || "Merchant Invoice", 50, 45);
         }
       } else {
         doc.fillColor(primaryColor)
            .fontSize(22)
-           .text(store.name || "Merchant Invoice", 50, 45, { bold: true });
+           .text(store.name || "Merchant Invoice", 50, 45);
       }
 
       doc.fillColor(darkColor)
@@ -64,7 +69,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
       // Amount Section (Hero)
       doc.fillColor(secondaryColor).fontSize(10).text("Total Settled Amount", 50, 120);
-      doc.fillColor(primaryColor).fontSize(42).text(`BDT ${data.amount}.00`, 50, 140, { bold: true });
+      doc.fillColor(primaryColor).fontSize(42).text(`BDT ${data.amount}.00`, 50, 140);
 
       // Status Indicator
       const statusValue = (data.status || 'pending').toLowerCase();
@@ -72,23 +77,23 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       doc.rect(445, 130, 100, 24).fill(statusColor);
       doc.fillColor("#ffffff").fontSize(10).text(statusValue.toUpperCase(), 445, 138, { width: 100, align: 'center' });
 
-      // Information Grid
+      // Information Table Grid
       doc.rect(50, 220, 495, 260).fill("#f9fafb");
       
-      const drawRow = (label: string, value: string, y: number) => {
+      const drawRow = (label: string, value: any, y: number) => {
         doc.fillColor(secondaryColor).fontSize(10).text(label, 75, y);
-        doc.fillColor(darkColor).fontSize(10).text(String(value || "—"), 240, y, { bold: true });
+        doc.fillColor(darkColor).fontSize(10).text(String(value || "—"), 240, y);
       };
 
       drawRow("Transaction ID", data.trxId, 250);
-      drawRow("Payment Method", data.method?.toUpperCase(), 280);
+      drawRow("Payment Method", String(data.method).toUpperCase(), 280);
       drawRow("Order Reference", data.val_id, 310);
       drawRow("Sender Number", data.sender, 340);
       drawRow("Merchant ID", data.userId, 370);
       drawRow("Created At", data.createdAtFormatted || "—", 400);
       drawRow("Verified At", data.verifiedAtFormatted || "—", 430);
 
-      // Visual Confirmation (If verified)
+      // Visual Confirmation Seal (If verified)
       if (statusValue === 'verified') {
          doc.circle(480, 340, 30).lineWidth(2).strokeColor(primaryColor).stroke();
          doc.moveTo(470, 340).lineTo(478, 348).lineTo(495, 332).strokeColor(primaryColor).stroke();
@@ -101,10 +106,11 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
          .fillColor(secondaryColor)
          .text("This receipt was automatically generated and verified by the AntiPay Infrastructure. No manual signature is required for validity.", 50, 765, { align: 'center', width: 495 });
       
-      doc.fillColor(primaryColor).fontSize(10).text("Powered by AntiPay Ltd.", 50, 790, { align: 'center', bold: true });
+      doc.fillColor(primaryColor).fontSize(10).text("Powered by AntiPay Ltd.", 50, 790, { align: 'center' });
 
       doc.end();
     } catch (err) {
+      console.error('SERVER PDF GENERATION ERROR:', err);
       reject(err);
     }
   });

@@ -42,10 +42,9 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
 
   const { data: invoice, isLoading } = useDoc(sessionRef);
 
-  // Fetch Store Data using apiKey from the session document
+  // Fetch Store Data using apiKey from the session document as the Document ID
   const storeRef = useMemoFirebase(() => {
     if (!db || !invoice?.apiKey) return null;
-    // User stated: apiKey in session = documentId in stores collection
     return doc(db, 'stores', invoice.apiKey);
   }, [db, invoice?.apiKey]);
 
@@ -66,19 +65,27 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
     
     setIsDownloading(true);
     try {
-      // We pass the invoice and whatever store data we found (or defaults)
-      const pdfBase64 = await generateInvoiceAction(
-        {
-          ...invoice,
-          id: sessionId,
-          createdAtFormatted: invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), 'PPP p') : '—',
-          verifiedAtFormatted: invoice.verifiedAt?.toDate ? format(invoice.verifiedAt.toDate(), 'PPP p') : '—',
-        },
-        {
-          name: store?.name || invoice.storeName || "AntiPay Merchant",
-          logoUrl: store?.logoUrl || "",
-        }
-      );
+      // PREVENT SERIALIZATION ERROR:
+      // Convert all class-based objects (like Firestore Timestamps) into plain strings/numbers
+      const plainData = {
+        amount: invoice.amount,
+        trxId: invoice.trxId || "—",
+        method: invoice.method || "—",
+        val_id: invoice.val_id || "—",
+        sender: invoice.sender || "—",
+        userId: invoice.userId,
+        status: invoice.status || "pending",
+        id: sessionId,
+        createdAtFormatted: invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), 'PPP p') : '—',
+        verifiedAtFormatted: invoice.verifiedAt?.toDate ? format(invoice.verifiedAt.toDate(), 'PPP p') : '—',
+      };
+
+      const plainStore = {
+        name: store?.name || invoice.storeName || "AntiPay Merchant",
+        logoUrl: store?.logoUrl || "",
+      };
+
+      const pdfBase64 = await generateInvoiceAction(plainData, plainStore);
       
       const link = document.createElement('a');
       link.href = `data:application/pdf;base64,${pdfBase64}`;
@@ -89,8 +96,8 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
       
       toast({ title: "Success", description: "Invoice PDF has been generated." });
     } catch (error: any) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Failed", description: "Could not generate PDF." });
+      console.error('PDF DOWNLOAD ERROR:', error);
+      toast({ variant: "destructive", title: "Failed", description: "Could not generate PDF. Please try again." });
     } finally {
       setIsDownloading(false);
     }
@@ -211,7 +218,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
               </div>
             </div>
 
-            {/* Timeline Placeholder */}
+            {/* Verification Success UI */}
             {invoice.status === 'verified' && (
               <div className="p-5 bg-[#16a34a]/5 border border-[#16a34a]/10 rounded-2xl flex items-center gap-4">
                  <div className="h-10 w-10 rounded-full bg-[#16a34a]/20 flex items-center justify-center text-[#16a34a]">
