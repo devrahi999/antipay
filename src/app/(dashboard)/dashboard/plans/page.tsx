@@ -2,13 +2,13 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, doc, setDoc, serverTimestamp, Timestamp, writeBatch, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, doc, serverTimestamp, Timestamp, writeBatch, getDocs, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle } from "lucide-react"
+import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle, Lock } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { notifyPlanActivation } from '@/app/actions/notifications';
 
@@ -133,6 +133,9 @@ export default function BrowsePlansPage() {
   }
 
   const currentPlanId = profile?.subscriptionPlanId;
+  const expiryDate = profile?.subscriptionExpiresAt?.toDate ? profile.subscriptionExpiresAt.toDate() : null;
+  const isExpired = expiryDate ? expiryDate < new Date() : true;
+  
   const filteredPlans = plans?.filter(p => p.billingCycle === billingCycle);
 
   return (
@@ -161,12 +164,16 @@ export default function BrowsePlansPage() {
             const isCurrent = currentPlanId === plan.id;
             const hasOtherPlan = currentPlanId && !isCurrent;
             const isTrial = plan.isFreeTrialAvailable;
+            const isLifetime = plan.billingCycle === 'lifetime';
+            
+            // Renew is disabled if plan is current AND (not expired OR is lifetime)
+            const isRenewDisabled = isCurrent && (!isExpired || isLifetime);
             
             return (
               <Card key={plan.id} className={`relative shadow-2xl border-2 transition-all duration-300 hover:-translate-y-2 flex flex-col overflow-hidden ${isCurrent ? "border-primary bg-primary/5 ring-8 ring-primary/5" : "border-border/40 bg-card/40"}`}>
                 {isCurrent && (
                   <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-5 py-1.5 rounded-bl-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-                    <Check className="h-3 w-3" /> Active Instance
+                    <Check className="h-3 w-3" /> {isExpired ? "Expired Instance" : "Active Instance"}
                   </div>
                 )}
                 
@@ -216,13 +223,17 @@ export default function BrowsePlansPage() {
                   <Button 
                     variant={isCurrent ? "outline" : "default"} 
                     className={`w-full font-black h-12 text-md transition-all ${isCurrent ? "border-primary text-primary hover:bg-primary/5" : "bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20"}`}
-                    disabled={isProcessing === plan.id}
+                    disabled={isProcessing === plan.id || isRenewDisabled}
                     onClick={() => handleSelectPlan(plan)}
                   >
                     {isProcessing === plan.id ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : isCurrent ? (
-                      <span className="flex items-center gap-2"><RefreshCcw className="h-4 w-4" /> Renew This Plan</span>
+                      isRenewDisabled ? (
+                        <span className="flex items-center gap-2"><Lock className="h-4 w-4" /> Plan is Active</span>
+                      ) : (
+                        <span className="flex items-center gap-2"><RefreshCcw className="h-4 w-4" /> Renew This Plan</span>
+                      )
                     ) : hasOtherPlan ? (
                       <span className="flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Upgrade to {plan.name}</span>
                     ) : (
