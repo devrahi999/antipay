@@ -14,12 +14,16 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
     throw new Error('Payment gateway configuration is missing.');
   }
 
+  // Normalize URL to prevent double slashes
+  const baseUrl = gatewayUrl.endsWith('/') ? gatewayUrl.slice(0, -1) : gatewayUrl;
+  const endpoint = `${baseUrl}/create`;
+
   // val_id encodes userId and planId so the webhook knows what to activate
   const val_id = `${userId}|${planId}`;
   const webhook_url = `${domain}/api/webhook`;
 
   try {
-    const response = await fetch(`${gatewayUrl}/create`, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -32,6 +36,14 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
       }),
     });
 
+    // Check if the response is actually JSON before parsing
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textError = await response.text();
+      console.error('GATEWAY NON-JSON ERROR:', textError);
+      throw new Error(`Gateway returned non-JSON response (${response.status}). The endpoint might be incorrect.`);
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -41,6 +53,6 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
     return { paymentUrl: data.paymentUrl };
   } catch (error: any) {
     console.error('GATEWAY ERROR:', error);
-    throw new Error(error.message || 'Payment gateway unreachable');
+    throw new Error(error.message || 'Payment gateway unreachable or misconfigured');
   }
 }
