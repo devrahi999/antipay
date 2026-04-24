@@ -20,7 +20,7 @@ import {
   SmartphoneNfc,
   Tags
 } from "lucide-react"
-import { doc, deleteField, serverTimestamp, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, deleteField, serverTimestamp, query, collection, where, writeBatch } from 'firebase/firestore';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export default function MySubscriptionPage() {
