@@ -2,7 +2,7 @@
 
 /**
  * Handles communication with the third-party AntiPay payment gateway.
- * Returns both the redirect URL and the raw text response for debugging.
+ * Strictly sends amount, unique val_id, and webhook_url.
  */
 export async function createPlanPaymentSession(userId: string, planId: string, amount: number) {
   const apiKey = process.env.ANTIPAY_GATEWAY_API_KEY;
@@ -13,8 +13,11 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
     throw new Error('Payment gateway configuration is missing.');
   }
 
+  // Ensure clean URLs without extra slashes
   const base = gatewayUrl.replace(/\/+$/, "");
   const endpoint = `${base}/create`;
+  
+  // val_id is the unique bridge connecting the user and the plan after payment
   const val_id = `${userId}|${planId}`;
   const cleanDomain = (domain || "").replace(/\/+$/, "");
   const webhook_url = `${cleanDomain}/api/webhook`;
@@ -33,9 +36,9 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
       }),
     });
 
-    // Capture raw text first to avoid stream consumption issues
+    // Capture raw response for UI debugging as requested
     const rawText = await response.text();
-    console.log("RAW GATEWAY RESPONSE:", rawText);
+    console.log("GATEWAY RAW RESPONSE:", rawText);
 
     if (!response.ok) {
       return { 
@@ -51,28 +54,34 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
     } catch (e) {
       return { 
         success: false, 
-        error: "Invalid JSON received from gateway", 
+        error: "Gateway returned non-JSON data.", 
         debug: rawText 
       };
     }
 
+    // Look for payment_url field in the gateway response
     const paymentUrl = data.payment_url || data.paymentUrl;
 
     if (!paymentUrl) {
       return { 
         success: false, 
-        error: "Gateway response missing redirect URL", 
+        error: "Gateway response missing payment_url", 
         debug: JSON.stringify(data, null, 2) 
       };
     }
 
-    return { success: true, paymentUrl, debug: JSON.stringify(data, null, 2) };
+    return { 
+      success: true, 
+      paymentUrl, 
+      debug: JSON.stringify(data, null, 2) 
+    };
+
   } catch (error: any) {
-    console.error('GATEWAY FETCH FAILED:', error);
+    console.error('GATEWAY INITIATION FAILED:', error);
     return { 
       success: false, 
       error: error.message || 'Payment gateway unreachable', 
-      debug: 'Network error or DNS failure' 
+      debug: 'Check network connectivity or gateway status.' 
     };
   }
 }
