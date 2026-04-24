@@ -34,6 +34,12 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     let currentY = height - MARGIN;
 
+    // Helper to sanitize strings for WinAnsi encoding (removes non-encodable characters like ৳)
+    const safeText = (text: string | undefined | null) => {
+      if (!text) return "—";
+      return String(text).replace(/[৳]/g, 'Tk.').replace(/[^\x00-\x7F]/g, '');
+    };
+
     // --- 1. HEADER SECTION ---
     let logoEmbedded = false;
     const logoSize = 36;
@@ -85,7 +91,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     }
 
     // Store Name
-    page.drawText(String(store.name || "AntiPay Merchant"), {
+    page.drawText(safeText(store.name || "AntiPay Merchant"), {
       x: logoEmbedded ? MARGIN + logoSize + 12 : MARGIN,
       y: currentY - 22,
       size: 16,
@@ -145,7 +151,8 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     });
 
     const amountNum = typeof data.amount === 'number' ? data.amount : Number(data.amount) || 0;
-    const amountText = `৳ ${amountNum.toFixed(2)}`;
+    // CRITICAL FIX: Use "Tk." instead of the Unicode symbol "৳" which standard PDF fonts don't support
+    const amountText = `Tk. ${amountNum.toFixed(2)}`; 
     page.drawText(amountText, {
       x: MARGIN + 25,
       y: currentY - 70,
@@ -182,8 +189,8 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     // --- 3. DETAILS GRID ---
     const drawRow = (label: string, value: string, y: number) => {
-      page.drawText(String(label), { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
-      const safeValue = value ? String(value) : "—";
+      page.drawText(safeText(label), { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
+      const safeValue = safeText(value);
       page.drawText(safeValue, { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
       
       page.drawLine({
