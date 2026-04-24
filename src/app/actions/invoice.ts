@@ -12,6 +12,10 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
  */
 export async function generateInvoiceAction(data: any, store: any): Promise<string> {
   try {
+    if (!data || !store) {
+      throw new Error('Invoice data or store information is missing.');
+    }
+
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size: 595.28 x 841.89 pts
     const { width, height } = page.getSize();
@@ -32,12 +36,12 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     // --- 1. HEADER SECTION ---
     let logoEmbedded = false;
-    const logoSize = 32;
+    const logoSize = 36;
 
     // Resilient Logo Logic
     if (store.logoUrl && typeof store.logoUrl === 'string' && store.logoUrl.startsWith('http')) {
       try {
-        const logoResponse = await fetch(store.logoUrl);
+        const logoResponse = await fetch(store.logoUrl, { next: { revalidate: 3600 } });
         if (logoResponse.ok) {
           const arrayBuffer = await logoResponse.arrayBuffer();
           const uint8Logo = new Uint8Array(arrayBuffer);
@@ -45,14 +49,22 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
           if (uint8Logo.length > 0) {
             let logoImage;
             try {
-              // Try PNG first
-              logoImage = await pdfDoc.embedPng(uint8Logo);
-            } catch (pngErr) {
-              try {
-                // Fallback to JPG
+              // Try PNG first, fallback to JPG
+              if (store.logoUrl.toLowerCase().endsWith('.png')) {
+                logoImage = await pdfDoc.embedPng(uint8Logo);
+              } else {
                 logoImage = await pdfDoc.embedJpg(uint8Logo);
-              } catch (jpgErr) {
-                console.warn('Logo format not supported by pdf-lib (only PNG/JPG)');
+              }
+            } catch (embedErr) {
+              // If extension-based guess fails, try both
+              try {
+                logoImage = await pdfDoc.embedPng(uint8Logo);
+              } catch {
+                try {
+                  logoImage = await pdfDoc.embedJpg(uint8Logo);
+                } catch {
+                  console.warn('Logo format not supported by pdf-lib (only standard PNG/JPG)');
+                }
               }
             }
 
@@ -171,7 +183,8 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     // --- 3. DETAILS GRID ---
     const drawRow = (label: string, value: string, y: number) => {
       page.drawText(String(label), { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
-      page.drawText(String(value || "—"), { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
+      const safeValue = value ? String(value) : "—";
+      page.drawText(safeValue, { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
       
       page.drawLine({
         start: { x: MARGIN + 10, y: y - 12 },
@@ -205,7 +218,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
         yScale: 45,
         borderWidth: 1.5,
         borderColor: PRIMARY_GREEN,
-        opacity: 0.2,
+        opacity: 0.15,
       });
       const stampText = "VERIFIED";
       const sWidth = fontBold.widthOfTextAtSize(stampText, 10);
@@ -245,6 +258,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     return pdfBase64;
   } catch (err: any) {
     console.error('CRITICAL PDF ERROR:', err);
-    throw new Error('Failed to generate PDF');
+    // Return detailed error for better debugging in the UI
+    throw new Error(`PDF Generation failed: ${err.message || 'Internal processing error'}`);
   }
 }
