@@ -30,7 +30,7 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'antipay-api-key': apiKey,
+        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         amount: Number(amount),
