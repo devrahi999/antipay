@@ -73,28 +73,33 @@ export async function verifyPaymentSession(sessionId: string, trxId: string) {
   const endpoint = `${base}/verify`;
 
   try {
+    const payload = { 
+      sessionId, 
+      session_id: sessionId,
+      trxId, 
+      trx_id: trxId 
+    };
+    
+    console.log("SENDING VERIFY REQUEST TO:", endpoint);
+    console.log("PAYLOAD:", payload);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
       },
-      body: JSON.stringify({ 
-        sessionId, 
-        session_id: sessionId,
-        trxId, 
-        trx_id: trxId 
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
     console.log("GATEWAY VERIFY RESPONSE:", data);
     
-    // Gateway usually returns status: 'verified' for success
-    if (data.status === 'verified' || data.status === 'success') {
+    // Check if verification was successful
+    if (data.status === 'verified' || data.status === 'success' || data.success === true) {
       return { success: true, data };
     }
-    return { success: false, error: data.message || 'Payment not verified yet.' };
+    return { success: false, error: data.message || data.error || 'Payment not verified yet.' };
   } catch (error: any) {
     console.error("VERIFY ACTION CRASH:", error);
     return { success: false, error: 'Verification service unreachable' };

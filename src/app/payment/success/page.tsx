@@ -26,19 +26,12 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     async function activatePlan() {
-      // 1. Wait for Auth to load
+      // 1. Wait for Auth and Parameters
       if (isUserLoading) return;
       
-      // 2. Wait for Parameters to be present in URL
+      // If parameters are missing, wait a bit longer (Next.js hydrate delay)
       if (!sessionId || !trxId) {
-        // If they are truly missing after a small delay, it's an error
-        const timeout = setTimeout(() => {
-          if (!sessionId || !trxId) {
-            setError("MISSING URL PARAMETERS");
-            setIsVerifying(false);
-          }
-        }, 2000);
-        return () => clearTimeout(timeout);
+        return;
       }
 
       // 3. User Check
@@ -48,7 +41,7 @@ function PaymentSuccessContent() {
         return;
       }
 
-      // 4. Start Verification with Gateway
+      // 4. Start Verification
       setIsVerifying(true);
       setError(null);
 
@@ -60,15 +53,16 @@ function PaymentSuccessContent() {
         }
 
         const gatewayData = verifyRes.data;
-        const [targetUserId, planId] = (gatewayData.val_id || '').split('|');
+        const val_id = gatewayData.val_id || "";
+        const [targetUserId, planId] = val_id.split('|');
         
         if (!planId) throw new Error("Could not identify plan from gateway data.");
 
-        // 5. Update Firestore Database
+        // 5. Update Firestore
         const planRef = doc(db, 'subscriptionPlans', planId);
         const planSnap = await getDoc(planRef);
         
-        if (!planSnap.exists()) throw new Error(`Plan configuration '${planId}' not found in system.`);
+        if (!planSnap.exists()) throw new Error(`Plan '${planId}' not found.`);
         
         const planData = planSnap.data();
         setPlanName(planData.name);
@@ -85,7 +79,6 @@ function PaymentSuccessContent() {
           expiry.setDate(now.getDate() + 30);
         }
 
-        // Update User Plan Limits
         batch.set(doc(db, 'user_plans', user.uid), {
           userId: user.uid,
           planId: planId,
@@ -100,7 +93,6 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         }, { merge: true });
 
-        // Update User Profile Status
         batch.update(doc(db, 'users', user.uid), {
           subscriptionPlanId: planId,
           subscriptionStartedAt: serverTimestamp(),
@@ -108,7 +100,6 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         });
 
-        // Record History
         const txRef = doc(collection(db, 'plan_transactions'));
         batch.set(txRef, {
           id: txRef.id,
@@ -138,7 +129,7 @@ function PaymentSuccessContent() {
 
   if (isVerifying) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
       </div>
     );
@@ -151,8 +142,8 @@ function PaymentSuccessContent() {
            <AlertCircle size={24} />
         </div>
         <div className="space-y-1">
-           <h2 className="text-lg font-black text-white uppercase tracking-tight">Activation Halted</h2>
-           <p className="text-muted-foreground text-[9px] uppercase font-bold tracking-widest">
+           <h2 className="text-lg font-black text-white uppercase tracking-tight">Handshake Error</h2>
+           <p className="text-muted-foreground text-[9px] uppercase font-bold tracking-widest leading-tight">
              {error === "AUTH_REQUIRED" ? "Please sign in to link payment" : error}
            </p>
         </div>
@@ -166,9 +157,6 @@ function PaymentSuccessContent() {
                <RefreshCcw className="mr-2 h-4 w-4" /> Retry Verification
             </Button>
           )}
-          <Button asChild variant="ghost" className="w-full text-muted-foreground text-[10px] font-bold">
-             <Link href="/dashboard/subscription">Return to Subscription</Link>
-          </Button>
         </div>
       </div>
     );
