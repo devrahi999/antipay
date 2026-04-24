@@ -45,6 +45,9 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
     }
 
     const data = await response.json();
+    
+    // Log full response for debugging purposes
+    console.log("FULL RESPONSE:", data);
 
     // The gateway returns the URL in 'payment_url' field
     const redirectUrl = data.payment_url || data.paymentUrl;
