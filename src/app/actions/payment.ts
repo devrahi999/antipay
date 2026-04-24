@@ -46,13 +46,15 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
 
     const data = await response.json();
 
-    // Check if paymentUrl exists in the response
-    if (!data.paymentUrl) {
+    // The gateway returns the URL in 'payment_url' field
+    const redirectUrl = data.payment_url || data.paymentUrl;
+
+    if (!redirectUrl) {
       console.error('GATEWAY RESPONSE MISSING URL:', data);
       throw new Error('Gateway did not provide a redirect URL.');
     }
 
-    return { paymentUrl: data.paymentUrl };
+    return { paymentUrl: redirectUrl };
   } catch (error: any) {
     console.error('GATEWAY FETCH FAILED:', error);
     throw new Error(error.message || 'Payment gateway unreachable');
