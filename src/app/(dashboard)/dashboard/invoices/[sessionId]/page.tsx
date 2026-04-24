@@ -1,7 +1,7 @@
 
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { doc } from 'firebase/firestore';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -12,7 +12,6 @@ import {
   Download, 
   Copy, 
   CheckCircle2, 
-  Clock, 
   XCircle, 
   Smartphone, 
   Database, 
@@ -20,18 +19,22 @@ import {
   ShieldCheck,
   Hash,
   Store,
-  Wallet
+  Wallet,
+  Loader2
 } from "lucide-react";
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { generateInvoiceAction } from '@/app/actions/invoice';
 
 export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
 
+  // Fetch Session Data
   const sessionRef = useMemoFirebase(() => {
     if (!db || !user || !sessionId) return null;
     return doc(db, 'payment_sessions', user.uid, 'sessions', sessionId);
@@ -39,10 +42,53 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
 
   const { data: invoice, isLoading } = useDoc(sessionRef);
 
+  // Fetch Store Data for Branding
+  const storeRef = useMemoFirebase(() => {
+    if (!db || !invoice?.storeId) return null;
+    return doc(db, 'stores', invoice.storeId);
+  }, [db, invoice?.storeId]);
+
+  const { data: store } = useDoc(storeRef);
+
   const copyTrxId = () => {
     if (invoice?.trxId) {
       navigator.clipboard.writeText(invoice.trxId);
       toast({ title: "Copied", description: "Transaction ID copied to clipboard." });
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!invoice || !store) {
+        toast({ variant: "destructive", title: "Wait", description: "Loading document data..." });
+        return;
+    }
+    
+    setIsDownloading(true);
+    try {
+      const pdfBase64 = await generateInvoiceAction(
+        {
+          ...invoice,
+          id: sessionId,
+          createdAtFormatted: invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), 'PPP p') : '—',
+          verifiedAtFormatted: invoice.verifiedAt?.toDate ? format(invoice.verifiedAt.toDate(), 'PPP p') : '—',
+        },
+        {
+          name: store.name || "AntiPay Merchant",
+          logoUrl: store.logoUrl || "",
+        }
+      );
+      
+      const link = document.createElement('a');
+      link.href = `data:application/pdf;base64,${pdfBase64}`;
+      link.download = `AntiPay-Invoice-${sessionId.substring(0, 8)}.pdf`;
+      link.click();
+      
+      toast({ title: "Success", description: "Invoice PDF has been generated." });
+    } catch (error: any) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Failed", description: "Could not generate PDF." });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -90,11 +136,15 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
           <CardHeader className="p-8 bg-secondary/5 border-b border-border/10">
             <div className="flex justify-between items-start">
                <div className="space-y-4">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                    <Store size={24} />
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 overflow-hidden">
+                    {store?.logoUrl ? (
+                        <img src={store.logoUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                        <Store size={24} />
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-foreground">{invoice.storeName || "Merchant Payment"}</h3>
+                    <h3 className="text-2xl font-black text-foreground">{store?.name || invoice.storeName || "Merchant Payment"}</h3>
                     <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
                       <ShieldCheck className="h-3 w-3 text-primary" /> AntiPay Verified Transaction
                     </p>
@@ -183,8 +233,13 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
            <Card className="border-border/40 p-6 space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Actions</h4>
               <div className="grid grid-cols-1 gap-2">
-                 <Button className="ios-btn bg-[#16a34a] hover:bg-[#15803d] font-bold w-full justify-start h-11 px-4">
-                   <Download className="mr-2 h-4 w-4" /> Download PDF
+                 <Button 
+                    className="ios-btn bg-[#16a34a] hover:bg-[#15803d] font-bold w-full justify-start h-11 px-4"
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloading}
+                 >
+                   {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} 
+                   Download PDF
                  </Button>
                  <Button variant="outline" className="font-bold w-full justify-start h-11 px-4 border-border/40 hover:bg-secondary/10" onClick={copyTrxId}>
                    <Copy className="mr-2 h-4 w-4" /> Copy Reference
