@@ -31,12 +31,20 @@ function PaymentSuccessContent() {
     async function performActivation() {
       if (!db || !user || !sessionData || activationStatus !== 'waiting') return;
 
+      // Only proceed if the session is verified but not yet activated in the UI
       if (sessionData.status === 'verified' && !sessionData.isActivated) {
+        
+        const planId = sessionData.planId;
+        
+        // CRITICAL FIX: Ensure planId exists before calling doc()
+        if (!planId) {
+          console.warn("Session verified but planId is missing in document.");
+          return; 
+        }
+
         setActivationStatus('activating');
         try {
-          const planId = sessionData.planId;
-          
-          // A. Fetch Plan Details
+          // A. Fetch Plan Details from global subscriptionPlans
           const planRef = doc(db, 'subscriptionPlans', planId);
           const planSnap = await getDoc(planRef);
           
@@ -55,7 +63,7 @@ function PaymentSuccessContent() {
           // Update session first to prevent double activation
           await updateDoc(sessionRef, { isActivated: true });
 
-          // Update user plans
+          // Update user_plans (The source of truth for dashboard limits)
           await setDoc(doc(db, 'user_plans', user.uid), {
             userId: user.uid,
             planId: planId,
@@ -70,7 +78,7 @@ function PaymentSuccessContent() {
             updatedAt: serverTimestamp()
           }, { merge: true });
 
-          // Update user profile
+          // Update basic user profile for fast reference
           await updateDoc(doc(db, 'users', user.uid), {
             subscriptionPlanId: planId,
             subscriptionStartedAt: serverTimestamp(),
@@ -85,6 +93,7 @@ function PaymentSuccessContent() {
           setActivationStatus('error');
         }
       } else if (sessionData.isActivated) {
+        // If already activated by a previous run or webhook
         setActivationStatus('success');
         setActivePlanName(sessionData.planId === 'pro' ? 'Pro Merchant' : 'Active Plan');
       }
@@ -98,7 +107,7 @@ function PaymentSuccessContent() {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] animate-pulse">
-          {activationStatus === 'activating' ? 'Activating Plan...' : 'Verifying Signal...'}
+          Handshaking...
         </p>
       </div>
     );
@@ -106,11 +115,11 @@ function PaymentSuccessContent() {
 
   if (activationStatus === 'error') {
     return (
-      <Card className="max-w-xs w-full bg-rose-500/5 border-rose-500/20 p-6 text-center">
-        <p className="text-rose-500 font-bold text-sm mb-2">Activation Failed</p>
-        <p className="text-[10px] text-muted-foreground mb-4">{errorMessage}</p>
-        <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="h-9 rounded-xl">
-           <RefreshCcw className="mr-2 h-3 w-3" /> Retry
+      <Card className="max-w-xs w-full bg-rose-500/5 border-rose-500/20 p-6 text-center rounded-[2rem]">
+        <p className="text-rose-500 font-bold text-xs mb-2 uppercase tracking-wider">Activation Failed</p>
+        <p className="text-[10px] text-muted-foreground mb-4 leading-relaxed">{errorMessage}</p>
+        <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="h-9 rounded-xl border-rose-500/20 bg-white/5">
+           <RefreshCcw className="mr-2 h-3 w-3" /> Retry Handshake
         </Button>
       </Card>
     );
@@ -129,7 +138,7 @@ function PaymentSuccessContent() {
       <div className="space-y-1 px-4">
         <h1 className="text-xl font-black text-white tracking-tight uppercase">Payment <span className="text-[#16a34a]">Verified!</span></h1>
         <p className="text-slate-300 text-xs font-bold leading-tight">
-          Congratulations! Your <span className="text-[#16a34a]">{activePlanName}</span> plan is now active.
+          Congratulations! Your <span className="text-[#16a34a]">{activePlanName}</span> is activated.
         </p>
       </div>
 
