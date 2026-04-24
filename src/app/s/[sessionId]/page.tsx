@@ -27,7 +27,6 @@ export default function PublicPaymentPage() {
     async function fetchSession() {
       if (!db || !sessionId) return;
       try {
-        // Use collectionGroup to find the session across all merchant subcollections
         const q = query(collectionGroup(db, 'sessions'), where(documentId(), '==', sessionId), limit(1));
         const querySnapshot = await getDocs(q);
         
@@ -49,14 +48,14 @@ export default function PublicPaymentPage() {
     setVerifying(true);
     
     try {
-      // Use the identified path to update the correct document
       await updateDoc(doc(db, sessionPath), {
-        userProvidedTransactionId: trxId,
-        status: 'completed',
+        trxId: trxId,
+        status: 'verified',
         verifiedAt: serverTimestamp(),
+        isUsed: true
       });
       setStatus('success');
-      // Redirect after success if configured
+      
       if (session?.redirectSuccessUrl) {
         setTimeout(() => {
           window.location.href = session.redirectSuccessUrl;
@@ -136,7 +135,7 @@ export default function PublicPaymentPage() {
                   />
                   {status === 'error' && (
                     <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle size={12} /> Verification failed. Please check your TrxID.
+                      <AlertCircle size(12) /> Verification failed. Please check your TrxID.
                     </p>
                   )}
                 </div>
@@ -153,7 +152,7 @@ export default function PublicPaymentPage() {
           </CardContent>
           <CardFooter className="bg-secondary/20 flex justify-center py-4 border-t">
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Lock size(10) /> Secure checkout powered by AntiPay
+              <Lock size={10} /> Secure checkout powered by AntiPay
             </p>
           </CardFooter>
         </Card>

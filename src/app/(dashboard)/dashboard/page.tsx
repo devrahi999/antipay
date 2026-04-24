@@ -13,7 +13,8 @@ import {
   History,
   MoreVertical,
   XCircle,
-  X
+  X,
+  ExternalLink
 } from "lucide-react"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,7 +24,6 @@ export default function DashboardPage() {
   const db = useFirestore();
   const [showWelcome, setShowWelcome] = useState(true);
 
-  // Updated to use the nested subcollection path
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -131,12 +131,12 @@ export default function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Method</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Identifier</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Provider</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Internal Ref</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-wider">Amount</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">TXN ID</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right">Actions</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">TrxID</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,15 +145,29 @@ export default function DashboardPage() {
                 ) : recentSessions && recentSessions.length > 0 ? (
                   recentSessions.map((session) => (
                     <TableRow key={session.id} className="border-border/30 hover:bg-secondary/20">
-                      <TableCell className="text-xs font-medium">Guest User</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-[9px] uppercase border-primary/20 text-primary bg-primary/5">{session.method}</Badge>
                       </TableCell>
-                      <TableCell className="text-[10px] font-mono text-muted-foreground">{session.id.substring(0, 8)}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{session.val_id || "—"}</TableCell>
                       <TableCell className="text-xs font-bold">৳{session.amount}</TableCell>
-                      <TableCell className="text-[10px] font-mono">{session.userProvidedTransactionId || "—"}</TableCell>
+                      <TableCell className="text-[10px] font-mono font-bold text-primary">{session.trxId || "—"}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          className={`text-[8px] uppercase ${
+                            session.status === 'verified' ? 'bg-green-500/10 text-green-500' : 
+                            session.status === 'pending' ? 'bg-amber-500/10 text-amber-500' : 
+                            'bg-rose-500/10 text-rose-500'
+                          }`}
+                        >
+                          {session.status}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                          <a href={`/s/${session.id}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

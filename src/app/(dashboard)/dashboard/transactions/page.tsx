@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Search, Filter, History, ExternalLink } from "lucide-react"
+import { Search, Filter, History, ExternalLink } from "lucide-react"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { format } from 'date-fns';
 
@@ -14,7 +14,7 @@ export default function PaymentHistoryPage() {
   const { user } = useUser();
   const db = useFirestore();
 
-  // Updated to query merchant's sessions subcollection
+  // Querying the nested sessions subcollection
   const historyQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -53,14 +53,14 @@ export default function PaymentHistoryPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/20 hover:bg-transparent">
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 pl-6">Serial</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 pl-6">#</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Provider</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Brand Name</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Internal Ref</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Transaction ID</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Amount</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Status</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14">Date/Time</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 text-right pr-6">Action</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 h-14 text-right pr-6">Checkout</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -87,20 +87,29 @@ export default function PaymentHistoryPage() {
                           <span className="text-xs font-bold uppercase">{tx.method}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs font-medium">{tx.storeName || "Main Store"}</TableCell>
-                      <TableCell className="text-xs font-mono text-primary">{tx.userProvidedTransactionId || "—"}</TableCell>
+                      <TableCell className="text-xs font-medium text-slate-300">{tx.val_id || "—"}</TableCell>
+                      <TableCell className="text-xs font-mono text-primary font-bold">{tx.trxId || "—"}</TableCell>
                       <TableCell className="text-xs font-bold">৳{tx.amount}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-[8px] uppercase ${tx.status === 'completed' ? 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10' : 'border-amber-500/30 text-amber-500 bg-amber-500/10'}`}>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[8px] uppercase font-black px-2 py-0.5 ${
+                            tx.status === 'verified' ? 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10' : 
+                            tx.status === 'pending' ? 'border-amber-500/30 text-amber-500 bg-amber-500/10' : 
+                            'border-rose-500/30 text-rose-500 bg-rose-500/10'
+                          }`}
+                        >
                           {tx.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-[10px] text-muted-foreground">
-                        {tx.createdAt ? format(tx.createdAt.toDate ? tx.createdAt.toDate() : new Date(tx.createdAt), 'dd MMM yyyy, hh:mm a') : "—"}
+                        {tx.createdAt?.toDate ? format(tx.createdAt.toDate(), 'dd MMM, hh:mm a') : "—"}
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
-                          <ExternalLink className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary" asChild>
+                          <a href={`/s/${tx.id}`} target="_blank" rel="noopener noreferrer">
+                             <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
                         </Button>
                       </TableCell>
                     </TableRow>
