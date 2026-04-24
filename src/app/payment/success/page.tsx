@@ -1,163 +1,40 @@
 'use client';
 
-import { useEffect, useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { doc, getDoc, writeBatch, serverTimestamp, Timestamp, collection } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2, AlertCircle, LogIn, RefreshCcw } from "lucide-react";
-import { useUser, useFirestore } from "@/firebase";
-import { verifyPaymentSession } from "@/app/actions/payment";
+import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2, Clock } from "lucide-react";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 
 function PaymentSuccessContent() {
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const db = useFirestore();
-  const searchParams = useSearchParams();
+  const [isTimedOut, setIsTimedOut] = useState(false);
 
-  const [isVerifying, setIsVerifying] = useState(true);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [planName, setPlanName] = useState("");
+  // Subscribe to real-time updates of the user's plan
+  // This doc is updated by the WEBHOOK
+  const planRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'user_plans', user.uid);
+  }, [db, user?.uid]);
 
-  // Get parameters from searchParams
-  const sessionId = searchParams.get('sessionId');
-  const trxId = searchParams.get('trxId');
+  const { data: activePlan, isLoading } = useDoc(planRef);
 
+  // Safety timer: If webhook takes too long, give user a direct link
   useEffect(() => {
-    async function activatePlan() {
-      // 1. Wait for Auth and Parameters
-      if (isUserLoading) return;
-      
-      // If parameters are missing, wait a bit longer (Next.js hydrate delay)
-      if (!sessionId || !trxId) {
-        return;
-      }
+    const timer = setTimeout(() => {
+      setIsTimedOut(true);
+    }, 8000); // 8 seconds
+    return () => clearTimeout(timer);
+  }, []);
 
-      // 3. User Check
-      if (!user) {
-        setError("AUTH_REQUIRED");
-        setIsVerifying(false);
-        return;
-      }
-
-      // 4. Start Verification
-      setIsVerifying(true);
-      setError(null);
-
-      try {
-        const verifyRes = await verifyPaymentSession(sessionId, trxId);
-        
-        if (!verifyRes.success) {
-          throw new Error(verifyRes.error || "Gateway verification failed.");
-        }
-
-        const gatewayData = verifyRes.data;
-        const val_id = gatewayData.val_id || "";
-        const [targetUserId, planId] = val_id.split('|');
-        
-        if (!planId) throw new Error("Could not identify plan from gateway data.");
-
-        // 5. Update Firestore
-        const planRef = doc(db, 'subscriptionPlans', planId);
-        const planSnap = await getDoc(planRef);
-        
-        if (!planSnap.exists()) throw new Error(`Plan '${planId}' not found.`);
-        
-        const planData = planSnap.data();
-        setPlanName(planData.name);
-
-        const batch = writeBatch(db);
-        const now = new Date();
-        let expiry = new Date();
-        
-        if (planData.billingCycle === 'lifetime') {
-          expiry = new Date(2099, 11, 31);
-        } else if (planData.billingCycle === 'yearly') {
-          expiry.setDate(now.getDate() + 365);
-        } else {
-          expiry.setDate(now.getDate() + 30);
-        }
-
-        batch.set(doc(db, 'user_plans', user.uid), {
-          userId: user.uid,
-          planId: planId,
-          planName: planData.name,
-          price: planData.price,
-          billingCycle: planData.billingCycle,
-          maxApiKeys: planData.maxApiKeys,
-          maxDevices: planData.maxDevices,
-          benefits: planData.benefits || [],
-          activatedAt: serverTimestamp(),
-          expiresAt: Timestamp.fromDate(expiry),
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        batch.update(doc(db, 'users', user.uid), {
-          subscriptionPlanId: planId,
-          subscriptionStartedAt: serverTimestamp(),
-          subscriptionExpiresAt: Timestamp.fromDate(expiry),
-          updatedAt: serverTimestamp()
-        });
-
-        const txRef = doc(collection(db, 'plan_transactions'));
-        batch.set(txRef, {
-          id: txRef.id,
-          userId: user.uid,
-          userEmail: user.email,
-          gatewaySessionId: sessionId,
-          gatewayTrxId: trxId,
-          planId,
-          planName: planData.name,
-          amount: Number(gatewayData.amount || planData.price),
-          status: 'verified',
-          createdAt: serverTimestamp()
-        });
-
-        await batch.commit();
-        setIsSuccess(true);
-      } catch (err: any) {
-        console.error("ACTIVATION ERROR:", err);
-        setError(err.message || "Activation Failed");
-      } finally {
-        setIsVerifying(false);
-      }
-    }
-
-    activatePlan();
-  }, [user, isUserLoading, db, sessionId, trxId]);
-
-  if (isVerifying) {
+  if (isLoading || !activePlan) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-xs w-full bg-[#162129] border border-border/10 rounded-[2rem] p-8 text-center space-y-6 shadow-2xl">
-        <div className="h-12 w-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mx-auto">
-           <AlertCircle size={24} />
-        </div>
-        <div className="space-y-1">
-           <h2 className="text-lg font-black text-white uppercase tracking-tight">Handshake Error</h2>
-           <p className="text-muted-foreground text-[9px] uppercase font-bold tracking-widest leading-tight">
-             {error === "AUTH_REQUIRED" ? "Please sign in to link payment" : error}
-           </p>
-        </div>
-        <div className="space-y-3">
-          {error === "AUTH_REQUIRED" ? (
-            <Button asChild className="ios-btn bg-primary w-full h-11 font-bold">
-               <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In Now</Link>
-            </Button>
-          ) : (
-            <Button onClick={() => window.location.reload()} className="ios-btn bg-white text-black w-full h-11 font-bold">
-               <RefreshCcw className="mr-2 h-4 w-4" /> Retry Verification
-            </Button>
-          )}
-        </div>
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Synchronizing Instance...</p>
       </div>
     );
   }
@@ -175,7 +52,7 @@ function PaymentSuccessContent() {
       <div className="space-y-1 px-4">
         <h1 className="text-xl font-black text-white tracking-tight uppercase">Payment <span className="text-[#16a34a]">Verified!</span></h1>
         <p className="text-slate-300 text-xs font-bold leading-tight">
-          Congratulations! Your <span className="text-[#16a34a]">{planName || 'New'}</span> plan is now active.
+          Congratulations! Your <span className="text-[#16a34a]">{activePlan.planName}</span> plan is now active.
         </p>
       </div>
 
@@ -211,6 +88,12 @@ function PaymentSuccessContent() {
         </CardContent>
       </Card>
 
+      {isTimedOut && (
+        <p className="text-[9px] text-amber-500 font-bold animate-pulse px-6">
+          Update taking longer? Don't worry, your dashboard will sync automatically.
+        </p>
+      )}
+
       <div className="flex items-center justify-center gap-2 text-[8px] text-muted-foreground font-black uppercase tracking-[0.2em] pt-4">
          <ShieldCheck size={10} className="text-[#16a34a]" /> AntiPay Infrastructure
       </div>
@@ -236,7 +119,7 @@ export default function PaymentSuccessPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4 relative z-10">
-        <Suspense fallback={<div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />}>
+        <Suspense fallback={<Loader2 className="h-10 w-10 text-primary animate-spin" />}>
           <PaymentSuccessContent />
         </Suspense>
       </main>

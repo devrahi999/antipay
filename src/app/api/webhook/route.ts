@@ -5,7 +5,6 @@ import {
   doc, 
   getDoc, 
   setDoc, 
-  updateDoc, 
   serverTimestamp, 
   Timestamp, 
   writeBatch, 
@@ -24,24 +23,22 @@ const db = getFirestore();
 
 /**
  * Webhook handler for the AntiPay Gateway.
- * Strictly updates limits and status while preserving existing merchant data.
+ * Strictly handles verification and account provisioning.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { status, val_id, amount, method, trxId, sessionId } = body;
+    const { status, val_id, amount, trxId, sessionId } = body;
 
-    // Log the inbound request for server-side monitoring
     console.log('--- INBOUND WEBHOOK ---');
     console.log('Payload:', JSON.stringify(body, null, 2));
 
-    // Only process 'verified' status from the gateway
+    // Process only 'verified' status
     if (status !== 'verified') {
-      console.log(`WEBHOOK IGNORED: Status is '${status}'.`);
       return NextResponse.json({ message: "Not a verification signal." }, { status: 200 });
     }
 
-    // Parse val_id to identify user and intended plan
+    // val_id format expected: "userId|planId"
     const [userId, planId] = (val_id || '').split('|');
 
     if (!userId || !planId) {
@@ -49,18 +46,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Malformed val_id' }, { status: 400 });
     }
 
-    // 1. Fetch the official plan definitions to get new limits
+    // 1. Fetch Plan Definition
     const planRef = doc(db, 'subscriptionPlans', planId);
     const planSnap = await getDoc(planRef);
 
     if (!planSnap.exists()) {
-      console.error('WEBHOOK ERROR: Plan ID not found in system:', planId);
+      console.error('WEBHOOK ERROR: Plan definition missing:', planId);
       return NextResponse.json({ error: 'Plan definition missing' }, { status: 404 });
     }
 
     const plan = planSnap.data();
 
-    // 2. Calculate Expiry Date
+    // 2. Calculate Expiry
     const now = new Date();
     let expiry = new Date();
     if (plan.billingCycle === 'lifetime') {
@@ -71,11 +68,10 @@ export async function POST(req: NextRequest) {
       expiry.setDate(now.getDate() + 30);
     }
 
-    // 3. ATOMIC UPDATE: Preserve data, increase limits
+    // 3. Batch Update Firestore
     const batch = writeBatch(db);
 
-    // Update 'user_plans' (this stores current limits)
-    // merge: true ensures we don't delete other user-specific stats like 'created_brands_count'
+    // Update user_plans (Quotas & Limits)
     const userPlanRef = doc(db, 'user_plans', userId);
     batch.set(userPlanRef, {
       userId,
@@ -83,15 +79,15 @@ export async function POST(req: NextRequest) {
       planName: plan.name,
       price: plan.price,
       billingCycle: plan.billingCycle,
-      maxApiKeys: plan.maxApiKeys, // Update to new higher limit
-      maxDevices: plan.maxDevices, // Update to new higher limit
+      maxApiKeys: plan.maxApiKeys,
+      maxDevices: plan.maxDevices,
       benefits: plan.benefits || [],
       activatedAt: serverTimestamp(),
       expiresAt: Timestamp.fromDate(expiry),
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Sync status to user profile
+    // Update user profile status
     const userRef = doc(db, 'users', userId);
     batch.set(userRef, {
       subscriptionPlanId: planId,
@@ -100,7 +96,7 @@ export async function POST(req: NextRequest) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Log the transaction for historical records
+    // Log the revenue transaction
     const txRef = doc(collection(db, 'plan_transactions'));
     batch.set(txRef, {
       id: txRef.id,
@@ -110,13 +106,11 @@ export async function POST(req: NextRequest) {
       planId,
       planName: plan.name,
       amount: Number(amount || plan.price),
-      paymentMethod: method || 'unknown',
       status: 'verified',
       createdAt: serverTimestamp()
     });
 
-    // Reactivate all merchant brands (stores) if they were suspended
-    // This ONLY updates 'isActive', leaving name, logo, website, and methods untouched.
+    // Reactivate all merchant brands
     const storesQuery = query(collection(db, 'stores'), where('userId', '==', userId));
     const storesSnap = await getDocs(storesQuery);
     storesSnap.forEach((storeDoc) => {
@@ -128,8 +122,8 @@ export async function POST(req: NextRequest) {
 
     await batch.commit();
     
-    console.log(`WEBHOOK SUCCESS: User ${userId} upgraded to ${plan.name}. Limits expanded.`);
-    return NextResponse.json({ success: true, message: 'Limits updated successfully' });
+    console.log(`WEBHOOK SUCCESS: User ${userId} upgraded to ${plan.name}.`);
+    return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error('WEBHOOK CRITICAL ERROR:', error);
