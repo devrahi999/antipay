@@ -1,4 +1,3 @@
-
 'use client';
 
 import { query, collection, orderBy } from 'firebase/firestore';

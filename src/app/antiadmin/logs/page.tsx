@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
