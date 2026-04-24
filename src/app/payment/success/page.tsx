@@ -40,7 +40,7 @@ function PaymentSuccessContent() {
 
   // If after loading we still don't have an active plan or it's still 'starter' (and they bought pro)
   // we show a waiting state.
-  if (!activePlan) {
+  if (!activePlan || (activePlan.planId === 'starter' && isPlanLoading)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />

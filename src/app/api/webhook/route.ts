@@ -32,13 +32,13 @@ export async function POST(req: NextRequest) {
     console.log('--- INBOUND WEBHOOK RECEIVED ---');
     console.log('Payload:', JSON.stringify(body, null, 2));
 
-    // Process only 'verified' status as per gateway docs
+    // Process only 'verified' status
     if (status !== 'verified') {
       console.log('Webhook Status not "verified". Skipping processing.');
       return NextResponse.json({ message: "Not a verification signal." }, { status: 200 });
     }
 
-    // val_id format expected: "userId|planId" (e.g. "mEr7Toz...|pro")
+    // val_id format expected: "userId|planId"
     if (!val_id || !val_id.includes('|')) {
       console.error('WEBHOOK ERROR: Invalid val_id format:', val_id);
       return NextResponse.json({ error: 'Malformed val_id' }, { status: 400 });
@@ -94,12 +94,12 @@ export async function POST(req: NextRequest) {
 
     // B. Sync user profile for quick dashboard checks
     const userRef = doc(db, 'users', userId);
-    batch.set(userRef, {
+    batch.update(userRef, {
       subscriptionPlanId: planId,
       subscriptionStartedAt: serverTimestamp(),
       subscriptionExpiresAt: Timestamp.fromDate(expiry),
       updatedAt: serverTimestamp()
-    }, { merge: true });
+    });
 
     // C. Record the revenue transaction for admin audit
     const txRef = doc(collection(db, 'plan_transactions'));
