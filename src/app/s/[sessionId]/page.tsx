@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -135,7 +134,7 @@ export default function PublicPaymentPage() {
                   />
                   {status === 'error' && (
                     <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle size(12) /> Verification failed. Please check your TrxID.
+                      <AlertCircle size={12} /> Verification failed. Please check your TrxID.
                     </p>
                   )}
                 </div>
