@@ -31,54 +31,52 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { status, val_id, amount, method, trxId, sessionId } = body;
 
-    // CRITICAL LOG: See exactly what the gateway is sending
+    // Log the inbound request for monitoring
     console.log('--- WEBHOOK INBOUND ---');
-    console.log('Full Payload:', JSON.stringify(body, null, 2));
+    console.log('Payload:', JSON.stringify(body, null, 2));
 
-    // Support both 'verified' (from docs) and 'success' (seen in redirect)
-    const isSuccess = status === 'verified' || status === 'success';
-
-    if (!isSuccess) {
-      console.log(`WEBHOOK IGNORED: Status is '${status}', not verified/success.`);
+    // Only process if status is 'verified' as confirmed by the gateway
+    if (status !== 'verified') {
+      console.log(`WEBHOOK IGNORED: Status is '${status}', not 'verified'.`);
       return NextResponse.json({ message: `Status '${status}' not processed.` }, { status: 200 });
     }
 
-    // Parse the userId and planId from the val_id
+    // Parse the userId and planId from the val_id sent during initiation
     const [userId, planId] = (val_id || '').split('|');
 
     if (!userId || !planId) {
-      console.error('WEBHOOK ERROR: Malformed val_id. Expected "userId|planId", got:', val_id);
+      console.error('WEBHOOK ERROR: Malformed val_id. Received:', val_id);
       return NextResponse.json({ error: 'Invalid val_id mapping' }, { status: 400 });
     }
 
-    console.log(`ACTIVATE PLAN: User ${userId} -> Plan ${planId}`);
+    console.log(`PROCESSING ACTIVATION: User ${userId} -> Plan ${planId}`);
 
     // 1. Fetch Plan Details from Firestore
     const planRef = doc(db, 'subscriptionPlans', planId);
     const planSnap = await getDoc(planRef);
 
     if (!planSnap.exists()) {
-      console.error('WEBHOOK ERROR: Plan ID not found in subscriptionPlans:', planId);
+      console.error('WEBHOOK ERROR: Plan ID not found:', planId);
       return NextResponse.json({ error: 'Subscription plan not found' }, { status: 404 });
     }
 
     const plan = planSnap.data();
 
-    // 2. Calculate Expiry
+    // 2. Calculate Expiry Date based on billing cycle
     const now = new Date();
     let expiry = new Date();
     if (plan.billingCycle === 'lifetime') {
-      expiry = new Date(2099, 11, 31);
+      expiry = new Date(2099, 11, 31); // Far future for lifetime
     } else if (plan.billingCycle === 'yearly') {
       expiry.setDate(now.getDate() + 365);
     } else {
-      expiry.setDate(now.getDate() + 30);
+      expiry.setDate(now.getDate() + 30); // Default to 30 days
     }
 
-    // 3. Perform Atomic Batch Update
+    // 3. Perform Atomic Batch Update to ensure data consistency
     const batch = writeBatch(db);
 
-    // Update user_plans (Dedicated collection for active limits)
+    // Update active user limits and quotas
     const userPlanRef = doc(db, 'user_plans', userId);
     batch.set(userPlanRef, {
       userId,
@@ -94,7 +92,7 @@ export async function POST(req: NextRequest) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Sync User Profile (For display in dashboard)
+    // Sync status back to user profile for dashboard display
     const userRef = doc(db, 'users', userId);
     batch.set(userRef, {
       subscriptionPlanId: planId,
@@ -103,7 +101,7 @@ export async function POST(req: NextRequest) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Log the transaction history
+    // Record the transaction history in the central log
     const txRef = doc(collection(db, 'plan_transactions'));
     batch.set(txRef, {
       id: txRef.id,
@@ -118,16 +116,17 @@ export async function POST(req: NextRequest) {
       createdAt: serverTimestamp()
     });
 
-    // Reactivate all user brands if they were disabled
+    // Reactivate all merchant brands (stores) if they were previously suspended
     const storesQuery = query(collection(db, 'stores'), where('userId', '==', userId));
     const storesSnap = await getDocs(storesQuery);
     storesSnap.forEach((storeDoc) => {
       batch.update(storeDoc.ref, { isActive: true, updatedAt: serverTimestamp() });
     });
 
+    // Execute all updates simultaneously
     await batch.commit();
     
-    console.log('WEBHOOK SUCCESS: Account upgraded for user', userId);
+    console.log('WEBHOOK SUCCESS: Infrastructure upgraded for user', userId);
     return NextResponse.json({ success: true, message: 'Plan activated successfully' });
 
   } catch (error: any) {
