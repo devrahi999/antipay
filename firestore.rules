@@ -6,30 +6,27 @@ service cloud.firestore {
 
     match /stores/{apiKey} {
       allow read: if true; 
-      allow write: if false; // Only via console/admin
+      allow write: if false; 
     }
 
-    // UPDATED: Session moved to subcollection for better organization
     match /payment_sessions/{userId}/sessions/{sessionId} {
-      // Public needs to read session info to show amount/details on checkout
       allow get: if true;
-      
-      // Allow merchants to list their own sessions
       allow list: if request.auth != null && (request.auth.uid == userId || 
                     (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true));
-      
-      // API routes create/update sessions
       allow create, update: if true;
     }
 
-    // Fix for public checkout collectionGroup query
     match /{path=**}/sessions/{sessionId} {
       allow get, list: if true;
     }
 
+    // UPDATED: plan_transactions must allow webhook write and success page read
+    match /plan_transactions/{txId} {
+      allow read, write: if true;
+    }
+
     match /transactions/{trxId} {
-      // Server-side verification needs to read/write
       allow read, write: if true;
     }
 
@@ -74,15 +71,14 @@ service cloud.firestore {
     }
 
     match /plan_transactions/{txId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn();
+      allow read: if true;
+      allow write: if true;
     }
 
     match /devices/{brandId} {
       allow read, write: if isSignedIn();
     }
 
-    // Global settings access
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();

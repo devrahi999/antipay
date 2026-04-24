@@ -11,33 +11,39 @@ const db = getFirestore();
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { status, val_id, sessionId } = body;
+    // Gateway returns sessionId (or session_id), amount, val_id, and status
+    const sessionId = body.sessionId || body.session_id;
+    const amount = body.amount;
+    const val_id = body.val_id;
+    const status = body.status;
 
-    console.log('--- INBOUND WEBHOOK ---', { status, val_id, sessionId });
+    console.log('--- INBOUND WEBHOOK (PLAN TRANSACTION) ---', { status, val_id, sessionId });
 
-    // We only care about verified status
     if (status !== 'verified') {
       return NextResponse.json({ message: "Ignoring non-verified status" }, { status: 200 });
     }
 
     if (!val_id || !val_id.includes('|') || !sessionId) {
-      console.error('WEBHOOK ERROR: Missing val_id or sessionId');
+      console.error('WEBHOOK ERROR: Invalid payload structure');
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
     const [userId, planId] = val_id.split('|');
 
-    // Use setDoc with merge:true instead of updateDoc to ensure it works even if doc doesn't exist
-    const sessionRef = doc(db, 'payment_sessions', userId, 'sessions', sessionId);
-    
-    await setDoc(sessionRef, {
-      status: 'verified',
-      planId: planId,
-      userId: userId,
+    // OBJECTIVE 1: Store verified transaction in plan_transactions root collection
+    // Document ID is the sessionId from the gateway
+    await setDoc(doc(db, 'plan_transactions', sessionId), {
+      sessionId,
+      userId,
+      planId,
+      amount: Number(amount),
+      status: "verified",
+      isActivated: false, // Will be flipped by Success Page
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    console.log(`WEBHOOK SUCCESS: Session ${sessionId} for user ${userId} marked as verified.`);
+    console.log(`WEBHOOK SUCCESS: Transaction ${sessionId} recorded for user ${userId}.`);
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
