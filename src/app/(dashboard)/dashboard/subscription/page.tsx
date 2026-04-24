@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,9 +17,11 @@ import {
   AlertCircle,
   Loader2,
   Trash2,
-  Infinity as InfinityIcon
+  Infinity as InfinityIcon,
+  SmartphoneNfc,
+  Tags
 } from "lucide-react"
-import { doc, deleteDoc, updateDoc, deleteField, serverTimestamp, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, deleteField, serverTimestamp, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -41,64 +43,57 @@ export default function MySubscriptionPage() {
   const { toast } = useToast();
   const [isCanceling, setIsCanceling] = useState(false);
 
-  // Fetch real plan details from the dedicated user_plans collection
+  // Fetch real plan details
   const activePlanRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'user_plans', user.uid);
   }, [db, user?.uid]);
   
-  const { data: activePlan, isLoading } = useDoc(activePlanRef);
+  const { data: activePlan, isLoading: isPlanLoading } = useDoc(activePlanRef);
+
+  // Fetch created brands count for real-time progress bars
+  const storesQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, 'stores'), where('userId', '==', user.uid));
+  }, [db, user?.uid]);
+  const { data: stores } = useCollection(storesQuery);
+
+  // Fetch connected devices count
+  const devicesQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, 'devices'), where('userId', '==', user.uid));
+  }, [db, user?.uid]);
+  const { data: devices } = useCollection(devicesQuery);
 
   const handleCancelSubscription = async () => {
     if (!user || !db) return;
     setIsCanceling(true);
     try {
       const batch = writeBatch(db);
-
-      // 1. Delete from user_plans collection
       batch.delete(doc(db, 'user_plans', user.uid));
-
-      // 2. Remove fields from users collection
       batch.update(doc(db, 'users', user.uid), {
         subscriptionPlanId: deleteField(),
         subscriptionStartedAt: deleteField(),
         subscriptionExpiresAt: deleteField(),
         updatedAt: serverTimestamp()
       });
-
-      // 3. Deactivate all brands (isActive: false)
-      const storesQuery = query(collection(db, 'stores'), where('userId', '==', user.uid));
-      const storesSnap = await getDocs(storesQuery);
+      const storesSnap = await getDocs(query(collection(db, 'stores'), where('userId', '==', user.uid)));
       storesSnap.forEach((storeDoc) => {
         batch.update(storeDoc.ref, { isActive: false, updatedAt: serverTimestamp() });
       });
-
       await batch.commit();
-
-      toast({
-        title: "Subscription Canceled",
-        description: "Plan removed. All API brand slots have been deactivated."
-      });
+      toast({ title: "Subscription Canceled", description: "Plan removed. All API brand slots deactivated." });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Cancellation Failed",
-        description: error.message || "Could not cancel subscription."
-      });
+      toast({ variant: "destructive", title: "Cancellation Failed", description: error.message });
     } finally {
       setIsCanceling(false);
     }
   };
 
-  if (isLoading) {
+  if (isPlanLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
-        <div className="relative">
-          <Loader2 className="h-12 w-12 text-primary animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Zap className="h-4 w-4 text-primary" />
-          </div>
-        </div>
+        <Loader2 className="h-12 w-12 text-primary animate-spin" />
         <p className="text-sm font-bold text-muted-foreground animate-pulse tracking-widest uppercase">Fetching Vault Access...</p>
       </div>
     );
@@ -106,11 +101,18 @@ export default function MySubscriptionPage() {
 
   const hasActivePlan = !!activePlan;
   const isLifetime = activePlan?.billingCycle === 'lifetime';
-
-  // Real timestamps from Firestore
   const startDate = activePlan?.activatedAt?.toDate ? activePlan.activatedAt.toDate() : null;
   const expiryDate = activePlan?.expiresAt?.toDate ? activePlan.expiresAt.toDate() : null;
   const daysLeft = expiryDate ? Math.max(0, Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+
+  // Quota Calculations
+  const brandsCount = stores?.length || 0;
+  const devicesCount = devices?.length || 0;
+  const maxBrands = activePlan?.maxApiKeys || 1;
+  const maxDevices = activePlan?.maxDevices || 1;
+  
+  const brandsPercent = Math.min(100, (brandsCount / maxBrands) * 100);
+  const devicesPercent = Math.min(100, (devicesCount / maxDevices) * 100);
 
   return (
     <div className="space-y-8 py-6 max-w-5xl mx-auto">
@@ -134,7 +136,7 @@ export default function MySubscriptionPage() {
           <div className="space-y-3">
             <h3 className="text-2xl font-black text-slate-100 uppercase tracking-tight">Access Locked</h3>
             <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
-              You haven't activated an AntiPay subscription yet. To start verifying payments and using the API, please select a plan from our growth center.
+              You haven't activated an AntiPay subscription yet. To start verifying payments, please select a plan.
             </p>
           </div>
           <Button asChild className="mt-4 bg-[#16a34a] hover:bg-[#15803d] h-12 px-10 font-black rounded-xl shadow-xl shadow-[#16a34a]/20">
@@ -143,7 +145,6 @@ export default function MySubscriptionPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Active Plan Card */}
           <Card className="lg:col-span-2 bg-[#0b141a] border-border/40 shadow-2xl overflow-hidden flex flex-col rounded-2xl">
             <div className="h-2 bg-gradient-to-r from-primary via-emerald-400 to-primary w-full" />
             <CardHeader className="bg-[#162129] p-8 border-b border-border/10">
@@ -207,9 +208,9 @@ export default function MySubscriptionPage() {
                
                <AlertDialog>
                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10">
+                    <button className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors">
                       Request Cancellation
-                    </Button>
+                    </button>
                  </AlertDialogTrigger>
                  <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
                    <AlertDialogHeader>
@@ -235,7 +236,6 @@ export default function MySubscriptionPage() {
             </CardFooter>
           </Card>
 
-          {/* Real-time Limits */}
           <div className="space-y-6">
             <Card className="bg-[#0b141a] border-border/40 p-6 shadow-2xl rounded-2xl">
                <CardHeader className="p-0 pb-6 flex flex-row items-center justify-between space-y-0">
@@ -245,22 +245,26 @@ export default function MySubscriptionPage() {
                <CardContent className="p-0 space-y-8">
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs mb-1 items-end">
-                      <span className="text-slate-400 font-bold uppercase tracking-tighter">Brand Slots</span>
-                      <span className="text-white font-black text-lg">{activePlan.maxApiKeys} Max</span>
+                      <span className="text-slate-400 font-bold uppercase tracking-tighter flex items-center gap-1.5">
+                        <Tags size={12} className="text-primary" /> Brand Slots
+                      </span>
+                      <span className="text-white font-black text-lg">{brandsCount}/{maxBrands}</span>
                     </div>
                     <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden p-[1px] border border-border/5">
-                       <div className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(22,163,74,0.5)]" style={{ width: '20%' }} />
+                       <div className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(22,163,74,0.5)] transition-all duration-1000" style={{ width: `${brandsPercent}%` }} />
                     </div>
                     <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">Identity Monitoring Active</p>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs mb-1 items-end">
-                      <span className="text-slate-400 font-bold uppercase tracking-tighter">Device Nodes</span>
-                      <span className="text-white font-black text-lg">{activePlan.maxDevices} Max</span>
+                      <span className="text-slate-400 font-bold uppercase tracking-tighter flex items-center gap-1.5">
+                        <SmartphoneNfc size={12} className="text-amber-500" /> Device Nodes
+                      </span>
+                      <span className="text-white font-black text-lg">{devicesCount}/{maxDevices}</span>
                     </div>
                     <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden p-[1px] border border-border/5">
-                       <div className="h-full bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" style={{ width: '0%' }} />
+                       <div className="h-full bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-1000" style={{ width: `${devicesPercent}%` }} />
                     </div>
                     <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">Node Synchronization Ready</p>
                   </div>
