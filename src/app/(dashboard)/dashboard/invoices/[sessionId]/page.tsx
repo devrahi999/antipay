@@ -66,7 +66,8 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
     setIsDownloading(true);
     try {
       // PREVENT SERIALIZATION ERROR:
-      // Convert all class-based objects (like Firestore Timestamps) into plain strings/numbers
+      // Firestore Timestamps have toJSON methods and hidden classes that crash Server Actions.
+      // We manually build a 100% plain JSON object before passing it.
       const plainData = {
         amount: invoice.amount,
         trxId: invoice.trxId || "—",
@@ -85,6 +86,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
         logoUrl: store?.logoUrl || "",
       };
 
+      // Call the server action with 100% plain objects
       const pdfBase64 = await generateInvoiceAction(plainData, plainStore);
       
       const link = document.createElement('a');
@@ -96,7 +98,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
       
       toast({ title: "Success", description: "Invoice PDF has been generated." });
     } catch (error: any) {
-      console.error('PDF DOWNLOAD ERROR:', error);
+      console.error('DOWNLOAD FAILED:', error);
       toast({ variant: "destructive", title: "Failed", description: "Could not generate PDF. Please try again." });
     } finally {
       setIsDownloading(false);
