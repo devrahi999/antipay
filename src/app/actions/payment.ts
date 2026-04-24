@@ -19,14 +19,10 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
   const val_id = `${userId}|${planId}`;
   
   // Construct the webhook URL using the domain from .env
-  // Ensuring no double slashes
   const cleanDomain = (domain || "").replace(/\/+$/, "");
   const webhook_url = `${cleanDomain}/api/webhook`;
 
-  console.log("--- CREATING PAYMENT SESSION ---");
-  console.log("Target User ID:", userId);
-  console.log("Target Plan ID:", planId);
-  console.log("Full Webhook URL sent to gateway:", webhook_url);
+  console.log("--- CREATING PAYMENT SESSION ---", { userId, planId, webhook_url });
 
   try {
     const response = await fetch(endpoint, {

@@ -2,51 +2,117 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { doc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2 } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2, RefreshCcw } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useSearchParams } from "next/navigation";
 
 function PaymentSuccessContent() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
-  const [isTimedOut, setIsTimedOut] = useState(false);
+  const searchParams = useSearchParams();
+  
+  const sessionId = searchParams.get('sessionId');
+  const [activationStatus, setActivationStatus] = useState<'waiting' | 'activating' | 'success' | 'error'>('waiting');
+  const [activePlanName, setActivePlanName] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Subscribe to real-time updates of the user's plan
-  // This document is updated by the WEBHOOK back-end
-  const planRef = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return doc(db, 'user_plans', user.uid);
-  }, [db, user?.uid]);
+  // 1. Monitor the session document for the "verified" status from Webhook
+  const sessionRef = useMemoFirebase(() => {
+    if (!db || !user || !sessionId) return null;
+    return doc(db, 'payment_sessions', user.uid, 'sessions', sessionId);
+  }, [db, user?.uid, sessionId]);
 
-  const { data: activePlan, isLoading: isPlanLoading } = useDoc(planRef);
+  const { data: sessionData } = useDoc(sessionRef);
 
-  // Safety timer
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsTimedOut(true);
-    }, 10000); // 10 seconds
-    return () => clearTimeout(timer);
-  }, []);
+    async function performActivation() {
+      if (!db || !user || !sessionData || activationStatus !== 'waiting') return;
 
-  if (isUserLoading || isPlanLoading) {
+      if (sessionData.status === 'verified' && !sessionData.isActivated) {
+        setActivationStatus('activating');
+        try {
+          const planId = sessionData.planId;
+          
+          // A. Fetch Plan Details
+          const planRef = doc(db, 'subscriptionPlans', planId);
+          const planSnap = await getDoc(planRef);
+          
+          if (!planSnap.exists()) throw new Error("Plan definition missing.");
+          const plan = planSnap.data();
+          setActivePlanName(plan.name);
+
+          // B. Calculate Expiry
+          const now = new Date();
+          let expiry = new Date();
+          if (plan.billingCycle === 'lifetime') expiry = new Date(2099, 11, 31);
+          else if (plan.billingCycle === 'yearly') expiry.setDate(now.getDate() + 365);
+          else expiry.setDate(now.getDate() + 30);
+
+          // C. Update Database (Atomic sequence)
+          // Update session first to prevent double activation
+          await updateDoc(sessionRef, { isActivated: true });
+
+          // Update user plans
+          await setDoc(doc(db, 'user_plans', user.uid), {
+            userId: user.uid,
+            planId: planId,
+            planName: plan.name,
+            price: plan.price,
+            billingCycle: plan.billingCycle,
+            maxApiKeys: plan.maxApiKeys,
+            maxDevices: plan.maxDevices,
+            benefits: plan.benefits || [],
+            activatedAt: serverTimestamp(),
+            expiresAt: Timestamp.fromDate(expiry),
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+
+          // Update user profile
+          await updateDoc(doc(db, 'users', user.uid), {
+            subscriptionPlanId: planId,
+            subscriptionStartedAt: serverTimestamp(),
+            subscriptionExpiresAt: Timestamp.fromDate(expiry),
+            updatedAt: serverTimestamp()
+          });
+
+          setActivationStatus('success');
+        } catch (err: any) {
+          console.error("Activation Error:", err);
+          setErrorMessage(err.message);
+          setActivationStatus('error');
+        }
+      } else if (sessionData.isActivated) {
+        setActivationStatus('success');
+        setActivePlanName(sessionData.planId === 'pro' ? 'Pro Merchant' : 'Active Plan');
+      }
+    }
+
+    performActivation();
+  }, [sessionData, user, db, sessionRef, activationStatus]);
+
+  if (isUserLoading || activationStatus === 'waiting' || activationStatus === 'activating') {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] animate-pulse">
+          {activationStatus === 'activating' ? 'Activating Plan...' : 'Verifying Signal...'}
+        </p>
       </div>
     );
   }
 
-  // If after loading we still don't have an active plan or it's still 'starter' (and they bought pro)
-  // we show a waiting state.
-  if (!activePlan || (activePlan.planId === 'starter' && isPlanLoading)) {
+  if (activationStatus === 'error') {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Payment...</p>
-        <p className="text-[10px] text-muted-foreground max-w-[200px]">We are waiting for the gateway to confirm your funds.</p>
-      </div>
+      <Card className="max-w-xs w-full bg-rose-500/5 border-rose-500/20 p-6 text-center">
+        <p className="text-rose-500 font-bold text-sm mb-2">Activation Failed</p>
+        <p className="text-[10px] text-muted-foreground mb-4">{errorMessage}</p>
+        <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="h-9 rounded-xl">
+           <RefreshCcw className="mr-2 h-3 w-3" /> Retry
+        </Button>
+      </Card>
     );
   }
 
@@ -63,7 +129,7 @@ function PaymentSuccessContent() {
       <div className="space-y-1 px-4">
         <h1 className="text-xl font-black text-white tracking-tight uppercase">Payment <span className="text-[#16a34a]">Verified!</span></h1>
         <p className="text-slate-300 text-xs font-bold leading-tight">
-          Congratulations! Your <span className="text-[#16a34a]">{activePlan.planName}</span> plan is now active.
+          Congratulations! Your <span className="text-[#16a34a]">{activePlanName}</span> plan is now active.
         </p>
       </div>
 
@@ -98,12 +164,6 @@ function PaymentSuccessContent() {
           </div>
         </CardContent>
       </Card>
-
-      {isTimedOut && (
-        <p className="text-[9px] text-amber-500 font-bold animate-pulse px-6">
-          Update taking longer? Don't worry, your dashboard will sync automatically.
-        </p>
-      )}
 
       <div className="flex items-center justify-center gap-2 text-[8px] text-muted-foreground font-black uppercase tracking-[0.2em] pt-4">
          <ShieldCheck size={10} className="text-[#16a34a]" /> AntiPay Infrastructure
