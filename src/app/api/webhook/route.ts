@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
-// Initialize Firebase for the server environment
+// Initialize Firebase for the server environment if not already active
 if (!getApps().length) {
   initializeApp(firebaseConfig);
 }
@@ -31,24 +31,34 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { status, val_id, amount, method, trxId, sessionId } = body;
 
-    console.log('WEBHOOK RECEIVED:', { status, val_id, trxId });
+    // CRITICAL LOG: See exactly what the gateway is sending
+    console.log('--- WEBHOOK INBOUND ---');
+    console.log('Full Payload:', JSON.stringify(body, null, 2));
 
-    if (status !== 'verified') {
-      return NextResponse.json({ message: 'Status not verified, ignoring.' }, { status: 200 });
+    // Support both 'verified' (from docs) and 'success' (seen in redirect)
+    const isSuccess = status === 'verified' || status === 'success';
+
+    if (!isSuccess) {
+      console.log(`WEBHOOK IGNORED: Status is '${status}', not verified/success.`);
+      return NextResponse.json({ message: `Status '${status}' not processed.` }, { status: 200 });
     }
 
-    // Parse the userId and planId from the val_id we created in the action
+    // Parse the userId and planId from the val_id
     const [userId, planId] = (val_id || '').split('|');
 
     if (!userId || !planId) {
+      console.error('WEBHOOK ERROR: Malformed val_id. Expected "userId|planId", got:', val_id);
       return NextResponse.json({ error: 'Invalid val_id mapping' }, { status: 400 });
     }
+
+    console.log(`ACTIVATE PLAN: User ${userId} -> Plan ${planId}`);
 
     // 1. Fetch Plan Details from Firestore
     const planRef = doc(db, 'subscriptionPlans', planId);
     const planSnap = await getDoc(planRef);
 
     if (!planSnap.exists()) {
+      console.error('WEBHOOK ERROR: Plan ID not found in subscriptionPlans:', planId);
       return NextResponse.json({ error: 'Subscription plan not found' }, { status: 404 });
     }
 
@@ -68,7 +78,7 @@ export async function POST(req: NextRequest) {
     // 3. Perform Atomic Batch Update
     const batch = writeBatch(db);
 
-    // Update user_plans
+    // Update user_plans (Dedicated collection for active limits)
     const userPlanRef = doc(db, 'user_plans', userId);
     batch.set(userPlanRef, {
       userId,
@@ -82,9 +92,9 @@ export async function POST(req: NextRequest) {
       activatedAt: serverTimestamp(),
       expiresAt: Timestamp.fromDate(expiry),
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
 
-    // Sync User Profile
+    // Sync User Profile (For display in dashboard)
     const userRef = doc(db, 'users', userId);
     batch.set(userRef, {
       subscriptionPlanId: planId,
@@ -93,22 +103,22 @@ export async function POST(req: NextRequest) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Log the transaction
+    // Log the transaction history
     const txRef = doc(collection(db, 'plan_transactions'));
     batch.set(txRef, {
       id: txRef.id,
       userId,
-      gatewaySessionId: sessionId,
-      gatewayTrxId: trxId,
+      gatewaySessionId: sessionId || 'unknown',
+      gatewayTrxId: trxId || 'unknown',
       planId,
       planName: plan.name,
-      amount: Number(amount),
-      paymentMethod: method,
+      amount: Number(amount || plan.price),
+      paymentMethod: method || 'unknown',
       status: 'verified',
       createdAt: serverTimestamp()
     });
 
-    // Reactivate all user brands
+    // Reactivate all user brands if they were disabled
     const storesQuery = query(collection(db, 'stores'), where('userId', '==', userId));
     const storesSnap = await getDocs(storesQuery);
     storesSnap.forEach((storeDoc) => {
@@ -116,11 +126,12 @@ export async function POST(req: NextRequest) {
     });
 
     await batch.commit();
+    
     console.log('WEBHOOK SUCCESS: Account upgraded for user', userId);
-
     return NextResponse.json({ success: true, message: 'Plan activated successfully' });
+
   } catch (error: any) {
-    console.error('WEBHOOK ERROR:', error);
+    console.error('WEBHOOK CRITICAL FAILURE:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
