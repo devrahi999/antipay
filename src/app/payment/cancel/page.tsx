@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { XCircle, RefreshCcw, ArrowLeft, AlertCircle } from "lucide-react";
-import { Footer } from "@/components/landing/footer";
 
 export default function PaymentCancelPage() {
   return (
@@ -66,8 +65,6 @@ export default function PaymentCancelPage() {
           </p>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

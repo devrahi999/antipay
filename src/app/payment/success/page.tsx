@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles } from "lucide-react";
-import { Footer } from "@/components/landing/footer";
 
 export default function PaymentSuccessPage() {
   return (
@@ -94,8 +93,6 @@ export default function PaymentSuccessPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
