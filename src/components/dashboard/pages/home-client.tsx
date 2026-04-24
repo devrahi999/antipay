@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -37,16 +37,40 @@ export function DashboardHomeClient() {
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
 
+  // Fetch sessions for calculation (limit removed to get accurate volume for the merchant)
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, 'payment_sessions', user.uid, 'sessions'),
-      orderBy('createdAt', 'desc'),
-      limit(5)
+      orderBy('createdAt', 'desc')
     );
   }, [db, user?.uid]);
 
-  const { data: recentSessions, isLoading: sessionsLoading } = useCollection(sessionsQuery);
+  const { data: allSessions, isLoading: sessionsLoading } = useCollection(sessionsQuery);
+
+  // Aggregation Logic
+  const stats = (allSessions || []).reduce((acc, session) => {
+    const amount = Number(session.amount) || 0;
+    acc.totalVolume += amount;
+    acc.totalCount += 1;
+
+    if (session.status === 'verified') {
+      acc.completedVolume += amount;
+      acc.completedCount += 1;
+    } else if (session.status === 'pending') {
+      acc.pendingVolume += amount;
+      acc.pendingCount += 1;
+    } else if (session.status === 'cancelled' || session.status === 'failed') {
+      acc.cancelledVolume += amount;
+      acc.cancelledCount += 1;
+    }
+    return acc;
+  }, {
+    totalVolume: 0, totalCount: 0,
+    completedVolume: 0, completedCount: 0,
+    pendingVolume: 0, pendingCount: 0,
+    cancelledVolume: 0, cancelledCount: 0
+  });
 
   const handleViewDetails = (session: any) => {
     setSelectedSession(session);
@@ -87,8 +111,8 @@ export function DashboardHomeClient() {
               <Wallet className="h-5 w-5 opacity-40" />
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-black">৳0</div>
-              <p className="text-[10px] mt-1 opacity-70">0 Invoices Generated</p>
+              <div className="text-3xl font-black">৳{stats.totalVolume.toLocaleString()}</div>
+              <p className="text-[10px] mt-1 opacity-70">{stats.totalCount} Invoices Generated</p>
             </CardContent>
           </Card>
 
@@ -99,8 +123,8 @@ export function DashboardHomeClient() {
               <CircleCheck className="h-5 w-5 opacity-40" />
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-black">৳0</div>
-              <p className="text-[10px] mt-1 opacity-70">0 Invoices Paid</p>
+              <div className="text-3xl font-black">৳{stats.completedVolume.toLocaleString()}</div>
+              <p className="text-[10px] mt-1 opacity-70">{stats.completedCount} Invoices Paid</p>
             </CardContent>
           </Card>
 
@@ -111,8 +135,8 @@ export function DashboardHomeClient() {
               <Clock className="h-5 w-5 opacity-40" />
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-black">৳0</div>
-              <p className="text-[10px] mt-1 opacity-70">0 Awaiting Payment</p>
+              <div className="text-3xl font-black">৳{stats.pendingVolume.toLocaleString()}</div>
+              <p className="text-[10px] mt-1 opacity-70">{stats.pendingCount} Awaiting Payment</p>
             </CardContent>
           </Card>
 
@@ -123,8 +147,8 @@ export function DashboardHomeClient() {
               <XCircle className="h-5 w-5 opacity-40" />
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-black">৳0</div>
-              <p className="text-[10px] mt-1 opacity-70">0 Invoices Canceled</p>
+              <div className="text-3xl font-black">৳{stats.cancelledVolume.toLocaleString()}</div>
+              <p className="text-[10px] mt-1 opacity-70">{stats.cancelledCount} Invoices Canceled</p>
             </CardContent>
           </Card>
         </div>
@@ -160,11 +184,11 @@ export function DashboardHomeClient() {
               <TableBody>
                 {sessionsLoading ? (
                    <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground text-xs">Loading sessions...</TableCell></TableRow>
-                ) : recentSessions && recentSessions.length > 0 ? (
-                  recentSessions.map((session) => (
+                ) : allSessions && allSessions.length > 0 ? (
+                  allSessions.slice(0, 5).map((session) => (
                     <TableRow key={session.id} className="border-border/30 hover:bg-secondary/20">
                       <TableCell>
-                        <Badge variant="outline" className="text-[9px] uppercase border-primary/20 text-primary bg-primary/5">{session.method}</Badge>
+                        <Badge variant="outline" className="text-[9px] uppercase border-primary/20 bg-primary/5 text-primary">{session.method}</Badge>
                       </TableCell>
                       <TableCell className="text-[10px] font-mono text-muted-foreground">{session.val_id || "—"}</TableCell>
                       <TableCell className="text-xs font-bold">৳{session.amount}</TableCell>

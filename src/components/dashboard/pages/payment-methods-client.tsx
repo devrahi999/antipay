@@ -21,7 +21,6 @@ export function PaymentMethodsPageClient() {
   const [loading, setLoading] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
   
-  // Local state for the 4 supported methods
   const [configs, setConfigs] = useState<any>({
     bkash: { isActive: false, number: '' },
     nagad: { isActive: false, number: '' },
@@ -36,14 +35,12 @@ export function PaymentMethodsPageClient() {
   
   const { data: brands, isLoading: brandsLoading } = useCollection(brandsQuery);
 
-  // Set initial selected store
   useEffect(() => {
     if (brands && brands.length > 0 && !selectedStoreId) {
       setSelectedStoreId(brands[0].id);
     }
   }, [brands, selectedStoreId]);
 
-  // Load configs whenever selected store changes
   useEffect(() => {
     if (selectedStoreId && brands) {
       const store = brands.find(b => b.id === selectedStoreId);
@@ -55,7 +52,6 @@ export function PaymentMethodsPageClient() {
           upay: { isActive: false, number: '' },
         };
 
-        // Map array structure [{bkash: {isActive, number}}, ...] to our flat object state
         store.methods.forEach((item: any) => {
           const providerKey = Object.keys(item)[0];
           if (newConfigs[providerKey]) {
@@ -71,7 +67,6 @@ export function PaymentMethodsPageClient() {
     if (!user || !db || !selectedStoreId) return;
     setLoading(true);
     try {
-      // Rebuild the array structure: [{bkash: {...}}, {nagad: {...}}, ...]
       const methodsArray = [
         { bkash: configs.bkash },
         { nagad: configs.nagad },
@@ -142,7 +137,7 @@ export function PaymentMethodsPageClient() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-3xl font-headline font-bold text-foreground">Payment Methods</h1>
-          <p className="text-muted-foreground">আপনার পার্সোনাল/মার্চেন্ট একাউন্ট নম্বর এখানে যুক্ত করুন।</p>
+          <p className="text-muted-foreground">আপনার পার্সোনাল একাউন্ট নম্বর এখানে যুক্ত করুন।</p>
         </div>
 
         <div className="w-full md:w-72 space-y-2">
@@ -168,7 +163,7 @@ export function PaymentMethodsPageClient() {
         <Info className="h-4 w-4 text-primary" />
         <AlertTitle className="font-bold">গুরুত্বপূর্ণ নির্দেশনা</AlertTitle>
         <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-          এখানে যে নম্বরগুলো দিবেন, সেই সিমে আসা এসএমএস রিলে করার জন্য আপনার ফোনে <strong>AntiPay Sync</strong> অ্যাপটি অবশ্যই ইন্সটল থাকতে হবে।
+          এখানে যে নম্বর দিবেন সেই সিম যে ফোনে আছে ওই ফোনে আমাদের <strong>AntiPay Sync</strong> অ্যাপটি অবশ্যই ইন্সটল থাকতে হবে।
         </AlertDescription>
       </Alert>
 
@@ -201,7 +196,7 @@ export function PaymentMethodsPageClient() {
                   disabled={!configs[method.id]?.isActive}
                   className="bg-background/50 h-11 font-mono text-center tracking-[0.2em] font-bold rounded-xl border-border/10 focus:ring-primary/30"
                 />
-                <p className="text-[9px] text-muted-foreground text-center italic">Personal/Agent/Merchant</p>
+                <p className="text-[9px] text-muted-foreground text-center italic">Personal</p>
               </div>
             </CardContent>
           </Card>
