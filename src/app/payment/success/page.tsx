@@ -20,38 +20,35 @@ function PaymentSuccessContent() {
   const [error, setError] = useState<string | null>(null);
   const [planName, setPlanName] = useState("");
 
-  // Get params directly from URL as fallback if searchParams is empty
+  // Get parameters from searchParams
   const sessionId = searchParams.get('sessionId');
   const trxId = searchParams.get('trxId');
 
   useEffect(() => {
     async function activatePlan() {
-      // 1. Wait for Auth and Params to be ready
+      // 1. Wait for Auth to load
       if (isUserLoading) return;
       
-      // Give the router a moment to populate params if they are missing
+      // 2. Wait for Parameters to be present in URL
       if (!sessionId || !trxId) {
+        // If they are truly missing after a small delay, it's an error
         const timeout = setTimeout(() => {
           if (!sessionId || !trxId) {
-            setError("MISSING PARAMETERS");
+            setError("MISSING URL PARAMETERS");
             setIsVerifying(false);
           }
         }, 2000);
         return () => clearTimeout(timeout);
       }
 
+      // 3. User Check
       if (!user) {
-        // If params are here but user isn't, it might be a sync issue. Wait a bit.
-        const authTimeout = setTimeout(() => {
-          if (!user) {
-            setError("AUTH_REQUIRED");
-            setIsVerifying(false);
-          }
-        }, 1500);
-        return () => clearTimeout(authTimeout);
+        setError("AUTH_REQUIRED");
+        setIsVerifying(false);
+        return;
       }
 
-      // 2. Start Verification
+      // 4. Start Verification with Gateway
       setIsVerifying(true);
       setError(null);
 
@@ -67,9 +64,11 @@ function PaymentSuccessContent() {
         
         if (!planId) throw new Error("Could not identify plan from gateway data.");
 
-        // 3. Update Firestore
-        const planSnap = await getDoc(doc(db, 'subscriptionPlans', planId));
-        if (!planSnap.exists()) throw new Error(`Plan configuration '${planId}' not found.`);
+        // 5. Update Firestore Database
+        const planRef = doc(db, 'subscriptionPlans', planId);
+        const planSnap = await getDoc(planRef);
+        
+        if (!planSnap.exists()) throw new Error(`Plan configuration '${planId}' not found in system.`);
         
         const planData = planSnap.data();
         setPlanName(planData.name);
@@ -77,6 +76,7 @@ function PaymentSuccessContent() {
         const batch = writeBatch(db);
         const now = new Date();
         let expiry = new Date();
+        
         if (planData.billingCycle === 'lifetime') {
           expiry = new Date(2099, 11, 31);
         } else if (planData.billingCycle === 'yearly') {
@@ -85,7 +85,7 @@ function PaymentSuccessContent() {
           expiry.setDate(now.getDate() + 30);
         }
 
-        // Update quotas
+        // Update User Plan Limits
         batch.set(doc(db, 'user_plans', user.uid), {
           userId: user.uid,
           planId: planId,
@@ -100,7 +100,7 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         }, { merge: true });
 
-        // Update profile
+        // Update User Profile Status
         batch.update(doc(db, 'users', user.uid), {
           subscriptionPlanId: planId,
           subscriptionStartedAt: serverTimestamp(),
@@ -108,7 +108,7 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         });
 
-        // Log Transaction
+        // Record History
         const txRef = doc(collection(db, 'plan_transactions'));
         batch.set(txRef, {
           id: txRef.id,
@@ -127,7 +127,7 @@ function PaymentSuccessContent() {
         setIsSuccess(true);
       } catch (err: any) {
         console.error("ACTIVATION ERROR:", err);
-        setError(err.message || "Failed to activate plan.");
+        setError(err.message || "Activation Failed");
       } finally {
         setIsVerifying(false);
       }
@@ -140,7 +140,6 @@ function PaymentSuccessContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Establishing Secure Connection...</p>
       </div>
     );
   }
@@ -188,7 +187,7 @@ function PaymentSuccessContent() {
       <div className="space-y-1 px-4">
         <h1 className="text-xl font-black text-white tracking-tight uppercase">Payment <span className="text-[#16a34a]">Verified!</span></h1>
         <p className="text-slate-300 text-xs font-bold leading-tight">
-          Congratulations! Your <span className="text-[#16a34a]">{planName || 'New'}</span> plan is now fully active on your account.
+          Congratulations! Your <span className="text-[#16a34a]">{planName || 'New'}</span> plan is now active.
         </p>
       </div>
 
@@ -249,7 +248,7 @@ export default function PaymentSuccessPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4 relative z-10">
-        <Suspense fallback={<Loader2 className="animate-spin text-primary h-8 w-8" />}>
+        <Suspense fallback={<div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />}>
           <PaymentSuccessContent />
         </Suspense>
       </main>

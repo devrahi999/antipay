@@ -61,7 +61,7 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
 
 /**
  * Verifies a payment session directly with the gateway.
- * Used on the Success page to ensure immediate activation.
+ * Sending both camelCase and snake_case to be extra robust.
  */
 export async function verifyPaymentSession(sessionId: string, trxId: string) {
   const apiKey = process.env.ANTIPAY_GATEWAY_API_KEY;
@@ -79,7 +79,12 @@ export async function verifyPaymentSession(sessionId: string, trxId: string) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
       },
-      body: JSON.stringify({ sessionId, trxId }),
+      body: JSON.stringify({ 
+        sessionId, 
+        session_id: sessionId,
+        trxId, 
+        trx_id: trxId 
+      }),
     });
 
     const data = await response.json();
@@ -91,6 +96,7 @@ export async function verifyPaymentSession(sessionId: string, trxId: string) {
     }
     return { success: false, error: data.message || 'Payment not verified yet.' };
   } catch (error: any) {
+    console.error("VERIFY ACTION CRASH:", error);
     return { success: false, error: 'Verification service unreachable' };
   }
 }
