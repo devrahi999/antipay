@@ -13,14 +13,14 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 export async function generateInvoiceAction(data: any, store: any): Promise<string> {
   try {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size: 595.28 x 841.89 pts
     const { width, height } = page.getSize();
     
-    // Fonts
+    // Embed Standard Fonts
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
-    // Constants
+    // Design Constants
     const MARGIN = 40;
     const PRIMARY_GREEN = rgb(0.086, 0.639, 0.29); // #16a34a
     const TEXT_BLACK = rgb(0.066, 0.094, 0.15);   // #111827
@@ -31,62 +31,51 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     let currentY = height - MARGIN;
 
     // --- 1. HEADER SECTION ---
-    // LEFT: Logo + Store Name
+    // Handle Logo with fallback
+    let logoEmbedded = false;
+    const logoSize = 32;
+
     if (store.logoUrl && store.logoUrl.startsWith('http')) {
       try {
         const response = await fetch(store.logoUrl);
-        const imageBytes = await response.arrayBuffer();
-        let logoImage;
-        
-        // Dynamic detection for images without clear extensions (like Picsum)
-        const isPng = store.logoUrl.toLowerCase().endsWith('.png');
-        try {
-            if (isPng) {
-                logoImage = await pdfDoc.embedPng(imageBytes);
-            } else {
-                logoImage = await pdfDoc.embedJpg(imageBytes);
-            }
-        } catch (embedError) {
-            // If JPG fails, try PNG as fallback for extension-less URLs
+        if (response.ok) {
+          const imageBytes = await response.arrayBuffer();
+          let logoImage;
+          
+          // Resilient detection: try PNG then JPG
+          try {
             logoImage = await pdfDoc.embedPng(imageBytes);
-        }
-        
-        if (logoImage) {
-            const logoSize = 32;
+          } catch {
+            try {
+              logoImage = await pdfDoc.embedJpg(imageBytes);
+            } catch {
+              logoImage = null;
+            }
+          }
+          
+          if (logoImage) {
             page.drawImage(logoImage, {
               x: MARGIN,
               y: currentY - logoSize,
               width: logoSize,
               height: logoSize,
             });
-            
-            page.drawText(store.name || "Merchant", {
-              x: MARGIN + logoSize + 12,
-              y: currentY - 22,
-              size: 16,
-              font: fontBold,
-              color: TEXT_BLACK,
-            });
+            logoEmbedded = true;
+          }
         }
       } catch (e) {
-        // Safe fallback if image fetch/embed fails
-        page.drawText(store.name || "Merchant", {
-          x: MARGIN,
-          y: currentY - 22,
-          size: 16,
-          font: fontBold,
-          color: TEXT_BLACK,
-        });
+        console.warn('Logo embedding failed, skipping...', e);
       }
-    } else {
-      page.drawText(store.name || "Merchant", {
-        x: MARGIN,
-        y: currentY - 22,
-        size: 16,
-        font: fontBold,
-        color: TEXT_BLACK,
-      });
     }
+
+    // Store Name beside logo or at margin
+    page.drawText(store.name || "Merchant", {
+      x: logoEmbedded ? MARGIN + logoSize + 12 : MARGIN,
+      y: currentY - 22,
+      size: 16,
+      font: fontBold,
+      color: TEXT_BLACK,
+    });
 
     // RIGHT: Invoice Label
     const invoiceLabel = "INVOICE";
@@ -111,7 +100,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     currentY -= 60;
 
-    // Divider
+    // Header Divider
     page.drawLine({
       start: { x: MARGIN, y: currentY },
       end: { x: width - MARGIN, y: currentY },
@@ -131,7 +120,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       color: BG_LIGHT,
     });
 
-    page.drawText("Total Amount", {
+    page.drawText("Total Settled Amount", {
       x: MARGIN + 25,
       y: currentY - 30,
       size: 11,
@@ -139,7 +128,8 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       color: TEXT_GRAY,
     });
 
-    const amountText = `৳ ${Number(data.amount).toFixed(2)}`;
+    const amountValue = typeof data.amount === 'number' ? data.amount : 0;
+    const amountText = `৳ ${amountValue.toFixed(2)}`;
     page.drawText(amountText, {
       x: MARGIN + 25,
       y: currentY - 70,
@@ -204,7 +194,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     if (isVerified) {
       const stampX = width - 120;
       const stampY = 220;
-      // Fixed: pdf-lib uses drawEllipse, not drawCircle
+      // pdf-lib uses drawEllipse for circular shapes
       page.drawEllipse({
         x: stampX,
         y: stampY,
@@ -228,7 +218,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     // --- 5. FOOTER ---
     const footerY = 60;
-    const footerNote = "This receipt was automatically generated and verified by AntiPay.";
+    const footerNote = "This receipt was automatically generated and verified by AntiPay Infrastructure.";
     const noteWidth = fontRegular.widthOfTextAtSize(footerNote, 9);
     page.drawText(footerNote, {
       x: (width / 2) - (noteWidth / 2),
