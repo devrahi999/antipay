@@ -34,8 +34,7 @@ function PaymentSuccessContent() {
       }
 
       if (!user) {
-        // If user is null but we are not loading, it means user is genuinely logged out
-        // However, external redirects can be tricky. We wait 1 second to be sure.
+        // Wait a bit to ensure auth is properly synced after external redirect
         await new Promise(r => setTimeout(r, 1000));
         if (!user) {
             setError("Session authentication timed out. Please sign in.");
@@ -54,10 +53,12 @@ function PaymentSuccessContent() {
         }
 
         const gatewayData = verifyRes.data;
+        // val_id format: userId|planId
         const planId = (gatewayData.val_id || '').split('|')[1];
         
         if (!planId) throw new Error("Plan identification failed.");
 
+        // Fetch plan details to get correct name and limits
         const planSnap = await getDoc(doc(db, 'subscriptionPlans', planId));
         if (!planSnap.exists()) throw new Error("Plan definition missing.");
         
@@ -75,6 +76,7 @@ function PaymentSuccessContent() {
           expiry.setDate(now.getDate() + 30);
         }
 
+        // 1. Update active quotas
         batch.set(doc(db, 'user_plans', user.uid), {
           userId: user.uid,
           planId: planId,
@@ -89,6 +91,7 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         }, { merge: true });
 
+        // 2. Update profile status
         batch.update(doc(db, 'users', user.uid), {
           subscriptionPlanId: planId,
           subscriptionStartedAt: serverTimestamp(),
@@ -96,6 +99,7 @@ function PaymentSuccessContent() {
           updatedAt: serverTimestamp()
         });
 
+        // 3. Log historical transaction
         const txRef = doc(collection(db, 'plan_transactions'));
         batch.set(txRef, {
           id: txRef.id,
