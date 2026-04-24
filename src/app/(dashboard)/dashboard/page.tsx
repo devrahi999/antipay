@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { 
   Wallet, 
   Activity,
@@ -13,15 +14,28 @@ import {
   MoreVertical,
   XCircle,
   X,
-  ExternalLink
+  Eye,
+  Fingerprint,
+  Database,
+  Calendar
 } from "lucide-react"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from "@/components/ui/dialog"
+import { format } from 'date-fns';
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const [showWelcome, setShowWelcome] = useState(true);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -33,6 +47,11 @@ export default function DashboardPage() {
   }, [db, user?.uid]);
 
   const { data: recentSessions, isLoading: sessionsLoading } = useCollection(sessionsQuery);
+
+  const handleViewDetails = (session: any) => {
+    setSelectedSession(session);
+    setIsViewOpen(true);
+  };
 
   if (isUserLoading) return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading dashboard...</div>;
 
@@ -162,10 +181,13 @@ export default function DashboardPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                          <a href={`/s/${session.id}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7"
+                          onClick={() => handleViewDetails(session)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -185,19 +207,103 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction Details Dialog */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-2xl rounded-[2rem]">
+          {selectedSession && (
+            <>
+              <DialogHeader className="p-6 bg-[#162129] border-b border-border/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Fingerprint size={20} />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-lg font-bold text-slate-100">Transaction Details</DialogTitle>
+                      <DialogDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Session Log</DialogDescription>
+                    </div>
+                  </div>
+                  <Badge 
+                    className={`text-[9px] font-black uppercase px-3 py-1 ${
+                      selectedSession.status === 'verified' ? 'bg-[#16a34a]/20 text-[#16a34a]' : 
+                      selectedSession.status === 'pending' ? 'bg-amber-500/20 text-amber-500' : 
+                      'bg-rose-500/20 text-rose-500'
+                    }`}
+                  >
+                    {selectedSession.status}
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="p-6 space-y-6">
+                <div className="bg-[#162129]/40 p-6 rounded-2xl border border-border/10 flex flex-col items-center gap-1">
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Settlement Amount</p>
+                   <p className="text-4xl font-black text-white">৳{selectedSession.amount}</p>
+                   <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase">{selectedSession.method}</Badge>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1 p-4 bg-[#162129]/30 rounded-xl border border-border/5">
+                    <p className="text-[9px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                       <Database className="h-2.5 w-2.5" /> Internal Ref
+                    </p>
+                    <p className="text-xs font-bold text-slate-200 truncate">{selectedSession.val_id || "—"}</p>
+                  </div>
+                  <div className="space-y-1 p-4 bg-[#162129]/30 rounded-xl border border-border/5">
+                    <p className="text-[9px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                       <CircleCheck className="h-2.5 w-2.5" /> Transaction ID
+                    </p>
+                    <p className="text-xs font-mono font-bold text-[#16a34a] truncate">{selectedSession.trxId || "Awaiting..."}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border/10" />
+                    <span className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Metadata & Timeline</span>
+                    <div className="h-px flex-1 bg-border/10" />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                       <span className="text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> Created At</span>
+                       <span className="text-slate-200 font-medium">
+                         {selectedSession.createdAt?.toDate ? format(selectedSession.createdAt.toDate(), 'PPP, hh:mm a') : "—"}
+                       </span>
+                    </div>
+                    {selectedSession.status === 'verified' && (
+                      <div className="flex items-center justify-between text-xs">
+                         <span className="text-muted-foreground flex items-center gap-1.5"><CircleCheck className="h-3 w-3 text-[#16a34a]" /> Verified At</span>
+                         <span className="text-[#16a34a] font-bold">
+                           {selectedSession.verifiedAt?.toDate ? format(selectedSession.verifiedAt.toDate(), 'PPP, hh:mm a') : "Just now"}
+                         </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs">
+                       <span className="text-muted-foreground flex items-center gap-1.5"><Wallet className="h-3 w-3" /> Receiver No</span>
+                       <span className="text-slate-200 font-mono font-bold">{selectedSession.receiverNumber || "Configured Number"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-2">
+                  <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Session ID (System Reference)</p>
+                  <code className="block w-full p-2.5 bg-[#162129] border border-border/10 rounded-lg text-[10px] font-mono text-primary truncate">
+                    {selectedSession.id}
+                  </code>
+                </div>
+              </div>
+
+              <div className="p-4 bg-[#162129]/50 border-t border-border/10 flex justify-end">
+                <Button variant="ghost" className="text-xs font-bold rounded-xl" onClick={() => setIsViewOpen(false)}>Close Log</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
-}
-
-function Button({ children, variant, size, className, ...props }: any) {
-  const variants: any = {
-    ghost: "hover:bg-secondary/50",
-    outline: "border border-border",
-    default: "bg-primary text-primary-foreground"
-  }
-  const sizes: any = {
-    icon: "p-1",
-    default: "px-4 py-2"
-  }
-  return <button className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors ${variants[variant || 'default']} ${sizes[size || 'default']} ${className}`} {...props}>{children}</button>
 }
