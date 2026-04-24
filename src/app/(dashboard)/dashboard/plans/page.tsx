@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, doc, serverTimestamp, Timestamp, writeBatch, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle, Lock } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
-import { notifyPlanActivation } from '@/app/actions/notifications';
+import { createPlanPaymentSession } from '@/app/actions/payment';
 
 export default function BrowsePlansPage() {
   const { user } = useUser();
@@ -37,88 +36,20 @@ export default function BrowsePlansPage() {
     if (!user || !db) return;
     setIsSubmitting(plan.id);
 
-    const isUpgrade = profile?.subscriptionPlanId && profile.subscriptionPlanId !== plan.id;
-    const isRenew = profile?.subscriptionPlanId === plan.id;
-
     try {
-      // Calculate expiry
-      const now = new Date();
-      let expiry = new Date();
+      // Initiate payment session via Gateway
+      const { paymentUrl } = await createPlanPaymentSession(user.uid, plan.id, plan.price);
       
-      if (plan.billingCycle === 'lifetime') {
-        expiry = new Date(2099, 11, 31); // Far future for lifetime
-      } else if (plan.billingCycle === 'yearly') {
-        expiry.setDate(now.getDate() + 365);
-      } else {
-        expiry.setDate(now.getDate() + 30);
-      }
-
-      const batch = writeBatch(db);
-
-      // 1. Update/Create user_plans/{userId} document
-      const userPlanRef = doc(db, 'user_plans', user.uid);
-      batch.set(userPlanRef, {
-        userId: user.uid,
-        userEmail: user.email,
-        planId: plan.id,
-        planName: plan.name,
-        price: plan.price,
-        billingCycle: plan.billingCycle,
-        maxApiKeys: plan.maxApiKeys,
-        maxDevices: plan.maxDevices,
-        benefits: plan.benefits || [],
-        activatedAt: serverTimestamp(),
-        expiresAt: Timestamp.fromDate(expiry),
-        updatedAt: serverTimestamp()
-      });
-
-      // 2. Sync profile subscription ID
-      const userRef = doc(db, 'users', user.uid);
-      batch.set(userRef, {
-        subscriptionPlanId: plan.id,
-        subscriptionStartedAt: serverTimestamp(),
-        subscriptionExpiresAt: Timestamp.fromDate(expiry),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      // 3. Log a success transaction
-      const txRef = doc(collection(db, 'plan_transactions'));
-      batch.set(txRef, {
-        id: txRef.id,
-        userId: user.uid,
-        userEmail: user.email,
-        planId: plan.id,
-        planName: plan.name,
-        amount: plan.price,
-        status: isUpgrade ? 'upgrade' : (isRenew ? 'renew' : 'new_purchase'),
-        createdAt: serverTimestamp()
-      });
-
-      // 4. Reactive all user brands (isActive: true)
-      const storesQuery = query(collection(db, 'stores'), where('userId', '==', user.uid));
-      const storesSnap = await getDocs(storesQuery);
-      storesSnap.forEach((storeDoc) => {
-        batch.update(storeDoc.ref, { isActive: true, updatedAt: serverTimestamp() });
-      });
-
-      await batch.commit();
-
-      // 5. Trigger Email
-      if (user.email) {
-        notifyPlanActivation(user.email, plan.name).catch(e => console.error("Email failed:", e));
-      }
-
-      toast({
-        title: isUpgrade ? "Plan Upgraded!" : (isRenew ? "Plan Renewed!" : "Plan Activated!"),
-        description: `Your ${plan.name} is now active. Brands reactivated.`,
-      });
+      toast({ title: "Redirecting...", description: "Connecting to secure payment gateway." });
+      
+      // Redirect to AntiPay hosted payment page
+      window.location.href = paymentUrl;
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Action Failed",
-        description: error.message || "Please try again later."
+        title: "Payment Error",
+        description: error.message || "Could not initiate payment session."
       });
-    } finally {
       setIsSubmitting(null);
     }
   };
