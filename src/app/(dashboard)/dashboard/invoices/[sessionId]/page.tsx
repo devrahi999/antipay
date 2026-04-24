@@ -66,40 +66,39 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
     setIsDownloading(true);
     try {
       // PREVENT SERIALIZATION ERROR:
-      // Firestore Timestamps have toJSON methods and hidden classes that crash Server Actions.
-      // We manually build a 100% plain JSON object before passing it.
+      // Firestore Timestamps crash Server Actions. We build a clean JSON object.
       const plainData = {
-        amount: invoice.amount,
-        trxId: invoice.trxId || "—",
-        method: invoice.method || "—",
-        val_id: invoice.val_id || "—",
-        sender: invoice.sender || "—",
-        userId: invoice.userId,
-        status: invoice.status || "pending",
+        amount: Number(invoice.amount) || 0,
+        trxId: String(invoice.trxId || "—"),
+        method: String(invoice.method || "—"),
+        val_id: String(invoice.val_id || "—"),
+        sender: String(invoice.sender || "—"),
+        userId: String(invoice.userId || ""),
+        status: String(invoice.status || "pending"),
         id: sessionId,
         createdAtFormatted: invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), 'PPP p') : '—',
         verifiedAtFormatted: invoice.verifiedAt?.toDate ? format(invoice.verifiedAt.toDate(), 'PPP p') : '—',
       };
 
       const plainStore = {
-        name: store?.name || invoice.storeName || "AntiPay Merchant",
-        logoUrl: store?.logoUrl || "",
+        name: String(store?.name || invoice.storeName || "AntiPay Merchant"),
+        logoUrl: String(store?.logoUrl || ""),
       };
 
-      // Call the server action with 100% plain objects
+      // Call server action with purely plain objects
       const pdfBase64 = await generateInvoiceAction(plainData, plainStore);
       
       const link = document.createElement('a');
       link.href = `data:application/pdf;base64,${pdfBase64}`;
-      link.download = `AntiPay-Invoice-${sessionId.substring(0, 8)}.pdf`;
+      link.download = `Invoice-${sessionId.substring(0, 8)}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      toast({ title: "Success", description: "Invoice PDF has been generated." });
+      toast({ title: "Success", description: "PDF generated successfully." });
     } catch (error: any) {
       console.error('DOWNLOAD FAILED:', error);
-      toast({ variant: "destructive", title: "Failed", description: "Could not generate PDF. Please try again." });
+      toast({ variant: "destructive", title: "Error", description: "Could not generate PDF. Please try again." });
     } finally {
       setIsDownloading(false);
     }

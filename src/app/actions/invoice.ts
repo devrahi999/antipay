@@ -16,7 +16,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size: 595.28 x 841.89 pts
     const { width, height } = page.getSize();
     
-    // Embed Standard Fonts
+    // Embed Standard Fonts (Safe across all environments)
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
@@ -31,29 +31,18 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     let currentY = height - MARGIN;
 
     // --- 1. HEADER SECTION ---
-    // Handle Logo with fallback
     let logoEmbedded = false;
     const logoSize = 32;
 
-    if (store.logoUrl && store.logoUrl.startsWith('http')) {
+    // Defensively handle Logo
+    if (store.logoUrl && typeof store.logoUrl === 'string' && store.logoUrl.startsWith('http')) {
       try {
-        const response = await fetch(store.logoUrl);
+        const response = await fetch(store.logoUrl, { next: { revalidate: 0 } });
         if (response.ok) {
           const imageBytes = await response.arrayBuffer();
-          let logoImage;
-          
-          // Resilient detection: try PNG then JPG
+          // Resilient detection: try PNG then JPG. Fail gracefully.
           try {
-            logoImage = await pdfDoc.embedPng(imageBytes);
-          } catch {
-            try {
-              logoImage = await pdfDoc.embedJpg(imageBytes);
-            } catch {
-              logoImage = null;
-            }
-          }
-          
-          if (logoImage) {
+            const logoImage = await pdfDoc.embedPng(imageBytes);
             page.drawImage(logoImage, {
               x: MARGIN,
               y: currentY - logoSize,
@@ -61,6 +50,19 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
               height: logoSize,
             });
             logoEmbedded = true;
+          } catch {
+            try {
+              const logoImage = await pdfDoc.embedJpg(imageBytes);
+              page.drawImage(logoImage, {
+                x: MARGIN,
+                y: currentY - logoSize,
+                width: logoSize,
+                height: logoSize,
+              });
+              logoEmbedded = true;
+            } catch {
+              console.warn('Image format not supported by pdf-lib (needs PNG/JPG)');
+            }
           }
         }
       } catch (e) {
@@ -68,7 +70,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       }
     }
 
-    // Store Name beside logo or at margin
+    // Store Name (Positioned beside logo if embedded)
     page.drawText(store.name || "Merchant", {
       x: logoEmbedded ? MARGIN + logoSize + 12 : MARGIN,
       y: currentY - 22,
@@ -77,7 +79,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       color: TEXT_BLACK,
     });
 
-    // RIGHT: Invoice Label
+    // RIGHT: Invoice Header
     const invoiceLabel = "INVOICE";
     const invoiceLabelWidth = fontBold.widthOfTextAtSize(invoiceLabel, 18);
     page.drawText(invoiceLabel, {
@@ -110,7 +112,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     currentY -= 40;
 
-    // --- 2. AMOUNT CARD ---
+    // --- 2. AMOUNT CARD SECTION ---
     const cardHeight = 100;
     page.drawRectangle({
       x: MARGIN,
@@ -128,8 +130,8 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       color: TEXT_GRAY,
     });
 
-    const amountValue = typeof data.amount === 'number' ? data.amount : 0;
-    const amountText = `৳ ${amountValue.toFixed(2)}`;
+    const amountNum = typeof data.amount === 'number' ? data.amount : Number(data.amount) || 0;
+    const amountText = `৳ ${amountNum.toFixed(2)}`;
     page.drawText(amountText, {
       x: MARGIN + 25,
       y: currentY - 70,
@@ -138,10 +140,9 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       color: PRIMARY_GREEN,
     });
 
-    // Verified Pill
+    // Verified Pill Badge
     const isVerified = data.status === 'verified';
     if (isVerified) {
-      const pillLabel = "VERIFIED";
       const pillWidth = 80;
       const pillHeight = 24;
       page.drawRectangle({
@@ -152,8 +153,9 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
         color: PRIMARY_GREEN,
       });
       
-      const labelWidth = fontBold.widthOfTextAtSize(pillLabel, 9);
-      page.drawText(pillLabel, {
+      const labelText = "VERIFIED";
+      const labelWidth = fontBold.widthOfTextAtSize(labelText, 9);
+      page.drawText(labelText, {
         x: width - MARGIN - pillWidth - 25 + (pillWidth / 2) - (labelWidth / 2),
         y: currentY - 60 + 8,
         size: 9,
@@ -164,7 +166,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     currentY -= (cardHeight + 50);
 
-    // --- 3. DETAILS TABLE ---
+    // --- 3. DETAILS GRID ---
     const drawRow = (label: string, value: string, y: number) => {
       page.drawText(label, { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
       page.drawText(String(value), { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
@@ -179,7 +181,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
 
     const rows = [
       { label: "Transaction ID", value: data.trxId || "—" },
-      { label: "Payment Method", value: (data.method || "—").toUpperCase() },
+      { label: "Payment Method", value: (String(data.method || "—")).toUpperCase() },
       { label: "Order Reference", value: data.val_id || "—" },
       { label: "Sender Number", value: data.sender || "—" },
       { label: "Date Created", value: data.createdAtFormatted || "—" },
@@ -190,11 +192,10 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       drawRow(row.label, row.value, currentY - (i * 35));
     });
 
-    // --- 4. VERIFIED STAMP ---
+    // --- 4. VERIFICATION WATERMARK ---
     if (isVerified) {
       const stampX = width - 120;
       const stampY = 220;
-      // pdf-lib uses drawEllipse for circular shapes
       page.drawEllipse({
         x: stampX,
         y: stampY,
@@ -202,7 +203,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
         yScale: 45,
         borderWidth: 1.5,
         borderColor: PRIMARY_GREEN,
-        opacity: 0.3,
+        opacity: 0.2,
       });
       const stampText = "VERIFIED";
       const sWidth = fontBold.widthOfTextAtSize(stampText, 10);
@@ -212,7 +213,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
         size: 10,
         font: fontBold,
         color: PRIMARY_GREEN,
-        opacity: 0.3,
+        opacity: 0.2,
       });
     }
 
@@ -241,7 +242,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     const pdfBase64 = await pdfDoc.saveAsBase64();
     return pdfBase64;
   } catch (err: any) {
-    console.error('SERVER PDF GENERATION ERROR:', err);
+    console.error('CRITICAL PDF ERROR:', err);
     throw new Error('Failed to generate PDF');
   }
 }
