@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDocs, query, collectionGroup, where, updateDoc, serverTimestamp, documentId, limit } from 'firebase/firestore';
 import { ShieldCheck, Lock, CheckCircle2, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export default function PublicPaymentPage() {
   const db = useFirestore();
   
   const [session, setSession] = useState<any>(null);
+  const [sessionPath, setSessionPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [trxId, setTrxId] = useState('');
@@ -25,10 +26,18 @@ export default function PublicPaymentPage() {
   useEffect(() => {
     async function fetchSession() {
       if (!db || !sessionId) return;
-      const docRef = doc(db, 'public_payment_sessions', sessionId);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        setSession(snap.data());
+      try {
+        // Use collectionGroup to find the session across all merchant subcollections
+        const q = query(collectionGroup(db, 'sessions'), where(documentId(), '==', sessionId), limit(1));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const docSnap = querySnapshot.docs[0];
+          setSession(docSnap.data());
+          setSessionPath(docSnap.ref.path);
+        }
+      } catch (e) {
+        console.error("Error fetching session:", e);
       }
       setLoading(false);
     }
@@ -36,22 +45,21 @@ export default function PublicPaymentPage() {
   }, [db, sessionId]);
 
   const handleVerify = async () => {
-    if (!trxId || !db) return;
+    if (!trxId || !db || !sessionPath) return;
     setVerifying(true);
     
-    // Simulate verification (Real verification happens via server-side or Cloud Functions checking RawTransactions)
-    // Here we just update the session status to simulate the flow
     try {
-      await updateDoc(doc(db, 'public_payment_sessions', sessionId), {
+      // Use the identified path to update the correct document
+      await updateDoc(doc(db, sessionPath), {
         userProvidedTransactionId: trxId,
         status: 'completed',
         verifiedAt: serverTimestamp(),
       });
       setStatus('success');
       // Redirect after success if configured
-      if (session?.successRedirectUrl) {
+      if (session?.redirectSuccessUrl) {
         setTimeout(() => {
-          window.location.href = session.successRedirectUrl;
+          window.location.href = session.redirectSuccessUrl;
         }, 2000);
       }
     } catch (e) {
@@ -145,7 +153,7 @@ export default function PublicPaymentPage() {
           </CardContent>
           <CardFooter className="bg-secondary/20 flex justify-center py-4 border-t">
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Lock size={10} /> Secure checkout powered by AntiPay
+              <Lock size(10) /> Secure checkout powered by AntiPay
             </p>
           </CardFooter>
         </Card>

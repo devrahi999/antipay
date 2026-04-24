@@ -1,7 +1,7 @@
 
 'use client';
 
-import { query, collection, where, orderBy } from 'firebase/firestore';
+import { query, collection, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -14,12 +14,11 @@ export default function PaymentHistoryPage() {
   const { user } = useUser();
   const db = useFirestore();
 
-  // Query root collection filtered by userId
+  // Updated to query merchant's sessions subcollection
   const historyQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
-      collection(db, 'payment_sessions'),
-      where('userId', '==', user.uid),
+      collection(db, 'payment_sessions', user.uid, 'sessions'),
       orderBy('createdAt', 'desc')
     );
   }, [db, user?.uid]);

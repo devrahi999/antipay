@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
@@ -10,9 +11,10 @@ import { Database, Search, History } from "lucide-react"
 export default function SystemLogsPage() {
   const db = useFirestore();
 
+  // Updated to use the nested 'sessions' subcollection group
   const sessionsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collectionGroup(db, 'paymentSessions'), orderBy('createdAt', 'desc'), limit(100));
+    return query(collectionGroup(db, 'sessions'), orderBy('createdAt', 'desc'), limit(100));
   }, [db]);
 
   const { data: logs, isLoading } = useCollection(sessionsQuery);

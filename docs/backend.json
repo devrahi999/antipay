@@ -121,7 +121,7 @@
       { "path": "/users/{userId}", "definition": { "entityName": "UserProfile", "description": "User profile data." } },
       { "path": "/user_plans/{userId}", "definition": { "entityName": "UserPlan", "description": "User's active subscription details." } },
       { "path": "/stores/{storeId}", "definition": { "entityName": "Store", "description": "Global stores collection." } },
-      { "path": "/payment_sessions/{sessionId}", "definition": { "entityName": "PaymentSession", "description": "Root payment history." } },
+      { "path": "/payment_sessions/{userId}/sessions/{sessionId}", "definition": { "entityName": "PaymentSession", "description": "Payment sessions nested under merchant." } },
       { "path": "/subscriptionPlans/{planId}", "definition": { "entityName": "SubscriptionPlan", "description": "Global plans defined by Admin." } },
       { "path": "/plan_transactions/{txId}", "definition": { "entityName": "PlanTransaction", "description": "History of plan purchases." } },
       { "path": "/devices/{brandId}", "definition": { "entityName": "object", "description": "Root devices mapped by brandId." } }

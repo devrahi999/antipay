@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -23,12 +23,11 @@ export default function DashboardPage() {
   const db = useFirestore();
   const [showWelcome, setShowWelcome] = useState(true);
 
-  // Standardized query to use root payment_sessions with filter
+  // Updated to use the nested subcollection path
   const sessionsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
-      collection(db, 'payment_sessions'),
-      where('userId', '==', user.uid),
+      collection(db, 'payment_sessions', user.uid, 'sessions'),
       orderBy('createdAt', 'desc'),
       limit(5)
     );
