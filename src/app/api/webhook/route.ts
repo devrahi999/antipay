@@ -4,7 +4,6 @@ import {
   getFirestore, 
   doc, 
   getDoc, 
-  setDoc, 
   serverTimestamp, 
   Timestamp, 
   writeBatch, 
@@ -30,34 +29,40 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { status, val_id, amount, trxId, sessionId } = body;
 
-    console.log('--- INBOUND WEBHOOK ---');
+    console.log('--- INBOUND WEBHOOK RECEIVED ---');
     console.log('Payload:', JSON.stringify(body, null, 2));
 
-    // Process only 'verified' status
+    // Process only 'verified' status as per gateway docs
     if (status !== 'verified') {
+      console.log('Webhook Status not "verified". Skipping processing.');
       return NextResponse.json({ message: "Not a verification signal." }, { status: 200 });
     }
 
-    // val_id format expected: "userId|planId"
-    const [userId, planId] = (val_id || '').split('|');
-
-    if (!userId || !planId) {
-      console.error('WEBHOOK ERROR: Invalid val_id mapping:', val_id);
+    // val_id format expected: "userId|planId" (e.g. "mEr7Toz...|pro")
+    if (!val_id || !val_id.includes('|')) {
+      console.error('WEBHOOK ERROR: Invalid val_id format:', val_id);
       return NextResponse.json({ error: 'Malformed val_id' }, { status: 400 });
     }
 
-    // 1. Fetch Plan Definition
+    const [userId, planId] = val_id.split('|');
+
+    if (!userId || !planId) {
+      console.error('WEBHOOK ERROR: Missing userId or planId in val_id');
+      return NextResponse.json({ error: 'Incomplete val_id parts' }, { status: 400 });
+    }
+
+    // 1. Fetch Plan Definition from subscriptionPlans collection
     const planRef = doc(db, 'subscriptionPlans', planId);
     const planSnap = await getDoc(planRef);
 
     if (!planSnap.exists()) {
-      console.error('WEBHOOK ERROR: Plan definition missing:', planId);
-      return NextResponse.json({ error: 'Plan definition missing' }, { status: 404 });
+      console.error('WEBHOOK ERROR: Plan definition missing in Firestore:', planId);
+      return NextResponse.json({ error: 'Plan definition missing in database' }, { status: 404 });
     }
 
     const plan = planSnap.data();
 
-    // 2. Calculate Expiry
+    // 2. Calculate Expiry based on billing cycle
     const now = new Date();
     let expiry = new Date();
     if (plan.billingCycle === 'lifetime') {
@@ -68,10 +73,10 @@ export async function POST(req: NextRequest) {
       expiry.setDate(now.getDate() + 30);
     }
 
-    // 3. Batch Update Firestore
+    // 3. Batch Update Firestore to ensure atomic changes
     const batch = writeBatch(db);
 
-    // Update user_plans (Quotas & Limits)
+    // A. Update user_plans (The source of truth for quotas)
     const userPlanRef = doc(db, 'user_plans', userId);
     batch.set(userPlanRef, {
       userId,
@@ -87,7 +92,7 @@ export async function POST(req: NextRequest) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Update user profile status
+    // B. Sync user profile for quick dashboard checks
     const userRef = doc(db, 'users', userId);
     batch.set(userRef, {
       subscriptionPlanId: planId,
@@ -96,7 +101,7 @@ export async function POST(req: NextRequest) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Log the revenue transaction
+    // C. Record the revenue transaction for admin audit
     const txRef = doc(collection(db, 'plan_transactions'));
     batch.set(txRef, {
       id: txRef.id,
@@ -110,7 +115,7 @@ export async function POST(req: NextRequest) {
       createdAt: serverTimestamp()
     });
 
-    // Reactivate all merchant brands
+    // D. Reactivate all existing merchant brands for this user
     const storesQuery = query(collection(db, 'stores'), where('userId', '==', userId));
     const storesSnap = await getDocs(storesQuery);
     storesSnap.forEach((storeDoc) => {
@@ -120,9 +125,10 @@ export async function POST(req: NextRequest) {
       });
     });
 
+    // Commit all updates
     await batch.commit();
     
-    console.log(`WEBHOOK SUCCESS: User ${userId} upgraded to ${plan.name}.`);
+    console.log(`WEBHOOK SUCCESS: User ${userId} upgraded to ${plan.name} (${planId}).`);
     return NextResponse.json({ success: true });
 
   } catch (error: any) {

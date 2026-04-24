@@ -5,36 +5,47 @@ import Link from "next/link";
 import { doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2, Clock } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, Zap, Sparkles, Loader2 } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 
 function PaymentSuccessContent() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const [isTimedOut, setIsTimedOut] = useState(false);
 
   // Subscribe to real-time updates of the user's plan
-  // This doc is updated by the WEBHOOK
+  // This document is updated by the WEBHOOK back-end
   const planRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'user_plans', user.uid);
   }, [db, user?.uid]);
 
-  const { data: activePlan, isLoading } = useDoc(planRef);
+  const { data: activePlan, isLoading: isPlanLoading } = useDoc(planRef);
 
-  // Safety timer: If webhook takes too long, give user a direct link
+  // Safety timer
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsTimedOut(true);
-    }, 8000); // 8 seconds
+    }, 10000); // 10 seconds
     return () => clearTimeout(timer);
   }, []);
 
-  if (isLoading || !activePlan) {
+  if (isUserLoading || isPlanLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Synchronizing Instance...</p>
+      </div>
+    );
+  }
+
+  // If after loading we still don't have an active plan or it's still 'starter' (and they bought pro)
+  // we show a waiting state.
+  if (!activePlan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Payment...</p>
+        <p className="text-[10px] text-muted-foreground max-w-[200px]">We are waiting for the gateway to confirm your funds.</p>
       </div>
     );
   }

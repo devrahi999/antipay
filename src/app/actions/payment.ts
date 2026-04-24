@@ -15,9 +15,18 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
   const base = gatewayUrl.replace(/\/+$/, "");
   const endpoint = `${base}/create`;
   
+  // The val_id contains both userId and the target planId separated by a pipe
   const val_id = `${userId}|${planId}`;
+  
+  // Construct the webhook URL using the domain from .env
+  // Ensuring no double slashes
   const cleanDomain = (domain || "").replace(/\/+$/, "");
   const webhook_url = `${cleanDomain}/api/webhook`;
+
+  console.log("--- CREATING PAYMENT SESSION ---");
+  console.log("Target User ID:", userId);
+  console.log("Target Plan ID:", planId);
+  console.log("Full Webhook URL sent to gateway:", webhook_url);
 
   try {
     const response = await fetch(endpoint, {
@@ -61,7 +70,6 @@ export async function createPlanPaymentSession(userId: string, planId: string, a
 
 /**
  * Verifies a payment session directly with the gateway.
- * Sending both camelCase and snake_case to be extra robust.
  */
 export async function verifyPaymentSession(sessionId: string, trxId: string) {
   const apiKey = process.env.ANTIPAY_GATEWAY_API_KEY;
@@ -80,9 +88,6 @@ export async function verifyPaymentSession(sessionId: string, trxId: string) {
       trx_id: trxId 
     };
     
-    console.log("SENDING VERIFY REQUEST TO:", endpoint);
-    console.log("PAYLOAD:", payload);
-
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -93,9 +98,7 @@ export async function verifyPaymentSession(sessionId: string, trxId: string) {
     });
 
     const data = await response.json();
-    console.log("GATEWAY VERIFY RESPONSE:", data);
     
-    // Check if verification was successful
     if (data.status === 'verified' || data.status === 'success' || data.success === true) {
       return { success: true, data };
     }
