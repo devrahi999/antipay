@@ -37,28 +37,39 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
         const response = await fetch(store.logoUrl);
         const imageBytes = await response.arrayBuffer();
         let logoImage;
-        if (store.logoUrl.toLowerCase().endsWith('.png')) {
-          logoImage = await pdfDoc.embedPng(imageBytes);
-        } else {
-          logoImage = await pdfDoc.embedJpg(imageBytes);
+        
+        // Dynamic detection for images without clear extensions (like Picsum)
+        const isPng = store.logoUrl.toLowerCase().endsWith('.png');
+        try {
+            if (isPng) {
+                logoImage = await pdfDoc.embedPng(imageBytes);
+            } else {
+                logoImage = await pdfDoc.embedJpg(imageBytes);
+            }
+        } catch (embedError) {
+            // If JPG fails, try PNG as fallback for extension-less URLs
+            logoImage = await pdfDoc.embedPng(imageBytes);
         }
         
-        const logoSize = 32;
-        page.drawImage(logoImage, {
-          x: MARGIN,
-          y: currentY - logoSize,
-          width: logoSize,
-          height: logoSize,
-        });
-        
-        page.drawText(store.name || "Merchant", {
-          x: MARGIN + logoSize + 12,
-          y: currentY - 22,
-          size: 16,
-          font: fontBold,
-          color: TEXT_BLACK,
-        });
+        if (logoImage) {
+            const logoSize = 32;
+            page.drawImage(logoImage, {
+              x: MARGIN,
+              y: currentY - logoSize,
+              width: logoSize,
+              height: logoSize,
+            });
+            
+            page.drawText(store.name || "Merchant", {
+              x: MARGIN + logoSize + 12,
+              y: currentY - 22,
+              size: 16,
+              font: fontBold,
+              color: TEXT_BLACK,
+            });
+        }
       } catch (e) {
+        // Safe fallback if image fetch/embed fails
         page.drawText(store.name || "Merchant", {
           x: MARGIN,
           y: currentY - 22,
@@ -166,7 +177,7 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     // --- 3. DETAILS TABLE ---
     const drawRow = (label: string, value: string, y: number) => {
       page.drawText(label, { x: MARGIN + 10, y, size: 11, font: fontRegular, color: TEXT_GRAY });
-      page.drawText(value, { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
+      page.drawText(String(value), { x: width / 2, y, size: 12, font: fontBold, color: TEXT_BLACK });
       
       page.drawLine({
         start: { x: MARGIN + 10, y: y - 12 },
@@ -193,10 +204,12 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
     if (isVerified) {
       const stampX = width - 120;
       const stampY = 220;
-      page.drawCircle({
+      // Fixed: pdf-lib uses drawEllipse, not drawCircle
+      page.drawEllipse({
         x: stampX,
         y: stampY,
-        size: 45,
+        xScale: 45,
+        yScale: 45,
         borderWidth: 1.5,
         borderColor: PRIMARY_GREEN,
         opacity: 0.3,
