@@ -26,12 +26,15 @@ export default function PublicPaymentPage() {
     async function fetchSession() {
       if (!db || !sessionId) return;
       try {
-        // Fix: Use 'id' field instead of documentId() for collection group query to avoid path segment errors
-        const q = query(collectionGroup(db, 'sessions'), where('id', '==', sessionId), limit(1));
+        // Querying collection group 'sessions' and filtering by userId existence to use an index
+        // Then finding the specific document by its ID (sessionId) in the results
+        const q = query(collectionGroup(db, 'sessions'), where('userId', '!=', ''), limit(50));
         const querySnapshot = await getDocs(q);
         
-        if (!querySnapshot.empty) {
-          const docSnap = querySnapshot.docs[0];
+        // Find the document that matches the sessionId
+        const docSnap = querySnapshot.docs.find(d => d.id === sessionId);
+        
+        if (docSnap) {
           setSession(docSnap.data());
           setSessionPath(docSnap.ref.path);
         }
