@@ -42,11 +42,12 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
 
   const { data: invoice, isLoading } = useDoc(sessionRef);
 
-  // Fetch Store Data for Branding
+  // Fetch Store Data using apiKey from the session document
   const storeRef = useMemoFirebase(() => {
-    if (!db || !invoice?.storeId) return null;
-    return doc(db, 'stores', invoice.storeId);
-  }, [db, invoice?.storeId]);
+    if (!db || !invoice?.apiKey) return null;
+    // User stated: apiKey in session = documentId in stores collection
+    return doc(db, 'stores', invoice.apiKey);
+  }, [db, invoice?.apiKey]);
 
   const { data: store } = useDoc(storeRef);
 
@@ -58,13 +59,14 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
   };
 
   const handleDownloadPdf = async () => {
-    if (!invoice || !store) {
+    if (!invoice) {
         toast({ variant: "destructive", title: "Wait", description: "Loading document data..." });
         return;
     }
     
     setIsDownloading(true);
     try {
+      // We pass the invoice and whatever store data we found (or defaults)
       const pdfBase64 = await generateInvoiceAction(
         {
           ...invoice,
@@ -73,15 +75,17 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
           verifiedAtFormatted: invoice.verifiedAt?.toDate ? format(invoice.verifiedAt.toDate(), 'PPP p') : '—',
         },
         {
-          name: store.name || "AntiPay Merchant",
-          logoUrl: store.logoUrl || "",
+          name: store?.name || invoice.storeName || "AntiPay Merchant",
+          logoUrl: store?.logoUrl || "",
         }
       );
       
       const link = document.createElement('a');
       link.href = `data:application/pdf;base64,${pdfBase64}`;
       link.download = `AntiPay-Invoice-${sessionId.substring(0, 8)}.pdf`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       
       toast({ title: "Success", description: "Invoice PDF has been generated." });
     } catch (error: any) {

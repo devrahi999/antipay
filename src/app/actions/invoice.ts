@@ -10,7 +10,7 @@ import PDFDocument from 'pdfkit';
  * @returns A base64 encoded string of the PDF buffer.
  */
 export async function generateInvoiceAction(data: any, store: any): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<string>(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const chunks: Buffer[] = [];
@@ -31,9 +31,30 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       doc.rect(0, 0, doc.page.width, 8).fill(primaryColor);
 
       // Header: Store Identity
-      doc.fillColor(primaryColor)
-         .fontSize(22)
-         .text(store.name || "Merchant Invoice", 50, 45, { bold: true });
+      let headerY = 45;
+      
+      // Try to add logo if URL is provided and valid (using standard fetch in server action)
+      if (store.logoUrl && store.logoUrl.startsWith('http')) {
+        try {
+          const response = await fetch(store.logoUrl);
+          const arrayBuffer = await response.arrayBuffer();
+          const logoBuffer = Buffer.from(arrayBuffer);
+          doc.image(logoBuffer, 50, 45, { width: 40 });
+          headerY = 45;
+          doc.fillColor(primaryColor)
+             .fontSize(22)
+             .text(store.name || "Merchant Invoice", 100, 52, { bold: true });
+        } catch (e) {
+          // Fallback if logo fails
+          doc.fillColor(primaryColor)
+             .fontSize(22)
+             .text(store.name || "Merchant Invoice", 50, 45, { bold: true });
+        }
+      } else {
+        doc.fillColor(primaryColor)
+           .fontSize(22)
+           .text(store.name || "Merchant Invoice", 50, 45, { bold: true });
+      }
 
       doc.fillColor(darkColor)
          .fontSize(24)
@@ -46,16 +67,17 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       doc.fillColor(primaryColor).fontSize(42).text(`BDT ${data.amount}.00`, 50, 140, { bold: true });
 
       // Status Indicator
-      const statusColor = data.status === 'verified' ? '#16a34a' : (data.status === 'pending' ? '#f59e0b' : '#ef4444');
+      const statusValue = (data.status || 'pending').toLowerCase();
+      const statusColor = statusValue === 'verified' ? '#16a34a' : (statusValue === 'pending' ? '#f59e0b' : '#ef4444');
       doc.rect(445, 130, 100, 24).fill(statusColor);
-      doc.fillColor("#ffffff").fontSize(10).text(data.status.toUpperCase(), 445, 138, { width: 100, align: 'center' });
+      doc.fillColor("#ffffff").fontSize(10).text(statusValue.toUpperCase(), 445, 138, { width: 100, align: 'center' });
 
       // Information Grid
       doc.rect(50, 220, 495, 260).fill("#f9fafb");
       
       const drawRow = (label: string, value: string, y: number) => {
         doc.fillColor(secondaryColor).fontSize(10).text(label, 75, y);
-        doc.fillColor(darkColor).fontSize(10).text(value || "—", 240, y, { bold: true });
+        doc.fillColor(darkColor).fontSize(10).text(String(value || "—"), 240, y, { bold: true });
       };
 
       drawRow("Transaction ID", data.trxId, 250);
@@ -67,9 +89,9 @@ export async function generateInvoiceAction(data: any, store: any): Promise<stri
       drawRow("Verified At", data.verifiedAtFormatted || "—", 430);
 
       // Visual Confirmation (If verified)
-      if (data.status === 'verified') {
+      if (statusValue === 'verified') {
          doc.circle(480, 340, 30).lineWidth(2).strokeColor(primaryColor).stroke();
-         doc.moveTo(470, 340).lineTo(478, 348).lineTo(495, 332).stroke();
+         doc.moveTo(470, 340).lineTo(478, 348).lineTo(495, 332).strokeColor(primaryColor).stroke();
          doc.fillColor(primaryColor).fontSize(8).text("VERIFIED", 440, 380, { width: 80, align: 'center' });
       }
 
