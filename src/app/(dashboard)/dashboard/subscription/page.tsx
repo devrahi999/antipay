@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -34,7 +33,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export default function MySubscriptionPage() {
@@ -43,7 +41,7 @@ export default function MySubscriptionPage() {
   const { toast } = useToast();
   const [isCanceling, setIsCanceling] = useState(false);
 
-  // Fetch real plan details
+  // Fetch real plan details from user_plans (This is the source of truth for quotas)
   const activePlanRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'user_plans', user.uid);
@@ -51,14 +49,14 @@ export default function MySubscriptionPage() {
   
   const { data: activePlan, isLoading: isPlanLoading } = useDoc(activePlanRef);
 
-  // Fetch created brands count for real-time progress bars
+  // Fetch real-time count of brands/stores
   const storesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'stores'), where('userId', '==', user.uid));
   }, [db, user?.uid]);
   const { data: stores } = useCollection(storesQuery);
 
-  // Fetch connected devices count
+  // Fetch real-time count of connected devices
   const devicesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'devices'), where('userId', '==', user.uid));
@@ -77,10 +75,12 @@ export default function MySubscriptionPage() {
         subscriptionExpiresAt: deleteField(),
         updatedAt: serverTimestamp()
       });
-      const storesSnap = await getDocs(query(collection(db, 'stores'), where('userId', '==', user.uid)));
-      storesSnap.forEach((storeDoc) => {
-        batch.update(storeDoc.ref, { isActive: false, updatedAt: serverTimestamp() });
-      });
+      // Deactivate stores when subscription canceled
+      if (stores) {
+        stores.forEach((store) => {
+          batch.update(doc(db, 'stores', store.id), { isActive: false, updatedAt: serverTimestamp() });
+        });
+      }
       await batch.commit();
       toast({ title: "Subscription Canceled", description: "Plan removed. All API brand slots deactivated." });
     } catch (error: any) {
@@ -105,7 +105,7 @@ export default function MySubscriptionPage() {
   const expiryDate = activePlan?.expiresAt?.toDate ? activePlan.expiresAt.toDate() : null;
   const daysLeft = expiryDate ? Math.max(0, Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
 
-  // Quota Calculations
+  // Real Quota Calculations based on database results
   const brandsCount = stores?.length || 0;
   const devicesCount = devices?.length || 0;
   const maxBrands = activePlan?.maxApiKeys || 1;
@@ -203,7 +203,7 @@ export default function MySubscriptionPage() {
             </CardContent>
             <CardFooter className="bg-[#162129]/50 p-6 border-t border-border/10 flex justify-between items-center">
                <p className="text-[10px] text-muted-foreground font-medium italic">
-                 {isLifetime ? "One-time purchase, no recurring billing." : "Auto-renewal is active via linked payment method."}
+                 {isLifetime ? "One-time purchase, no recurring billing." : "Auto-renewal is active."}
                </p>
                
                <AlertDialog>
@@ -251,7 +251,10 @@ export default function MySubscriptionPage() {
                       <span className="text-white font-black text-lg">{brandsCount}/{maxBrands}</span>
                     </div>
                     <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden p-[1px] border border-border/5">
-                       <div className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(22,163,74,0.5)] transition-all duration-1000" style={{ width: `${brandsPercent}%` }} />
+                       <div 
+                         className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(22,163,74,0.5)] transition-all duration-1000" 
+                         style={{ width: `${brandsPercent}%` }} 
+                       />
                     </div>
                     <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">Identity Monitoring Active</p>
                   </div>
@@ -264,7 +267,10 @@ export default function MySubscriptionPage() {
                       <span className="text-white font-black text-lg">{devicesCount}/{maxDevices}</span>
                     </div>
                     <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden p-[1px] border border-border/5">
-                       <div className="h-full bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-1000" style={{ width: `${devicesPercent}%` }} />
+                       <div 
+                         className="h-full bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-1000" 
+                         style={{ width: `${devicesPercent}%` }} 
+                       />
                     </div>
                     <p className="text-[9px] text-muted-foreground text-right font-bold uppercase">Node Synchronization Ready</p>
                   </div>
