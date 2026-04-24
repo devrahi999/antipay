@@ -1,10 +1,14 @@
-'use client';
-
+import { Metadata } from "next";
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ShieldCheck, ArrowLeft } from "lucide-react"
 import { Footer } from "@/components/landing/footer"
 import { SupportFAB } from "@/components/landing/support-fab"
+
+export const metadata: Metadata = {
+  title: "About Us",
+  description: "Learn about AntiPay's mission to digitize and automate the payment economy in Bangladesh through robust verification infrastructure.",
+};
 
 export default function AboutPage() {
   return (
