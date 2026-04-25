@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -45,6 +46,16 @@ export default function PaymentHistoryPage() {
   }, [db, user?.uid]);
 
   const { data: history, isLoading } = useCollection(historyQuery);
+
+  const safeFormatDate = (ts: any, formatStr: string = 'dd MMM, hh:mm a') => {
+    if (!ts) return "—";
+    try {
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return isNaN(date.getTime()) ? "—" : format(date, formatStr);
+    } catch (e) {
+      return "—";
+    }
+  };
 
   const handleViewDetails = (session: any) => {
     setSelectedSession(session);
@@ -129,7 +140,7 @@ export default function PaymentHistoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-[10px] text-muted-foreground">
-                        {tx.createdAt?.toDate ? format(tx.createdAt.toDate(), 'dd MMM, hh:mm a') : "—"}
+                        {safeFormatDate(tx.createdAt)}
                       </TableCell>
                       <TableCell className="text-right pr-6">
                         <Button 
@@ -190,7 +201,6 @@ export default function PaymentHistoryPage() {
               </DialogHeader>
 
               <div className="p-6 space-y-6">
-                {/* Amount Header */}
                 <div className="bg-[#162129]/40 p-6 rounded-2xl border border-border/10 flex flex-col items-center gap-1">
                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Settlement Amount</p>
                    <p className="text-4xl font-black text-white">৳{selectedSession.amount}</p>
@@ -225,14 +235,14 @@ export default function PaymentHistoryPage() {
                     <div className="flex items-center justify-between text-xs">
                        <span className="text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> Created At</span>
                        <span className="text-slate-200 font-medium">
-                         {selectedSession.createdAt?.toDate ? format(selectedSession.createdAt.toDate(), 'PPP, hh:mm a') : "—"}
+                         {safeFormatDate(selectedSession.createdAt, 'PPP, hh:mm a')}
                        </span>
                     </div>
                     {selectedSession.status === 'verified' && (
                       <div className="flex items-center justify-between text-xs">
                          <span className="text-muted-foreground flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-[#16a34a]" /> Verified At</span>
                          <span className="text-[#16a34a] font-bold">
-                           {selectedSession.verifiedAt?.toDate ? format(selectedSession.verifiedAt.toDate(), 'PPP, hh:mm a') : "Just now"}
+                           {safeFormatDate(selectedSession.verifiedAt, 'PPP, hh:mm a')}
                          </span>
                       </div>
                     )}
