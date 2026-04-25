@@ -86,11 +86,11 @@ export default function BrowsePlansPage() {
           Choose the plan that fits your business volume. All plans include 99.9% uptime and automated verification.
         </p>
 
-        <Tabs defaultValue="monthly" className="w-[450px] mt-8" onValueChange={setBillingCycle}>
-          <TabsList className="grid w-full grid-cols-3 bg-[#162129] border border-border/10 p-1 rounded-full h-12">
-            <TabsTrigger value="monthly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Monthly</TabsTrigger>
-            <TabsTrigger value="yearly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Yearly</TabsTrigger>
-            <TabsTrigger value="lifetime" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all">Lifetime</TabsTrigger>
+        <Tabs defaultValue="monthly" className="w-full max-w-[320px] mt-8" onValueChange={setBillingCycle}>
+          <TabsList className="grid w-full grid-cols-3 bg-[#162129] border border-border/10 p-1 rounded-full h-10">
+            <TabsTrigger value="monthly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all text-xs">Monthly</TabsTrigger>
+            <TabsTrigger value="yearly" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all text-xs">Yearly</TabsTrigger>
+            <TabsTrigger value="lifetime" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all text-xs">Lifetime</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
