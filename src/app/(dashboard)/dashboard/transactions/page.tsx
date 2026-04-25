@@ -35,6 +35,7 @@ export default function PaymentHistoryPage() {
   const db = useFirestore();
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Querying the nested sessions subcollection
   const historyQuery = useMemoFirebase(() => {
@@ -46,6 +47,16 @@ export default function PaymentHistoryPage() {
   }, [db, user?.uid]);
 
   const { data: history, isLoading } = useCollection(historyQuery);
+
+  // Filter history based on search term (TrxID or val_id)
+  const filteredHistory = history?.filter((tx) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      tx.trxId?.toLowerCase().includes(term) ||
+      tx.val_id?.toLowerCase().includes(term) ||
+      tx.sender?.toLowerCase().includes(term)
+    );
+  });
 
   const safeFormatDate = (ts: any, formatStr: string = 'dd MMM, hh:mm a') => {
     if (!ts) return "—";
@@ -74,7 +85,9 @@ export default function PaymentHistoryPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Search TrxID..." 
+              placeholder="Search TrxID or Order ID..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-10 w-[200px] lg:w-[300px] rounded-md border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -110,8 +123,8 @@ export default function PaymentHistoryPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : history && history.length > 0 ? (
-                  history.map((tx, index) => (
+                ) : filteredHistory && filteredHistory.length > 0 ? (
+                  filteredHistory.map((tx, index) => (
                     <TableRow key={tx.id} className="border-border/10 hover:bg-secondary/10 transition-colors">
                       <TableCell className="pl-6 text-xs font-mono text-muted-foreground">{(index + 1).toString().padStart(2, '0')}</TableCell>
                       <TableCell>
@@ -161,7 +174,9 @@ export default function PaymentHistoryPage() {
                         <div className="h-16 w-16 bg-secondary/20 rounded-full flex items-center justify-center mb-2">
                           <History className="h-8 w-8 text-muted-foreground/20" />
                         </div>
-                        <p className="text-sm font-medium text-muted-foreground">No payment history found for your account.</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {searchTerm ? "No transactions found matching your search." : "No payment history found for your account."}
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
