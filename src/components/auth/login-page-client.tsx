@@ -37,10 +37,22 @@ export function LoginPageClient() {
     try {
       await initiateEmailSignIn(auth, db, email, password);
     } catch (error: any) {
+      // User-friendly error message mapping
+      let message = "Invalid credentials";
+      
+      // Specifically allow verification message from service
+      if (error.message && error.message.includes("email is not verified")) {
+        message = error.message;
+      } else if (error.code === 'auth/user-disabled') {
+        message = "This account has been disabled.";
+      } else if (error.code === 'auth/too-many-requests') {
+        message = "Too many failed attempts. Please try again later.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "Invalid email or password.",
+        description: message,
       });
       setLoading(false);
     }
@@ -55,7 +67,7 @@ export function LoginPageClient() {
         toast({
           variant: "destructive",
           title: "Google Sign-In Error",
-          description: error.message || "Could not sign in with Google.",
+          description: "Could not sign in with Google.",
         });
       }
       setLoading(false);
@@ -77,7 +89,7 @@ export function LoginPageClient() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Could not send reset link.",
+        description: "Could not send reset link. Please check the email address.",
       });
     } finally {
       setResetLoading(false);
