@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle, Lock, Terminal, X } from "lucide-react"
+import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle, Lock } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { createPlanPaymentSession } from '@/app/actions/payment';
 
@@ -17,7 +17,6 @@ export default function BrowsePlansPage() {
   const { toast } = useToast();
   const [isProcessing, setIsSubmitting] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState('monthly');
-  const [debug, setDebug] = useState("");
 
   // Fetch current user profile to see active plan ID
   const profileRef = useMemoFirebase(() => {
@@ -36,13 +35,10 @@ export default function BrowsePlansPage() {
   const handleSelectPlan = async (plan: any) => {
     if (!user || !db) return;
     setIsSubmitting(plan.id);
-    setDebug("Initiating request...");
 
     try {
       const response = await createPlanPaymentSession(user.uid, plan.id, plan.price);
       
-      setDebug(response.debug || "No debug info returned.");
-
       if (!response.success) {
         throw new Error(response.error || "Could not initiate payment.");
       }
@@ -206,25 +202,6 @@ export default function BrowsePlansPage() {
         </div>
         <Button variant="link" className="text-primary font-bold">Need custom limits? Contact Enterprise Billing →</Button>
       </div>
-
-      {/* Debug Console */}
-      {debug && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0b141a] border-t border-primary/20 shadow-2xl p-4 animate-in slide-in-from-bottom duration-300">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
-                <Terminal className="h-3 w-3" /> Gateway Debug Console
-              </h4>
-              <button onClick={() => setDebug("")} className="text-muted-foreground hover:text-white p-1">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <pre className="bg-black/50 p-4 rounded-xl text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-[150px] border border-white/5">
-              {debug}
-            </pre>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
