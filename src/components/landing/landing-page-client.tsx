@@ -138,11 +138,11 @@ export function LandingPageClient() {
               <RevealOnScroll className="flex flex-col space-y-8">
                 <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary w-fit">
                   <Badge variant="outline" className="mr-2 border-primary/20 bg-primary/10 text-primary font-bold">NEW</Badge>
-                  v2.1 Infrastructure is live
+                  v1.2 API Documentation is live
                 </div>
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight text-foreground leading-[1.05]">
-                  Automate Your <span className="text-primary">Payment</span> Verification <span className="relative">
-                    Instantly
+                  Automate Your <span className="text-primary">Payment</span> Instantly <span className="relative">
+                    Via AntiPay
                     <svg className="absolute -bottom-2 left-0 w-full h-2 text-primary/30" viewBox="0 0 100 10" preserveAspectRatio="none">
                       <path d="M0 5 Q 25 0 50 5 T 100 5" fill="none" stroke="currentColor" strokeWidth="4" />
                     </svg>
@@ -156,7 +156,7 @@ export function LandingPageClient() {
                     Get Started Free <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg hover:bg-accent/50 cursor-pointer font-bold rounded-xl border-border/60">
-                    <Link href="/docs">API Reference</Link>
+                    <Link href="/docs">API Documentation</Link>
                   </Button>
                 </div>
               </RevealOnScroll>
