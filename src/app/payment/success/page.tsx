@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Loader2, RefreshCcw } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Loader2, RefreshCcw, Clock } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useSearchParams, useRouter } from "next/navigation";
 import { notifyPlanActivation } from "@/app/actions/notifications";
@@ -17,7 +17,6 @@ function PaymentSuccessContent() {
   
   const sessionId = searchParams.get('sessionId');
   const [activationStatus, setActivationStatus] = useState<'waiting' | 'activating' | 'success' | 'error'>('waiting');
-  const [activePlanName, setActivePlanName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   // Protect from direct access without sessionId
@@ -37,14 +36,16 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     async function performActivation() {
+      // Basic requirements check
       if (!db || !user || !txData || activationStatus !== 'waiting') return;
 
+      // If already activated, just show success
       if (txData.isActivated) {
         setActivationStatus('success');
-        setActivePlanName(txData.planName || 'Active Plan');
         return;
       }
 
+      // If webhook has marked it as verified, proceed to activate
       if (txData.status === 'verified') {
         setActivationStatus('activating');
         try {
@@ -52,9 +53,8 @@ function PaymentSuccessContent() {
           const planRef = doc(db, 'subscriptionPlans', planId);
           const planSnap = await getDoc(planRef);
           
-          if (!planSnap.exists()) throw new Error(`Plan definition missing.`);
+          if (!planSnap.exists()) throw new Error(`Plan definition for "${planId}" not found.`);
           const plan = planSnap.data();
-          setActivePlanName(plan.name);
 
           const now = new Date();
           let expiry = new Date();
@@ -62,6 +62,7 @@ function PaymentSuccessContent() {
           else if (plan.billingCycle === 'yearly') expiry.setDate(now.getDate() + 365);
           else expiry.setDate(now.getDate() + 30);
 
+          // 1. Update user_plans (Quotas)
           await setDoc(doc(db, 'user_plans', user.uid), {
             userId: user.uid,
             planId: planId,
@@ -76,6 +77,7 @@ function PaymentSuccessContent() {
             updatedAt: serverTimestamp()
           }, { merge: true });
 
+          // 2. Update user profile (Main flags)
           await updateDoc(doc(db, 'users', user.uid), {
             subscriptionPlanId: planId,
             subscriptionStartedAt: serverTimestamp(),
@@ -83,19 +85,21 @@ function PaymentSuccessContent() {
             updatedAt: serverTimestamp()
           });
 
+          // 3. Mark transaction as consumed
           await updateDoc(txRef!, { 
             isActivated: true, 
             activatedAt: serverTimestamp(),
-            planName: plan.name // Cache plan name for display
+            planName: plan.name 
           });
 
-          // TRIGGER EMAIL NOTIFICATION
+          // 4. Send Confirmation Email
           if (user.email) {
             notifyPlanActivation(user.email, plan.name).catch(e => console.error("Activation email failed:", e));
           }
 
           setActivationStatus('success');
         } catch (err: any) {
+          console.error("ACTIVATION ERROR:", err);
           setErrorMessage(err.message);
           setActivationStatus('error');
         }
@@ -105,22 +109,44 @@ function PaymentSuccessContent() {
     performActivation();
   }, [txData, user, db, txRef, activationStatus]);
 
-  if (isUserLoading || isTxLoading || (sessionId && !txData) || activationStatus === 'activating') {
+  // Loading States
+  if (isUserLoading || isTxLoading || activationStatus === 'activating') {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <div className="h-1.5 w-24 bg-secondary rounded-full overflow-hidden">
-           <div className="h-full bg-primary animate-pulse" />
+        <div className="space-y-1 text-center">
+           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Establishing Secure Link</p>
         </div>
       </div>
     );
   }
 
+  // Waiting for Webhook to write data
+  if (sessionId && !txData) {
+    return (
+      <div className="max-w-xs w-full text-center space-y-6">
+        <div className="h-16 w-16 bg-secondary/50 rounded-full flex items-center justify-center mx-auto">
+          <Clock className="h-8 w-8 text-primary animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-bold text-slate-100">Waiting for gateway...</p>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            We are waiting for the payment gateway to confirm your transaction. This usually takes a few seconds.
+          </p>
+        </div>
+        <Button onClick={() => window.location.reload()} variant="ghost" className="text-[10px] font-bold uppercase tracking-widest">
+           <RefreshCcw className="mr-2 h-3 w-3" /> Refresh Status
+        </Button>
+      </div>
+    );
+  }
+
+  // Error State
   if (activationStatus === 'error') {
     return (
       <div className="max-w-xs w-full p-8 text-center space-y-6">
         <RefreshCcw className="h-12 w-12 text-rose-500 mx-auto mb-4 opacity-50" />
-        <p className="text-rose-500 font-bold text-sm uppercase">Activation Error</p>
+        <p className="text-rose-500 font-bold text-sm uppercase">Activation Failed</p>
         <p className="text-xs text-muted-foreground leading-relaxed">{errorMessage}</p>
         <Button onClick={() => window.location.reload()} variant="outline" className="w-full rounded-xl border-rose-500/20">
            Retry Connection
@@ -129,6 +155,7 @@ function PaymentSuccessContent() {
     );
   }
 
+  // Success State
   return (
     <div className="max-w-xs w-full space-y-10 text-center animate-in zoom-in-95 duration-500 px-4">
       <div className="relative inline-block">
