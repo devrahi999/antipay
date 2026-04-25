@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Loader2, RefreshCcw } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useSearchParams, useRouter } from "next/navigation";
+import { notifyPlanActivation } from "@/app/actions/notifications";
 
 function PaymentSuccessContent() {
   const { user, isUserLoading } = useUser();
@@ -84,8 +85,14 @@ function PaymentSuccessContent() {
 
           await updateDoc(txRef!, { 
             isActivated: true, 
-            activatedAt: serverTimestamp() 
+            activatedAt: serverTimestamp(),
+            planName: plan.name // Cache plan name for display
           });
+
+          // TRIGGER EMAIL NOTIFICATION
+          if (user.email) {
+            notifyPlanActivation(user.email, plan.name).catch(e => console.error("Activation email failed:", e));
+          }
 
           setActivationStatus('success');
         } catch (err: any) {

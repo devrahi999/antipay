@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -33,7 +32,7 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { notifyPlanExpiration } from '@/app/actions/notifications';
+import { notifyPlanExpiration, notifyPlanActivation } from '@/app/actions/notifications';
 
 export default function ManageUsersPage() {
   const db = useFirestore();
@@ -130,8 +129,15 @@ export default function ManageUsersPage() {
         planName: plan.name,
         amount: plan.price,
         status: 'manual_assigned',
+        isActivated: true,
+        activatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       });
+
+      // TRIGGER EMAIL NOTIFICATION
+      if (selectedUser.email) {
+        notifyPlanActivation(selectedUser.email, plan.name).catch(e => console.error("Manual activation email failed:", e));
+      }
 
       toast({ title: "Plan Assigned", description: `${plan.name} has been manually activated.` });
       setIsAssigningPlan(false);
