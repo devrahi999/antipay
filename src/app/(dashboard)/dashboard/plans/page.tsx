@@ -1,24 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, writeBatch, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle, Lock } from "lucide-react"
+import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as InfinityIcon, RefreshCcw, ArrowUpCircle, Lock, Gift } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 import { createPlanPaymentSession } from '@/app/actions/payment';
+import { notifyPlanActivation } from '@/app/actions/notifications';
+import { useRouter } from 'next/navigation';
 
 export default function BrowsePlansPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
   const [isProcessing, setIsSubmitting] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState('monthly');
 
-  // Fetch current user profile to see active plan ID
+  // Fetch current user profile to see active plan ID and free trial status
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'users', user.uid);
@@ -36,6 +39,75 @@ export default function BrowsePlansPage() {
     if (!user || !db) return;
     setIsSubmitting(plan.id);
 
+    // Check if plan has free trial AND user is eligible (has not used it yet)
+    const isTrialEligible = plan.isFreeTrialAvailable && (!profile?.free_trial || profile?.free_trial !== 'used');
+
+    if (isTrialEligible) {
+      try {
+        toast({ title: "Activating Trial", description: "Configuring your free access..." });
+        
+        const batch = writeBatch(db);
+        const now = new Date();
+        const expiry = new Date();
+        expiry.setDate(now.getDate() + 30); // Standard 30 days trial
+
+        // 1. Update user_plans (Quotas)
+        batch.set(doc(db, 'user_plans', user.uid), {
+          userId: user.uid,
+          planId: plan.id,
+          planName: plan.name,
+          price: 0, // Free trial
+          billingCycle: plan.billingCycle,
+          maxApiKeys: plan.maxApiKeys,
+          maxDevices: plan.maxDevices,
+          benefits: plan.benefits || [],
+          activatedAt: serverTimestamp(),
+          expiresAt: Timestamp.fromDate(expiry),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        // 2. Update user profile (Flags + mark trial as used)
+        batch.update(doc(db, 'users', user.uid), {
+          subscriptionPlanId: plan.id,
+          subscriptionStartedAt: serverTimestamp(),
+          subscriptionExpiresAt: Timestamp.fromDate(expiry),
+          free_trial: 'used',
+          updatedAt: serverTimestamp()
+        });
+
+        // 3. Log a record in plan_transactions for history
+        const txRef = doc(collection(db, 'plan_transactions'));
+        batch.set(txRef, {
+          id: txRef.id,
+          userId: user.uid,
+          userEmail: user.email,
+          planId: plan.id,
+          planName: plan.name,
+          amount: 0,
+          status: 'trial_activated',
+          isActivated: true,
+          activatedAt: serverTimestamp(),
+          createdAt: serverTimestamp()
+        });
+
+        await batch.commit();
+
+        // 4. Notify via Email
+        if (user.email) {
+          notifyPlanActivation(user.email, plan.name).catch(e => console.error("Trial email failed:", e));
+        }
+
+        toast({ title: "Welcome Aboard!", description: "Your free trial is now active." });
+        router.push('/dashboard');
+      } catch (error: any) {
+        console.error('TRIAL ACTIVATION FAILED:', error);
+        toast({ variant: "destructive", title: "Activation Failed", description: error.message });
+        setIsSubmitting(null);
+      }
+      return;
+    }
+
+    // Normal Payment Flow
     try {
       const response = await createPlanPaymentSession(user.uid, plan.id, plan.price);
       
@@ -72,6 +144,7 @@ export default function BrowsePlansPage() {
   const currentPlanId = profile?.subscriptionPlanId;
   const expiryDate = profile?.subscriptionExpiresAt?.toDate ? profile.subscriptionExpiresAt.toDate() : null;
   const isExpired = expiryDate ? expiryDate < new Date() : true;
+  const hasUsedTrial = profile?.free_trial === 'used';
   
   const filteredPlans = plans?.filter(p => p.billingCycle === billingCycle);
 
@@ -100,9 +173,8 @@ export default function BrowsePlansPage() {
           filteredPlans.map((plan) => {
             const isCurrent = currentPlanId === plan.id;
             const hasOtherPlan = currentPlanId && !isCurrent;
-            const isTrial = plan.isFreeTrialAvailable;
-            const isLifetime = plan.billingCycle === 'lifetime';
-            const isRenewDisabled = isCurrent && (!isExpired || isLifetime);
+            const isTrialAvailable = plan.isFreeTrialAvailable && !hasUsedTrial;
+            const isRenewDisabled = isCurrent && (!isExpired || plan.billingCycle === 'lifetime');
             
             return (
               <Card key={plan.id} className={`relative shadow-2xl border-2 transition-all duration-300 hover:-translate-y-2 flex flex-col overflow-hidden ${isCurrent ? "border-primary bg-primary/5 ring-8 ring-primary/5" : "border-border/40 bg-card/40"}`}>
@@ -112,10 +184,10 @@ export default function BrowsePlansPage() {
                   </div>
                 )}
                 
-                {isTrial && !currentPlanId && (
+                {plan.isFreeTrialAvailable && !hasUsedTrial && !currentPlanId && (
                   <div className="absolute top-4 right-4 animate-pulse">
                      <Badge className="bg-amber-500 hover:bg-amber-500 text-[9px] uppercase font-black px-2 py-0.5 shadow-lg shadow-amber-500/20">
-                       <Clock className="h-2 w-2 mr-1" /> 1 Month Free
+                       <Gift className="h-2 w-2 mr-1" /> Free Trial
                      </Badge>
                   </div>
                 )}
@@ -135,7 +207,7 @@ export default function BrowsePlansPage() {
 
                 <CardContent className="flex-1 space-y-8">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black">৳{plan.price}</span>
+                    <span className="text-4xl font-black">৳{isTrialAvailable ? "0" : plan.price}</span>
                     <span className="text-muted-foreground text-sm font-medium">/{plan.billingCycle === 'monthly' ? 'month' : plan.billingCycle === 'yearly' ? 'year' : 'lifetime'}</span>
                   </div>
 
@@ -156,8 +228,8 @@ export default function BrowsePlansPage() {
 
                 <CardFooter className="bg-secondary/10 p-6">
                   <Button 
-                    variant={isCurrent ? "outline" : "default"} 
-                    className={`w-full font-black h-12 text-md transition-all ${isCurrent ? "border-primary text-primary hover:bg-primary/5" : "bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20"}`}
+                    variant={isCurrent ? "outline" : (isTrialAvailable ? "secondary" : "default")} 
+                    className={`w-full font-black h-12 text-md transition-all ${isCurrent ? "border-primary text-primary hover:bg-primary/5" : (isTrialAvailable ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20")}`}
                     disabled={isProcessing === plan.id || isRenewDisabled}
                     onClick={() => handleSelectPlan(plan)}
                   >
@@ -169,6 +241,8 @@ export default function BrowsePlansPage() {
                       ) : (
                         <span className="flex items-center gap-2"><RefreshCcw className="h-4 w-4" /> Renew This Plan</span>
                       )
+                    ) : isTrialAvailable ? (
+                      <span className="flex items-center gap-2"><Gift className="h-4 w-4" /> Start Free Trial</span>
                     ) : hasOtherPlan ? (
                       <span className="flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Upgrade to {plan.name}</span>
                     ) : (
