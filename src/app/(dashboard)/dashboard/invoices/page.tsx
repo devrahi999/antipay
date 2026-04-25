@@ -49,6 +49,16 @@ export default function InvoicesPage() {
 
   const { data: invoices, isLoading } = useCollection(invoicesQuery);
 
+  const safeFormatDate = (ts: any) => {
+    if (!ts) return "Just now";
+    try {
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return isNaN(date.getTime()) ? "Just now" : format(date, 'dd MMM, p');
+    } catch (e) {
+      return "Just now";
+    }
+  };
+
   // Client-side filtering
   const filteredInvoices = invoices?.filter(inv => {
     const matchesSearch = 
@@ -161,7 +171,7 @@ export default function InvoicesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-[10px] text-muted-foreground font-medium">
-                        {inv.createdAt?.toDate ? format(inv.createdAt.toDate(), 'dd MMM, p') : "Just now"}
+                        {safeFormatDate(inv.createdAt)}
                       </TableCell>
                       <TableCell className="text-right pr-6">
                         <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 group-hover:opacity-100" asChild>
