@@ -57,32 +57,30 @@ The AntiPay API is organized around REST. Our API returns JSON responses and use
 ----------------------------------------
 BASE URL
 ----------------------------------------
-https://pay.antipay.site/v1/
+https://pay.antipay.site/api/v1
 
 ----------------------------------------
 AUTHENTICATION
 ----------------------------------------
-All requests must include your API key:
-antipay-api-key: YOUR_BRAND_API_KEY
+All requests must include your API key in the header:
+x-api-key: YOUR_BRAND_API_KEY
 
-⚠️ Never expose your API key in frontend code.
+⚠️ The API key variable name must be set to 'x-api-key' in your request headers.
 
 ----------------------------------------
 1. CREATE PAYMENT SESSION
 ----------------------------------------
-POST /v1/create
+POST /api/v1/create
 
 Request Parameters:
 - amount (number, required): The amount to be charged in BDT.
 - val_id (string, optional): Your internal reference (Order ID).
 - webhook_url (string, required): Your backend endpoint to receive payment updates.
-- redirect_success_url (string, required): Redirect after success.
-- redirect_cancel_url (string, required): Redirect if cancelled.
 
 ----------------------------------------
 2. VERIFY PAYMENT (SERVER ONLY)
 ----------------------------------------
-POST /v1/verify
+POST /api/v1/verify
 
 ----------------------------------------
 3. WEBHOOK (IMPORTANT)
@@ -189,8 +187,8 @@ FINAL INTEGRATION FLOW
                   Base URL
                 </h2>
                 <div className="bg-[#0b141a] p-6 rounded-2xl border border-border/10 flex justify-between items-center group shadow-xl">
-                  <code className="text-[#16a34a] font-mono text-sm break-all font-bold">https://pay.antipay.site/v1/</code>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-white" onClick={() => copyToClipboard("https://pay.antipay.site/v1/")}><Copy className="h-5 w-5" /></Button>
+                  <code className="text-[#16a34a] font-mono text-sm break-all font-bold">https://pay.antipay.site/api/v1</code>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-white" onClick={() => copyToClipboard("https://pay.antipay.site/api/v1")}><Copy className="h-5 w-5" /></Button>
                 </div>
               </section>
 
@@ -205,11 +203,14 @@ FINAL INTEGRATION FLOW
                   </p>
                   <div className="bg-secondary/30 p-6 rounded-2xl border border-border/10 shadow-inner flex items-center gap-4">
                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0"><Zap size={20} /></div>
-                     <code className="text-sm font-mono text-foreground font-bold">antipay-api-key: YOUR_BRAND_API_KEY</code>
+                     <code className="text-sm font-mono text-foreground font-bold">x-api-key: YOUR_BRAND_API_KEY</code>
                   </div>
                   <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-3">
                     <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                    <p className="text-xs text-amber-500 font-medium">⚠️ Never expose your API key in frontend code or client-side repositories.</p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-amber-500 font-medium">⚠️ Never expose your API key in frontend code or client-side repositories.</p>
+                      <p className="text-xs text-amber-500 font-bold italic">The API key variable name must be set with 'x-api-key' and also must be included in the header when sending requests.</p>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -227,7 +228,7 @@ FINAL INTEGRATION FLOW
                 
                 <div className="flex items-center gap-3 bg-[#162129] w-fit px-4 py-2 rounded-xl border border-border/10 shadow-inner">
                   <Badge className="bg-emerald-600 hover:bg-emerald-600 font-black uppercase text-[10px] px-3 py-1">POST</Badge>
-                  <code className="text-sm font-mono text-emerald-400">/v1/create</code>
+                  <code className="text-sm font-mono text-emerald-400">/api/v1/create</code>
                 </div>
 
                 <div className="space-y-4">
@@ -273,30 +274,26 @@ FINAL INTEGRATION FLOW
                     </TabsList>
                     <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
                       <TabsContent value="curl" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/create" \\
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/api/v1/create" \\
   -H "Content-Type: application/json" \\
-  -H "antipay-api-key: YOUR_API_KEY" \\
+  -H "x-api-key: YOUR_API_KEY" \\
   -d '{
     "amount": 145.50,
     "val_id": "ORDER_88721",
-    "webhook_url": "https://your-site.com/webhook",
-    "redirect_success_url": "https://your-site.com/success",
-    "redirect_cancel_url": "https://your-site.com/cancel"
+    "webhook_url": "https://your-site.com/webhook"
   }'`}</code></pre>
                       </TabsContent>
                       <TabsContent value="nodejs" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/v1/create", {
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/api/v1/create", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "antipay-api-key": "YOUR_API_KEY"
+    "x-api-key": "YOUR_API_KEY"
   },
   body: JSON.stringify({
     amount: 145.50,
     val_id: "ORDER_88721",
-    webhook_url: "https://your-site.com/webhook",
-    redirect_success_url: "https://your-site.com/success",
-    redirect_cancel_url: "https://your-site.com/cancel"
+    webhook_url: "https://your-site.com/webhook"
   })
 });
 
@@ -308,18 +305,16 @@ window.location.href = paymentUrl;`}</code></pre>
 $data = [
     "amount" => 145.50,
     "val_id" => "ORDER_88721",
-    "webhook_url" => "https://your-site.com/webhook",
-    "redirect_success_url" => "https://your-site.com/success",
-    "redirect_cancel_url" => "https://your-site.com/cancel"
+    "webhook_url" => "https://your-site.com/webhook"
 ];
 
-$ch = curl_init("https://pay.antipay.site/v1/create");
+$ch = curl_init("https://pay.antipay.site/api/v1/create");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Content-Type: application/json",
-    "antipay-api-key: YOUR_API_KEY"
+    "x-api-key: YOUR_API_KEY"
 ]);
 
 $result = json_decode(curl_exec($ch), true);
@@ -329,14 +324,12 @@ header("Location: " . $result['paymentUrl']);
                       <TabsContent value="python" className="m-0">
                         <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`import requests
 
-url = "https://pay.antipay.site/v1/create"
-headers = {"antipay-api-key": "YOUR_API_KEY"}
+url = "https://pay.antipay.site/api/v1/create"
+headers = {"x-api-key": "YOUR_API_KEY"}
 payload = {
     "amount": 145.50,
     "val_id": "ORDER_88721",
-    "webhook_url": "https://your-site.com/webhook",
-    "redirect_success_url": "https://your-site.com/success",
-    "redirect_cancel_url": "https://your-site.com/cancel"
+    "webhook_url": "https://your-site.com/webhook"
 }
 
 response = requests.post(url, json=payload, headers=headers)
@@ -368,20 +361,20 @@ print(f"Redirect user to: {data['paymentUrl']}")`}</code></pre>
                     </TabsList>
                     <div className="bg-[#0b141a] rounded-b-2xl border border-border/10 p-8 shadow-2xl relative group">
                       <TabsContent value="curl" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/v1/verify" \\
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`curl -X POST "https://pay.antipay.site/api/v1/verify" \\
   -H "Content-Type: application/json" \\
-  -H "antipay-api-key: YOUR_API_KEY" \\
+  -H "x-api-key: YOUR_API_KEY" \\
   -d '{
     "trxId": "8J9A1X7K",
     "sessionId": "sess_xxx"
   }'`}</code></pre>
                       </TabsContent>
                       <TabsContent value="nodejs" className="m-0">
-                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/v1/verify", {
+                        <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`const response = await fetch("https://pay.antipay.site/api/v1/verify", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "antipay-api-key": "YOUR_API_KEY"
+    "x-api-key": "YOUR_API_KEY"
   },
   body: JSON.stringify({ 
     trxId: "8J9A1X7K", 
@@ -397,13 +390,13 @@ if (result.status === 'verified') {
                       <TabsContent value="php" className="m-0">
                         <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`<?php
 $data = ["trxId" => "8J9A1X7K", "sessionId" => "sess_xxx"];
-$ch = curl_init("https://pay.antipay.site/v1/verify");
+$ch = curl_init("https://pay.antipay.site/api/v1/verify");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Content-Type: application/json",
-    "antipay-api-key: YOUR_API_KEY"
+    "x-api-key: YOUR_API_KEY"
 ]);
 
 $result = json_decode(curl_exec($ch), true);
@@ -415,8 +408,8 @@ if($result['status'] === 'verified') {
                       <TabsContent value="python" className="m-0">
                         <pre className="text-[13px] font-mono leading-relaxed text-emerald-400 overflow-x-auto"><code>{`import requests
 
-url = "https://pay.antipay.site/v1/verify"
-headers = {"antipay-api-key": "YOUR_API_KEY"}
+url = "https://pay.antipay.site/api/v1/verify"
+headers = {"x-api-key": "YOUR_API_KEY"}
 payload = {"trxId": "8J9A1X7K", "sessionId": "sess_xxx"}
 
 response = requests.post(url, json=payload, headers=headers)
@@ -479,12 +472,12 @@ if response.json().get('status') == 'verified':
                 </h2>
                 <div className="relative border-l-2 border-primary/20 ml-4 pl-8 space-y-8">
                    {[
-                     "Your backend calls /create with amount, webhook, and redirect URLs.",
+                     "Your backend calls /create with amount, webhook, and identifier (val_id).",
                      "User is sent to the AntiPay hosted payment URL.",
                      "User completes the payment flow.",
                      "AntiPay sends a POST webhook to your server instantly.",
                      "Your backend receives webhook and marks order as PAID.",
-                     "User is redirected back to your success/cancel page.",
+                     "User is redirected back to your configured success/cancel page.",
                      "(Optional) Your server calls /verify for a final double-check."
                    ].map((step, i) => (
                      <div key={i} className="relative">
