@@ -6,17 +6,25 @@ import { doc, getDoc, updateDoc, setDoc, serverTimestamp, Timestamp } from "fire
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Loader2, RefreshCcw } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 function PaymentSuccessContent() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const searchParams = useSearchParams();
+  const router = useRouter();
   
   const sessionId = searchParams.get('sessionId');
   const [activationStatus, setActivationStatus] = useState<'waiting' | 'activating' | 'success' | 'error'>('waiting');
   const [activePlanName, setActivePlanName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Protect from direct access without sessionId
+  useEffect(() => {
+    if (!isUserLoading && !sessionId) {
+      router.replace('/dashboard');
+    }
+  }, [sessionId, isUserLoading, router]);
 
   // Read from plan_transactions as the source of truth
   const txRef = useMemoFirebase(() => {
@@ -24,7 +32,7 @@ function PaymentSuccessContent() {
     return doc(db, 'plan_transactions', sessionId);
   }, [db, sessionId]);
 
-  const { data: txData } = useDoc(txRef);
+  const { data: txData, isLoading: isTxLoading } = useDoc(txRef);
 
   useEffect(() => {
     async function performActivation() {
@@ -90,7 +98,7 @@ function PaymentSuccessContent() {
     performActivation();
   }, [txData, user, db, txRef, activationStatus]);
 
-  if (isUserLoading || !txData || activationStatus === 'waiting' || activationStatus === 'activating') {
+  if (isUserLoading || isTxLoading || (sessionId && !txData) || activationStatus === 'activating') {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
@@ -118,16 +126,16 @@ function PaymentSuccessContent() {
     <div className="max-w-xs w-full space-y-10 text-center animate-in zoom-in-95 duration-500 px-4">
       <div className="relative inline-block">
         <div className="absolute inset-0 bg-[#16a34a] blur-2xl opacity-20 rounded-full" />
-        <div className="relative h-20 w-20 rounded-2xl bg-gradient-to-br from-[#16a34a] to-emerald-700 border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
-           <CheckCircle2 size={40} className="text-white" />
-           <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-amber-500 animate-pulse" />
+        <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-[#16a34a] to-emerald-700 border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
+           <CheckCircle2 size={48} className="text-white" />
+           <Sparkles className="absolute -top-2 -right-2 h-8 w-8 text-amber-500 animate-pulse" />
         </div>
       </div>
 
       <div className="space-y-2">
         <h1 className="text-2xl font-black text-white tracking-tight uppercase">Payment Verified!</h1>
         <p className="text-slate-300 text-[13px] font-bold leading-tight">
-          Congratulations! Your <span className="text-[#16a34a] font-black">{activePlanName}</span> plan is now active.
+          Congratulations! Your plan is now active.
         </p>
       </div>
 
