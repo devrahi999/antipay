@@ -57,6 +57,16 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
     }
   };
 
+  const safeFormatDate = (ts: any) => {
+    if (!ts) return "—";
+    try {
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return isNaN(date.getTime()) ? "—" : format(date, 'PPP p');
+    } catch (e) {
+      return "—";
+    }
+  };
+
   const handleDownloadPdf = async () => {
     if (!invoice) {
         toast({ variant: "destructive", title: "Wait", description: "Loading document data..." });
@@ -65,8 +75,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
     
     setIsDownloading(true);
     try {
-      // PREVENT SERIALIZATION ERROR:
-      // Firestore Timestamps crash Server Actions. We build a clean JSON object.
       const plainData = {
         amount: Number(invoice.amount) || 0,
         trxId: String(invoice.trxId || "—"),
@@ -76,8 +84,8 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
         userId: String(invoice.userId || ""),
         status: String(invoice.status || "pending"),
         id: sessionId,
-        createdAtFormatted: invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), 'PPP p') : '—',
-        verifiedAtFormatted: invoice.verifiedAt?.toDate ? format(invoice.verifiedAt.toDate(), 'PPP p') : '—',
+        createdAtFormatted: safeFormatDate(invoice.createdAt),
+        verifiedAtFormatted: safeFormatDate(invoice.verifiedAt),
       };
 
       const plainStore = {
@@ -85,7 +93,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
         logoUrl: String(store?.logoUrl || ""),
       };
 
-      // Call server action with purely plain objects
       const pdfBase64 = await generateInvoiceAction(plainData, plainStore);
       
       const link = document.createElement('a');
@@ -141,7 +148,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Main Receipt */}
         <Card className="md:col-span-2 border-none shadow-2xl overflow-hidden rounded-[2.5rem] bg-card relative">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-[#16a34a]" />
           
@@ -173,7 +179,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
           </CardHeader>
 
           <CardContent className="p-10 space-y-12">
-            {/* Big Amount */}
             <div className="text-center py-6 border-y border-dashed border-border/40">
                <p className="text-[10px] uppercase font-black tracking-[0.3em] text-muted-foreground mb-2">Total Settled Amount</p>
                <h2 className="text-6xl font-black text-foreground tabular-nums tracking-tighter">৳{invoice.amount}</h2>
@@ -182,7 +187,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
                </div>
             </div>
 
-            {/* Metadata Grid */}
             <div className="grid grid-cols-2 gap-y-10 gap-x-6">
               <div className="space-y-1">
                 <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest flex items-center gap-1.5">
@@ -208,7 +212,7 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
                   <Calendar className="h-3 w-3 text-amber-500" /> Created On
                 </p>
                 <p className="text-sm font-bold text-slate-200">
-                  {invoice.createdAt?.toDate ? format(invoice.createdAt.toDate(), 'PPP p') : "—"}
+                  {safeFormatDate(invoice.createdAt)}
                 </p>
               </div>
               <div className="space-y-1">
@@ -219,7 +223,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
               </div>
             </div>
 
-            {/* Verification Success UI */}
             {invoice.status === 'verified' && (
               <div className="p-5 bg-[#16a34a]/5 border border-[#16a34a]/10 rounded-2xl flex items-center gap-4">
                  <div className="h-10 w-10 rounded-full bg-[#16a34a]/20 flex items-center justify-center text-[#16a34a]">
@@ -240,7 +243,6 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ sessi
           </CardFooter>
         </Card>
 
-        {/* Sidebar Actions */}
         <div className="space-y-6">
            <Card className="border-border/40 p-6 space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Actions</h4>
