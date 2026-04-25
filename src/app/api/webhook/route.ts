@@ -3,6 +3,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
+// Initialize Firebase for the API route
 if (!getApps().length) {
   initializeApp(firebaseConfig);
 }
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Write to plan_transactions collection
+    // Document ID is the sessionId
     await setDoc(doc(db, 'plan_transactions', sessionId), {
       sessionId,
       userId,
