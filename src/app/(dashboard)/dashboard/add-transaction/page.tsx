@@ -8,8 +8,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  where,
-  deleteDoc
+  where
 } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -34,21 +33,10 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import {
   Plus,
   Search,
   Loader2,
   Copy,
-  Trash2,
   Save,
   Lock,
   Info,
@@ -90,8 +78,6 @@ export default function AddTransactionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [trxToDelete, setTrxToDelete] = useState<any>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const planRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -124,7 +110,14 @@ export default function AddTransactionPage() {
     return date ? format(date, 'dd MMM yyyy, hh:mm a') : "—";
   };
 
-  const visibleTransactions = (transactions || [])
+  // Belt-and-braces: the query above is already scoped to this merchant, but we
+  // re-check `userId` on every document so a record can never render for the
+  // wrong account even if it arrives from a stale listener or a mismatched write.
+  const ownTransactions = (transactions || []).filter(
+    (tx) => !!user?.uid && tx.userId === user.uid
+  );
+
+  const visibleTransactions = ownTransactions
     .filter((tx) => {
       const term = searchTerm.trim().toLowerCase();
       if (!term) return true;
@@ -142,8 +135,8 @@ export default function AddTransactionPage() {
       return bTime - aTime;
     });
 
-  const unusedCount = (transactions || []).filter((tx) => tx.status === 'unused').length;
-  const usedCount = (transactions || []).filter((tx) => tx.status === 'used').length;
+  const unusedCount = ownTransactions.filter((tx) => tx.status === 'unused').length;
+  const usedCount = ownTransactions.filter((tx) => tx.status === 'used').length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,20 +203,6 @@ export default function AddTransactionPage() {
       }
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!db || !trxToDelete) return;
-    setIsDeleting(true);
-    try {
-      await deleteDoc(doc(db, 'transactions', trxToDelete.id));
-      toast({ title: "Transaction Removed", description: `${trxToDelete.trxId || trxToDelete.id} has been deleted.` });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Delete Failed", description: error.message });
-    } finally {
-      setIsDeleting(false);
-      setTrxToDelete(null);
     }
   };
 
@@ -526,14 +505,6 @@ export default function AddTransactionPage() {
                           >
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-rose-500 opacity-60 group-hover:opacity-100"
-                            onClick={() => setTrxToDelete(tx)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -562,30 +533,6 @@ export default function AddTransactionPage() {
           </div>
         </CardContent>
       </Card>
-
-      <AlertDialog open={!!trxToDelete} onOpenChange={(open) => { if (!open) setTrxToDelete(null); }}>
-        <AlertDialogContent className="bg-[#0b141a] border-border/20 text-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Trash2 className="text-rose-500 h-5 w-5" /> Delete Transaction?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              <span className="font-mono font-bold text-slate-200">{trxToDelete?.trxId || trxToDelete?.id}</span> will be
-              removed permanently. Any payment session still waiting on this record will no longer verify.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary/10 hover:bg-secondary/20 border-none text-white">Keep It</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-rose-500 hover:bg-rose-600 text-white font-bold"
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={isDeleting}
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />} Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
