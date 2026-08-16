@@ -23,7 +23,7 @@
 # misc
 .DS_Store
 *.pem
-
+/antipay-verify-main 
 # debug
 npm-debug.log*
 yarn-debug.log*

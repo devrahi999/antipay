@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Settings, Save, ShieldCheck, Mail, Phone, MapPin, Facebook, MessageCircle, Loader2, Megaphone } from "lucide-react"
+import { Settings, Save, ShieldCheck, Mail, Phone, MapPin, Facebook, MessageCircle, Loader2, Megaphone, Download, Smartphone, ExternalLink } from "lucide-react"
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminSettingsPage() {
@@ -30,6 +30,8 @@ export default function AdminSettingsPage() {
     supportPhone: '',
     officeAddress: '',
     announcementText: '',
+    androidApkUrl: '',
+    androidAppVersion: '',
     showAnnouncement: false,
     maintenanceMode: false
   });
@@ -43,6 +45,8 @@ export default function AdminSettingsPage() {
         supportPhone: globalSettings.supportPhone || '',
         officeAddress: globalSettings.officeAddress || '',
         announcementText: globalSettings.announcementText || '',
+        androidApkUrl: globalSettings.androidApkUrl || '',
+        androidAppVersion: globalSettings.androidAppVersion || '',
         showAnnouncement: globalSettings.showAnnouncement || false,
         maintenanceMode: globalSettings.maintenanceMode || false
       });
@@ -194,6 +198,58 @@ export default function AdminSettingsPage() {
                   onChange={e => setFormData({...formData, officeAddress: e.target.value})}
                 />
               </div>
+            </CardContent>
+          </Card>
+          {/* Android App Distribution */}
+          <Card className="bg-[#162129] border-none shadow-xl lg:col-span-2">
+            <CardHeader className="border-b border-white/5 pb-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-sky-400">
+                <Smartphone className="h-5 w-5" /> Android App Distribution
+              </CardTitle>
+              <CardDescription>
+                The APK link served by the "Download Latest APK" button on every merchant's Android Node page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-2">
+                    <Download className="h-3 w-3" /> APK Download URL
+                  </Label>
+                  <Input
+                    placeholder="https://your-cdn.com/antipay-sync.apk"
+                    className="bg-[#0b141a] border-border/10 h-11 text-white font-mono text-xs"
+                    value={formData.androidApkUrl}
+                    onChange={e => setFormData({...formData, androidApkUrl: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-2">
+                    <Smartphone className="h-3 w-3" /> App Version
+                  </Label>
+                  <Input
+                    placeholder="2.1"
+                    className="bg-[#0b141a] border-border/10 h-11 text-white"
+                    value={formData.androidAppVersion}
+                    onChange={e => setFormData({...formData, androidAppVersion: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {formData.androidApkUrl ? (
+                <a
+                  href={formData.androidApkUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-sky-400 hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" /> Test this link
+                </a>
+              ) : (
+                <p className="text-[10px] text-amber-500/80 italic">
+                  No link set — the download button stays disabled for merchants until you add one.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

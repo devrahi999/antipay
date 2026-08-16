@@ -8,6 +8,7 @@ import { CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Loader2, RefreshCcw, C
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useSearchParams, useRouter } from "next/navigation";
 import { notifyPlanActivation } from "@/app/actions/notifications";
+import { planActivationFlags, restoreBillingSuspendedBrands } from "@/lib/plan-lifecycle";
 
 function PaymentSuccessContent() {
   const { user, isUserLoading } = useUser();
@@ -74,7 +75,9 @@ function PaymentSuccessContent() {
             benefits: plan.benefits || [],
             activatedAt: serverTimestamp(),
             expiresAt: Timestamp.fromDate(expiry),
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
+            // Clears any "expired" markers left by a previous validity period
+            ...planActivationFlags()
           }, { merge: true });
 
           // 2. Update user profile (Main flags)
@@ -82,8 +85,14 @@ function PaymentSuccessContent() {
             subscriptionPlanId: planId,
             subscriptionStartedAt: serverTimestamp(),
             subscriptionExpiresAt: Timestamp.fromDate(expiry),
+            subscriptionStatus: 'active',
             updatedAt: serverTimestamp()
           });
+
+          // 2b. Bring back brands that were suspended when the last plan ran out
+          await restoreBillingSuspendedBrands(db, user.uid).catch(e =>
+            console.error("Brand restore failed:", e)
+          );
 
           // 3. Mark transaction as consumed
           await updateDoc(txRef!, { 

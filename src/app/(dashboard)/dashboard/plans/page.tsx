@@ -11,6 +11,7 @@ import { Check, Zap, Loader2, Sparkles, Clock, AlertCircle, Infinity as Infinity
 import { useToast } from '@/hooks/use-toast';
 import { createPlanPaymentSession } from '@/app/actions/payment';
 import { notifyPlanActivation } from '@/app/actions/notifications';
+import { planActivationFlags, restoreBillingSuspendedBrands } from '@/lib/plan-lifecycle';
 import { useRouter } from 'next/navigation';
 
 export default function BrowsePlansPage() {
@@ -61,9 +62,12 @@ export default function BrowsePlansPage() {
           maxApiKeys: plan.maxApiKeys,
           maxDevices: plan.maxDevices,
           benefits: plan.benefits || [],
+          isTrial: true, // keeps the 30-day window even for a lifetime plan's trial
           activatedAt: serverTimestamp(),
           expiresAt: Timestamp.fromDate(expiry),
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          // Clears any "expired" markers left by a previous validity period
+          ...planActivationFlags()
         }, { merge: true });
 
         // 2. Update user profile (Flags + mark trial as used)
@@ -71,6 +75,7 @@ export default function BrowsePlansPage() {
           subscriptionPlanId: plan.id,
           subscriptionStartedAt: serverTimestamp(),
           subscriptionExpiresAt: Timestamp.fromDate(expiry),
+          subscriptionStatus: 'active',
           free_trial: 'used',
           updatedAt: serverTimestamp()
         });
@@ -91,6 +96,11 @@ export default function BrowsePlansPage() {
         });
 
         await batch.commit();
+
+        // Bring back brands that a previous expiry/cancellation had suspended
+        await restoreBillingSuspendedBrands(db, user.uid).catch(e =>
+          console.error("Brand restore failed:", e)
+        );
 
         // 4. Notify via Email
         if (user.email) {

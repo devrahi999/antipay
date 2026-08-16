@@ -22,12 +22,14 @@ service cloud.firestore {
     }
 
     // Webhook and Activation Access
-    match /plan_transactions/{txId} {
+    match /plan_transactions/{sessionId} {
       allow read, write: if true;
     }
 
+    
     match /transactions/{trxId} {
-      allow read, write: if true;
+      allow create, read, update: if true;
+      allow delete: if false;
     }
 
     // --- Existing System Rules (Preserved) ---
@@ -70,6 +72,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Manual admin review requests raised from the checkout page.
+    // The gateway route runs unauthenticated (client SDK, server-side), so the
+    // submission and the settlement write have to stay open — same posture as
+    // `payment_sessions` and `transactions` above. Browsing and deleting are
+    // locked to the owning merchant so nobody can read another merchant's queue.
+    match /pending_transactions/{reviewId} {
+      allow get, create, update: if true;
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
     match /devices/{brandId} {
       allow read, write: if isSignedIn();
     }
@@ -83,4 +96,4 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
   }
-}
+} 

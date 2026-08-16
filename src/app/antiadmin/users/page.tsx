@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { notifyPlanExpiration, notifyPlanActivation } from '@/app/actions/notifications';
+import { restoreBillingSuspendedBrands } from '@/lib/plan-lifecycle';
 
 export default function ManageUsersPage() {
   const db = useFirestore();
@@ -108,6 +109,8 @@ export default function ManageUsersPage() {
         benefits: plan.benefits || [],
         activatedAt: serverTimestamp(),
         expiresAt: Timestamp.fromDate(expiry),
+        status: 'active',
+        isExpired: false,
         updatedAt: serverTimestamp()
       });
 
@@ -116,8 +119,14 @@ export default function ManageUsersPage() {
         subscriptionPlanId: plan.id,
         subscriptionStartedAt: serverTimestamp(),
         subscriptionExpiresAt: Timestamp.fromDate(expiry),
+        subscriptionStatus: 'active',
         updatedAt: serverTimestamp()
       });
+
+      // 2b. Re-enable brands suspended by a previous expiry/cancellation
+      await restoreBillingSuspendedBrands(db, selectedUser.id).catch(e =>
+        console.error("Brand restore failed:", e)
+      );
 
       // 3. Log transaction
       const txRef = doc(collection(db, 'plan_transactions'));

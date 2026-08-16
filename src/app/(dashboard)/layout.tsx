@@ -7,6 +7,7 @@ import { useUser, useAuth } from '@/firebase';
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/header";
+import { usePlanEnforcement } from '@/hooks/use-plan-enforcement';
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,9 @@ export default function DashboardLayout({
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+
+  // Revoke access the moment a plan's validity ends (and restore it on renewal).
+  usePlanEnforcement();
 
   useEffect(() => {
     // Redirect to login if not authenticated

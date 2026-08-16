@@ -1,10 +1,24 @@
 "use client"
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Smartphone, Download, ShieldCheck, Zap } from "lucide-react"
+import { Smartphone, Download, ShieldCheck, Zap, Loader2, Ban } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { doc } from "firebase/firestore"
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 
 export default function AndroidAppPage() {
+  const db = useFirestore();
+
+  // The APK link is set by an admin in Global Settings.
+  const settingsRef = useMemoFirebase(() => {
+    if (!db) return null;
+    return doc(db, 'settings', 'global');
+  }, [db]);
+  const { data: settings, isLoading } = useDoc(settingsRef);
+
+  const apkUrl = (settings?.androidApkUrl || '').trim();
+  const appVersion = (settings?.androidAppVersion || '').trim();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -20,7 +34,7 @@ export default function AndroidAppPage() {
             <Smartphone size={200} />
           </div>
           <CardHeader>
-            <CardTitle>AntiPay Sync v2.1</CardTitle>
+            <CardTitle>AntiPay Sync{appVersion ? ` v${appVersion}` : ''}</CardTitle>
             <CardDescription>The gateway between your local device and our verification engine.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 relative z-10">
@@ -43,13 +57,31 @@ export default function AndroidAppPage() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button className="w-full md:w-auto bg-primary hover:bg-primary/90 font-bold h-11 px-8">
-                <Download className="mr-2 h-4 w-4" /> Download Latest APK
-              </Button>
+              {isLoading ? (
+                <Button disabled className="w-full md:w-auto bg-primary/50 font-bold h-11 px-8">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking for build...
+                </Button>
+              ) : apkUrl ? (
+                <Button asChild className="w-full md:w-auto bg-primary hover:bg-primary/90 font-bold h-11 px-8">
+                  <a href={apkUrl} target="_blank" rel="noreferrer" download>
+                    <Download className="mr-2 h-4 w-4" /> Download Latest APK
+                  </a>
+                </Button>
+              ) : (
+                <Button disabled className="w-full md:w-auto font-bold h-11 px-8">
+                  <Ban className="mr-2 h-4 w-4" /> Download Unavailable
+                </Button>
+              )}
               <Button variant="outline" className="w-full md:w-auto h-11 px-8">
                 View Configuration Guide
               </Button>
             </div>
+
+            {!isLoading && !apkUrl && (
+              <p className="text-xs text-muted-foreground italic">
+                The build is not published yet. Please check back shortly or contact support.
+              </p>
+            )}
           </CardContent>
         </Card>
 

@@ -48,6 +48,7 @@ import {
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { uploadLogoAction } from '@/app/actions/upload';
+import { isPlanActive } from '@/lib/plan';
 import Link from 'next/link';
 
 export function BrandsPageClient() {
@@ -95,7 +96,9 @@ export function BrandsPageClient() {
 
   const { data: brands, isLoading } = useCollection(brandsQuery);
 
-  const canAddBrand = activePlan && (brands ? brands.length < activePlan.maxApiKeys : true);
+  // An expired plan grants nothing — treat it like having no plan at all.
+  const planActive = isPlanActive(activePlan);
+  const canAddBrand = planActive && (brands ? brands.length < activePlan.maxApiKeys : true);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,7 +135,13 @@ export function BrandsPageClient() {
     if (!user || !db) return;
 
     if (!isEditMode && !canAddBrand) {
-      toast({ variant: "destructive", title: "Limit Reached", description: "Your current plan does not allow more brands." });
+      toast({
+        variant: "destructive",
+        title: planActive ? "Limit Reached" : "No Active Plan",
+        description: planActive
+          ? "Your current plan does not allow more brands."
+          : "Your subscription has ended. Renew a plan to create brands."
+      });
       return;
     }
 
@@ -256,6 +265,10 @@ export function BrandsPageClient() {
     toast({ title: "Copied!", description: "API Key copied to your clipboard." });
   };
 
+  // `status` is the flag the payment gateway honours; `isActive` is the dashboard mirror.
+  // A brand is only live when neither says otherwise.
+  const isBrandLive = (brand: any) => brand?.status !== 'inactive' && brand?.isActive !== false;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -264,17 +277,22 @@ export function BrandsPageClient() {
           <p className="text-sm text-muted-foreground">Manage your AntiPay store identities and integration credentials.</p>
         </div>
         
-        {!activePlan ? (
-          <Button asChild className="ios-btn bg-amber-500 hover:bg-amber-600 font-bold">
-            <Link href="/dashboard/plans"><Lock className="mr-2 h-4 w-4" /> Buy Plan to Add Brand</Link>
-          </Button>
-        ) : (
-          <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsDialogOpen(open); }}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsDialogOpen(open); }}>
+          {!planActive ? (
+            // No plan, or the plan's validity has ended: point them at billing.
+            // Editing existing brands still works — they are already suspended at the gateway.
+            <Button asChild className="ios-btn bg-amber-500 hover:bg-amber-600 font-bold">
+              <Link href="/dashboard/plans">
+                <Lock className="mr-2 h-4 w-4" /> {activePlan ? 'Renew Plan to Add Brand' : 'Buy Plan to Add Brand'}
+              </Link>
+            </Button>
+          ) : (
             <DialogTrigger asChild>
               <Button disabled={!canAddBrand} className="ios-btn bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-lg shadow-[#16a34a]/20 border-none">
                 <Plus className="mr-2 h-4 w-4" /> {canAddBrand ? 'Add New Brand' : 'Limit Reached'}
               </Button>
             </DialogTrigger>
+          )}
             <DialogContent className="sm:max-w-[800px] bg-[#0b141a] border-border/20 text-foreground p-0 overflow-hidden shadow-2xl">
               <DialogHeader className="p-4 border-b border-border/10 bg-[#162129]">
                 <div className="flex items-center gap-2 text-[#16a34a]">
@@ -417,7 +435,6 @@ export function BrandsPageClient() {
               </form>
             </DialogContent>
           </Dialog>
-        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -429,7 +446,7 @@ export function BrandsPageClient() {
         ) : brands && brands.length > 0 ? (
           brands.map((brand) => (
             <Card key={brand.id} className="bg-[#0b141a] border-border/40 shadow-xl overflow-hidden flex flex-col group hover:border-primary/20 transition-all duration-300">
-              <div className="h-1.5 bg-[#16a34a] w-full" />
+              <div className={`h-1.5 w-full ${isBrandLive(brand) ? 'bg-[#16a34a]' : 'bg-rose-500'}`} />
               <CardHeader className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-14 w-14 rounded-2xl bg-[#162129] border border-border/10 flex items-center justify-center text-[#16a34a] font-bold text-xl uppercase shadow-inner overflow-hidden">
@@ -442,8 +459,8 @@ export function BrandsPageClient() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg font-bold text-slate-100 truncate">{brand.name}</CardTitle>
-                      <Badge variant="outline" className={`text-[8px] uppercase px-2 py-0 h-5 font-black ${brand.isActive === false ? 'border-rose-500/30 text-rose-500 bg-rose-500/10' : 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10'}`}>
-                        {brand.isActive === false ? 'Inactive' : 'Active'}
+                      <Badge variant="outline" className={`text-[8px] uppercase px-2 py-0 h-5 font-black ${!isBrandLive(brand) ? 'border-rose-500/30 text-rose-500 bg-rose-500/10' : 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10'}`}>
+                        {!isBrandLive(brand) ? 'Inactive' : 'Active'}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
@@ -468,6 +485,17 @@ export function BrandsPageClient() {
                     </div>
                   </div>
                 </div>
+
+                {!isBrandLive(brand) && (
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/5 border border-rose-500/20">
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
+                    <p className="text-[10px] font-bold text-rose-400 leading-snug">
+                      {brand.deactivatedReason === 'plan_expired'
+                        ? 'Suspended — your subscription expired. This key will not verify any payment until you renew.'
+                        : 'Inactive — this key will not verify any payment.'}
+                    </p>
+                  </div>
+                )}
               </CardContent>
 
               <CardFooter className="p-6 pt-0 border-t border-border/5 bg-[#162129]/20 grid grid-cols-2 gap-3 mt-auto">
@@ -496,12 +524,21 @@ export function BrandsPageClient() {
               </div>
               <h3 className="text-lg font-bold text-slate-200">No Brands Configured</h3>
               <p className="text-xs text-muted-foreground max-w-xs">Create your first brand identity to generate an API key and start collecting payments.</p>
-              <Button 
-                onClick={() => setIsDialogOpen(true)}
-                className="mt-6 bg-[#16a34a] hover:bg-[#15803d] rounded-xl font-bold px-8"
-              >
-                Create My First Brand
-              </Button>
+              {planActive ? (
+                <Button
+                  onClick={() => setIsDialogOpen(true)}
+                  disabled={!canAddBrand}
+                  className="mt-6 bg-[#16a34a] hover:bg-[#15803d] rounded-xl font-bold px-8"
+                >
+                  Create My First Brand
+                </Button>
+              ) : (
+                <Button asChild className="mt-6 bg-amber-500 hover:bg-amber-600 rounded-xl font-bold px-8">
+                  <Link href="/dashboard/plans">
+                    <Lock className="mr-2 h-4 w-4" /> {activePlan ? 'Renew Your Plan' : 'Buy a Plan First'}
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -521,7 +558,9 @@ export function BrandsPageClient() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
                         <DialogTitle className="text-2xl font-headline font-black text-white">{selectedBrand.name}</DialogTitle>
-                        <Badge className="bg-[#16a34a]/20 text-[#16a34a] border-[#16a34a]/10 text-[9px] uppercase px-3">Live Instance</Badge>
+                        <Badge className={`text-[9px] uppercase px-3 ${isBrandLive(selectedBrand) ? 'bg-[#16a34a]/20 text-[#16a34a] border-[#16a34a]/10' : 'bg-rose-500/20 text-rose-400 border-rose-500/10'}`}>
+                          {isBrandLive(selectedBrand) ? 'Live Instance' : 'Suspended'}
+                        </Badge>
                       </div>
                       <DialogDescription className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
                         <LinkIcon className="h-3 w-3" /> {selectedBrand.websiteUrl}

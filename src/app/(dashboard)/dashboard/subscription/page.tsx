@@ -18,12 +18,22 @@ import {
   Trash2,
   Infinity as InfinityIcon,
   SmartphoneNfc,
-  Tags
+  Tags,
+  RefreshCcw,
+  ShieldAlert
 } from "lucide-react"
-import { doc, deleteField, serverTimestamp, query, collection, where, writeBatch } from 'firebase/firestore';
+import { doc, deleteField, serverTimestamp, query, collection, where, writeBatch, limit } from 'firebase/firestore';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import {
+  getDaysRemaining,
+  getPlanExpiry,
+  getPlanState,
+  isExpiringSoon,
+  isLifetimePlan,
+  toDate
+} from '@/lib/plan';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,9 +61,10 @@ export default function MySubscriptionPage() {
   const { data: activePlan, isLoading: isPlanLoading } = useDoc(activePlanRef);
 
   // Fetch real-time count of brands/stores
+  // (`limit(100)` keeps this within the `stores` list rule: request.query.limit <= 100)
   const storesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(collection(db, 'stores'), where('userId', '==', user.uid));
+    return query(collection(db, 'stores'), where('userId', '==', user.uid), limit(100));
   }, [db, user?.uid]);
   const { data: stores } = useCollection(storesQuery);
 
@@ -76,10 +87,17 @@ export default function MySubscriptionPage() {
         subscriptionExpiresAt: deleteField(),
         updatedAt: serverTimestamp()
       });
-      // Deactivate stores when subscription canceled
+      // Deactivate stores when subscription canceled.
+      // `status` is the field the payment gateway checks, so both must be set —
+      // flipping only `isActive` would leave the API keys live.
       if (stores) {
         stores.forEach((store) => {
-          batch.update(doc(db, 'stores', store.id), { isActive: false, updatedAt: serverTimestamp() });
+          batch.update(doc(db, 'stores', store.id), {
+            status: 'inactive',
+            isActive: false,
+            deactivatedReason: 'subscription_canceled',
+            updatedAt: serverTimestamp()
+          });
         });
       }
       await batch.commit();
@@ -100,11 +118,16 @@ export default function MySubscriptionPage() {
     );
   }
 
-  const hasActivePlan = !!activePlan;
-  const isLifetime = activePlan?.billingCycle === 'lifetime';
-  const startDate = activePlan?.activatedAt?.toDate ? activePlan.activatedAt.toDate() : null;
-  const expiryDate = activePlan?.expiresAt?.toDate ? activePlan.expiresAt.toDate() : null;
-  const daysLeft = expiryDate ? Math.max(0, Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+  // Validity is derived from `expiresAt` + `billingCycle`, never from `!!activePlan`.
+  // An expired plan is treated exactly like no plan at all.
+  const planState = getPlanState(activePlan);
+  const hasActivePlan = planState === 'active';
+  const isExpired = planState === 'expired';
+  const isLifetime = isLifetimePlan(activePlan);
+  const startDate = toDate(activePlan?.activatedAt);
+  const expiryDate = getPlanExpiry(activePlan); // null for lifetime — no renew date
+  const daysLeft = getDaysRemaining(activePlan) ?? 0;
+  const expiringSoon = isExpiringSoon(activePlan);
 
   // Real Quota Calculations based on database results
   const brandsCount = stores?.length || 0;
@@ -124,12 +147,66 @@ export default function MySubscriptionPage() {
         </div>
         <Button asChild className="bg-[#16a34a] hover:bg-[#15803d] font-bold shadow-lg shadow-[#16a34a]/20">
           <Link href="/dashboard/plans">
-            <ArrowUpCircle className="mr-2 h-4 w-4" /> {hasActivePlan ? "Upgrade Plan" : "Get a Plan"}
+            {isExpired ? (
+              <><RefreshCcw className="mr-2 h-4 w-4" /> Renew Plan</>
+            ) : (
+              <><ArrowUpCircle className="mr-2 h-4 w-4" /> {hasActivePlan ? "Upgrade Plan" : "Get a Plan"}</>
+            )}
           </Link>
         </Button>
       </div>
 
-      {!hasActivePlan ? (
+      {expiringSoon && (
+        <Card className="bg-amber-500/5 border-amber-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+            <Clock size={20} />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-amber-400 uppercase tracking-tight">
+              Expiring in {daysLeft} {daysLeft === 1 ? 'Day' : 'Days'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Renew before {expiryDate ? format(expiryDate, 'MMM dd, yyyy') : 'expiry'} to keep your brands live — access is
+              revoked automatically when the validity ends.
+            </p>
+          </div>
+          <Button asChild size="sm" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 font-bold h-9 px-5 rounded-xl">
+            <Link href="/dashboard/plans">Renew Now</Link>
+          </Button>
+        </Card>
+      )}
+
+      {isExpired ? (
+        <Card className="bg-[#0b141a] border-2 border-dashed border-rose-500/30 p-12 text-center flex flex-col items-center gap-6 shadow-2xl rounded-3xl">
+          <div className="h-20 w-20 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner">
+            <ShieldAlert size={40} />
+          </div>
+          <div className="space-y-3">
+            <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[10px] uppercase font-bold px-3 py-1">
+              Subscription Expired
+            </Badge>
+            <h3 className="text-2xl font-black text-slate-100 uppercase tracking-tight">Access Revoked</h3>
+            <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
+              Your <span className="font-bold text-slate-200">{activePlan?.planName || 'subscription'}</span> plan validity
+              ended{expiryDate ? ` on ${format(expiryDate, 'MMM dd, yyyy')}` : ''}. All brands have been deactivated and your
+              API keys will no longer verify payments. Renew to restore everything instantly.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <Button asChild className="bg-[#16a34a] hover:bg-[#15803d] h-12 px-10 font-black rounded-xl shadow-xl shadow-[#16a34a]/20">
+              <Link href="/dashboard/plans"><RefreshCcw className="mr-2 h-4 w-4" /> Renew Subscription</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 px-8 font-bold rounded-xl border-border/20">
+              <Link href="/dashboard/brands">Review My Brands</Link>
+            </Button>
+          </div>
+          {(brandsCount > 0 || devicesCount > 0) && (
+            <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest pt-2">
+              {brandsCount} brand(s) · {devicesCount} device node(s) currently suspended
+            </p>
+          )}
+        </Card>
+      ) : !hasActivePlan ? (
         <Card className="bg-[#0b141a] border-2 border-dashed border-primary/20 p-12 text-center flex flex-col items-center gap-6 shadow-2xl rounded-3xl">
           <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
             <Zap size={40} className="animate-pulse" />
