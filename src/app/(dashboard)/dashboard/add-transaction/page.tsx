@@ -217,9 +217,9 @@ export default function AddTransactionPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-headline font-bold text-foreground">Add Transaction</h1>
+          <h1 className="text-2xl font-headline font-bold text-foreground">Transactions</h1>
           <p className="text-sm text-muted-foreground">
-            Insert a raw payment record manually into your verification pool.
+            Your verification pool — every payment record on your account, and a place to add one manually.
           </p>
         </div>
 

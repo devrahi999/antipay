@@ -42,7 +42,7 @@ const navItems = [
   { title: "Overview", icon: LayoutDashboard, url: "/dashboard" },
   { title: "Brands", icon: Tags, url: "/dashboard/brands" },
   { title: "Payment History", icon: History, url: "/dashboard/transactions" },
-  { title: "Add Transaction", icon: DatabaseZap, url: "/dashboard/add-transaction" },
+  { title: "Transactions", icon: DatabaseZap, url: "/dashboard/add-transaction" },
   { title: "Pending Payments", icon: Hourglass, url: "/dashboard/pending-payments" },
   { title: "Invoices", icon: FileText, url: "/dashboard/invoices" },
   { title: "Payment Methods", icon: WalletCards, url: "/dashboard/payment-methods" },

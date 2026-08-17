@@ -48,7 +48,14 @@ const STATUS_STYLES: Record<string, string> = {
   pending: 'border-amber-500/30 text-amber-400 bg-amber-500/10',
   processing: 'border-sky-500/30 text-sky-400 bg-sky-500/10',
   completed: 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10',
+  // The money side is settled but the merchant's server never acknowledged us.
+  // It is deliberately NOT green — calling that "completed" hides a real problem.
+  webhook_failed: 'border-rose-500/30 text-rose-400 bg-rose-500/10',
   rejected: 'border-rose-500/30 text-rose-400 bg-rose-500/10',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  webhook_failed: 'Merchant Not Notified',
 };
 
 export default function PendingPaymentDetailsPage() {
@@ -104,7 +111,10 @@ export default function PendingPaymentDetailsPage() {
       });
       const result = await res.json();
 
-      if (!res.ok || result.status !== 'completed') {
+      // The route settles the payment first and notifies second, so a failed
+      // webhook comes back as `webhook_failed` — the payment IS settled, only
+      // the notification did not land. Both are valid outcomes, not errors.
+      if (!res.ok || (result.status !== 'completed' && result.status !== 'webhook_failed')) {
         throw new Error(result.message || 'Could not complete this payment');
       }
 
@@ -118,8 +128,10 @@ export default function PendingPaymentDetailsPage() {
       } else {
         toast({
           variant: "destructive",
-          title: "Completed, Webhook Failed",
-          description: "The payment is marked complete but the webhook did not respond. You can retry it."
+          title: "Settled — Your Server Refused The Webhook",
+          description: result.webhookError
+            ? `${result.webhookError} The payment is settled on our side; fix your endpoint and hit Retry Webhook.`
+            : "The payment is settled on our side but your endpoint never accepted the notification. You can retry it."
         });
       }
     } catch (error: any) {
@@ -190,9 +202,21 @@ export default function PendingPaymentDetailsPage() {
 
   const isPending = review.status === 'pending';
   const isCompleted = review.status === 'completed';
-  const webhookRetryable = isCompleted && review.webhookDelivered === false;
+  // `webhook_failed` is the new explicit state; the second clause keeps older
+  // documents (written before that status existed) retryable too.
+  const webhookRetryable =
+    review.status === 'webhook_failed' || (isCompleted && review.webhookDelivered === false);
   const canAct = isPending || webhookRetryable;
   const busy = isCompleting || isRejecting;
+
+  // Approving a review WRITES `transactions/{trxId}` itself, so after the first
+  // attempt the document always exists — warning about it then would be warning
+  // about our own write. Only flag it when the record belongs to a different
+  // session, and only when it was actually consumed (`used`); a TrxID sitting in
+  // the pool as `unused` is the normal, healthy case.
+  const trxFromThisReview = !!existingTrx && existingTrx.sessionId === review.sessionId;
+  const trxIsDuplicate = !!existingTrx && !trxFromThisReview && existingTrx.status === 'used';
+  const trxAvailableInPool = !!existingTrx && !trxFromThisReview && existingTrx.status !== 'used';
 
   const Row = ({ icon: Icon, label, value, mono, accent }: any) => (
     <div className="flex items-start justify-between gap-4 py-3">
@@ -221,26 +245,40 @@ export default function PendingPaymentDetailsPage() {
         >
           {review.status === 'pending' && <Hourglass className="h-3 w-3 mr-1.5" />}
           {review.status === 'completed' && <CheckCircle2 className="h-3 w-3 mr-1.5" />}
-          {review.status}
+          {review.status === 'webhook_failed' && <AlertTriangle className="h-3 w-3 mr-1.5" />}
+          {STATUS_LABELS[review.status] || review.status}
         </Badge>
       </div>
 
-      {existingTrx && (
+      {trxIsDuplicate && (
         <Card className="bg-rose-500/5 border-rose-500/30 p-4 rounded-2xl flex items-start gap-3">
           <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-[11px] font-black uppercase tracking-widest text-rose-400">Duplicate TrxID Warning</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              <span className="font-mono font-bold text-slate-200">{review.trxId}</span> already exists in your transaction
-              pool with status <span className="font-mono font-bold text-slate-200">{existingTrx.status}</span>
-              {existingTrx.amount != null && <> and amount <span className="font-bold text-slate-200">৳{existingTrx.amount}</span></>}.
-              Check carefully before approving — the same ID may already have settled another payment.
+              <span className="font-mono font-bold text-slate-200">{review.trxId}</span> has already been consumed by another
+              payment
+              {existingTrx?.amount != null && <> for <span className="font-bold text-slate-200">৳{existingTrx.amount}</span></>}
+              {existingTrx?.sessionId && <> (session <span className="font-mono text-slate-300">{existingTrx.sessionId}</span>)</>}.
+              Check carefully before approving — the same ID may already have settled a different order.
             </p>
           </div>
         </Card>
       )}
 
-      {Number(review.amount) !== Number(review.session?.amount) && (
+      {trxAvailableInPool && (
+        <Card className="bg-sky-500/5 border-sky-500/30 p-4 rounded-2xl flex items-start gap-3">
+          <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-mono font-bold text-slate-200">{review.trxId}</span> exists in your transaction pool and is
+            still <span className="font-mono font-bold text-slate-200">{existingTrx?.status}</span>
+            {existingTrx?.amount != null && <> for <span className="font-bold text-slate-200">৳{existingTrx.amount}</span></>} —
+            the money record is there and has not been spent, so this claim looks genuine.
+          </p>
+        </Card>
+      )}
+
+      {review.session?.amount != null && Number(review.amount) !== Number(review.session.amount) && (
         <Card className="bg-amber-500/5 border-amber-500/30 p-4 rounded-2xl flex items-start gap-3">
           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -330,9 +368,9 @@ export default function PendingPaymentDetailsPage() {
               <p className="text-xs font-black uppercase tracking-widest text-slate-200">Your Decision</p>
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
                 {isPending
-                  ? "Confirm the money actually reached your account before completing. Completing calls the merchant webhook and closes the payment."
+                  ? "Confirm the money actually reached your account before completing. Completing closes the payment first, then calls your webhook."
                   : webhookRetryable
-                    ? "This payment is complete but the webhook never responded. You can send it again."
+                    ? "The payment is already settled — the session is closed and the TrxID is burned. Only the notification to your server failed, so retrying just sends the webhook again."
                     : "This request has already been settled."}
               </p>
             </div>
@@ -357,9 +395,9 @@ export default function PendingPaymentDetailsPage() {
                       <AlertDialogDescription className="text-muted-foreground">
                         {review.webhook_url ? (
                           <>
-                            AntiPay will call <span className="font-mono text-slate-200 break-all">{review.webhook_url}</span> and
-                            report the payment as verified for ৳{Number(review.amount || 0).toFixed(2)}. The session will be
-                            closed so it cannot be paid again.
+                            AntiPay will close the session as verified for ৳{Number(review.amount || 0).toFixed(2)} first, then
+                            call <span className="font-mono text-slate-200 break-all">{review.webhook_url}</span> to notify you.
+                            Settling before notifying means your server sees a verified payment the moment the webhook arrives.
                           </>
                         ) : (
                           <>No webhook URL is set for this payment, so nothing will be called — the session will simply be closed as verified.</>
@@ -379,6 +417,10 @@ export default function PendingPaymentDetailsPage() {
                   </AlertDialogContent>
                 </AlertDialog>
 
+                {/* Only an unsettled request can be rejected. Once the session is
+                    closed and the TrxID burned, deleting the record would erase
+                    the only trace of a payment that already went through. */}
+                {isPending && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -412,6 +454,7 @@ export default function PendingPaymentDetailsPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                )}
               </div>
             ) : (
               <div className="rounded-xl bg-[#162129] border border-border/10 p-4 flex items-center gap-3">
@@ -435,9 +478,30 @@ export default function PendingPaymentDetailsPage() {
                   <CheckCircle2 className="h-3 w-3" /> Delivered successfully
                 </p>
               ) : review.webhookDelivered === false ? (
-                <p className="text-[11px] font-bold text-rose-400 flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" /> Delivery failed after 3 attempts
-                </p>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-rose-400 flex items-center gap-2">
+                    <AlertTriangle className="h-3 w-3 shrink-0" /> Delivery failed after 3 attempts
+                  </p>
+                  {review.webhookError && (
+                    <p className="text-[10px] text-rose-300/80 leading-relaxed bg-rose-500/5 border border-rose-500/20 rounded-lg p-2.5 break-all">
+                      {review.webhookError}
+                    </p>
+                  )}
+                  {Array.isArray(review.webhookAttempts) && review.webhookAttempts.length > 0 && (
+                    <ul className="space-y-1">
+                      {review.webhookAttempts.map((a: any, i: number) => (
+                        <li key={i} className="text-[10px] text-muted-foreground/80 leading-snug font-mono break-all">
+                          #{a.attempt} → {a.status != null ? `HTTP ${a.status}` : 'no response'}
+                          {a.error ? ` — ${a.error}` : a.body ? ` — ${String(a.body).slice(0, 120)}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                    Your endpoint must answer with a 2xx status. The payment itself is already settled — retrying only re-sends
+                    the notification.
+                  </p>
+                </div>
               ) : (
                 <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
                   <Webhook className="h-3 w-3" /> Not called yet

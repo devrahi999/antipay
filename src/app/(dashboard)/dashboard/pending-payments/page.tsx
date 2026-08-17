@@ -23,16 +23,29 @@ import {
 import Link from 'next/link';
 import { format } from 'date-fns';
 
-/** pending → awaiting the merchant, processing → settling, completed/rejected → done. */
+/**
+ * pending → awaiting the merchant, processing → settling, completed/rejected → done.
+ * webhook_failed → settled on our side, but the merchant's server never accepted
+ * the notification, so it still needs their attention.
+ */
 const STATUS_STYLES: Record<string, string> = {
   pending: 'border-amber-500/30 text-amber-400 bg-amber-500/10',
   processing: 'border-sky-500/30 text-sky-400 bg-sky-500/10',
   completed: 'border-[#16a34a]/30 text-[#16a34a] bg-[#16a34a]/10',
+  webhook_failed: 'border-rose-500/30 text-rose-400 bg-rose-500/10',
   rejected: 'border-rose-500/30 text-rose-400 bg-rose-500/10',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  webhook_failed: 'not notified',
+};
+
+/** Anything that still needs the merchant to act on it. */
+const isOpen = (status: string) =>
+  status === 'pending' || status === 'processing' || status === 'webhook_failed';
+
 const FILTERS = [
-  { key: 'pending', label: 'Pending' },
+  { key: 'pending', label: 'Needs Action' },
   { key: 'completed', label: 'Completed' },
   { key: 'all', label: 'All' },
 ];
@@ -66,15 +79,15 @@ export default function PendingPaymentsPage() {
   };
 
   const all = reviews || [];
-  const pendingCount = all.filter((r) => r.status === 'pending' || r.status === 'processing').length;
+  const pendingCount = all.filter((r) => isOpen(r.status)).length;
   const completedCount = all.filter((r) => r.status === 'completed').length;
   const pendingValue = all
-    .filter((r) => r.status === 'pending' || r.status === 'processing')
+    .filter((r) => isOpen(r.status))
     .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
   const visible = all
     .filter((r) => {
-      if (activeFilter === 'pending') return r.status === 'pending' || r.status === 'processing';
+      if (activeFilter === 'pending') return isOpen(r.status);
       if (activeFilter === 'completed') return r.status === 'completed';
       return true;
     })
@@ -90,9 +103,9 @@ export default function PendingPaymentsPage() {
       );
     })
     .sort((a, b) => {
-      // Pending first, then newest.
-      const aPending = a.status === 'pending' || a.status === 'processing' ? 1 : 0;
-      const bPending = b.status === 'pending' || b.status === 'processing' ? 1 : 0;
+      // Anything needing action first, then newest.
+      const aPending = isOpen(a.status) ? 1 : 0;
+      const bPending = isOpen(b.status) ? 1 : 0;
       if (aPending !== bPending) return bPending - aPending;
       return (parseDate(b.submittedAt)?.getTime() ?? 0) - (parseDate(a.submittedAt)?.getTime() ?? 0);
     });
@@ -228,7 +241,7 @@ export default function PendingPaymentsPage() {
                           variant="outline"
                           className={`text-[8px] uppercase font-black px-2 py-0.5 ${STATUS_STYLES[r.status] || 'border-border/30 text-muted-foreground'}`}
                         >
-                          {r.status || "unknown"}
+                          {STATUS_LABELS[r.status] || r.status || "unknown"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-[10px] text-muted-foreground">{formatDate(r.submittedAt)}</TableCell>
